@@ -14,7 +14,7 @@ var log = logf.KBLog.WithName("eventhandler").WithName("EnqueueRequestForObject"
 type EnqueueRequestForUnstructured struct{}
 
 func (e EnqueueRequestForUnstructured) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
-	sbrSelector, err := common.GetSBRSelectorFromObject(evt.Object)
+	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.Object)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return
@@ -27,7 +27,7 @@ func (e EnqueueRequestForUnstructured) Create(evt event.CreateEvent, q workqueue
 }
 
 func (e EnqueueRequestForUnstructured) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	sbrSelector, err := common.GetSBRSelectorFromObject(evt.ObjectNew)
+	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.ObjectNew)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return
@@ -40,7 +40,7 @@ func (e EnqueueRequestForUnstructured) Update(evt event.UpdateEvent, q workqueue
 }
 
 func (e EnqueueRequestForUnstructured) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
-	sbrSelector, err := common.GetSBRSelectorFromObject(evt.Object)
+	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.Object)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return
@@ -53,7 +53,7 @@ func (e EnqueueRequestForUnstructured) Delete(evt event.DeleteEvent, q workqueue
 }
 
 func (e EnqueueRequestForUnstructured) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
-	sbrSelector, err := common.GetSBRSelectorFromObject(evt.Object)
+	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.Object)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return

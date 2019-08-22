@@ -23,7 +23,7 @@ func extractNamespacedName(data map[string]string) types.NamespacedName {
 	return types.NamespacedName{Namespace: ns, Name: name}
 }
 
-func GetSBRSelectorFromObject(obj runtime.Object) (types.NamespacedName, error) {
+func GetSBRNamespacedNameFromObject(obj runtime.Object) (types.NamespacedName, error) {
 	data, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return types.NamespacedName{}, err
