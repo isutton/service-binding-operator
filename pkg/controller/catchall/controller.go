@@ -26,17 +26,26 @@ func add(mgr manager.Manager, r *CatchAllReconciler) error {
 		return err
 	}
 
-	// FIXME: create a predicate to make sure we only allow reconciliation of objects that are having
-	// service-binding-operator annotations.
-	for _, gvk := range getGVKs() {
+	if err = addWatchesWithGVKs(c, getGVKs(), r.reconcileRelatedSBR); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func addWatchesWithGVKs(c controller.Controller, gvks []schema.GroupVersionKind, requestsFunc handler.ToRequestsFunc) error {
+	for _, gvk := range gvks {
 		u := &unstructured.Unstructured{}
 		u.SetGroupVersionKind(gvk)
-		h := &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.reconcileRelatedSBR)}
-		if err = c.Watch(&source.Kind{Type: u}, h); err != nil {
+		h := &handler.EnqueueRequestsFromMapFunc{ToRequests: requestsFunc}
+
+		// FIXME: create a predicate to make sure we only allow reconciliation
+		//        of objects that are having service-binding-operator
+		//        annotations.
+		if err := c.Watch(&source.Kind{Type: u}, h); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
