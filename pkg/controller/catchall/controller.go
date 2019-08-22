@@ -30,7 +30,7 @@ func add(mgr manager.Manager, r *CatchAllReconciler) error {
 	for _, gvk := range getGVKs() {
 		u := &unstructured.Unstructured{}
 		u.SetGroupVersionKind(gvk)
-		if err = c.Watch(&source.Kind{Type: u}, &EnqueueRequestForUnstructured{}); err != nil {
+		if err = c.Watch(&source.Kind{Type: u}, &EnqueueRequestForRelatedSBR{}); err != nil {
 			return err
 		}
 	}

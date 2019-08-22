@@ -9,11 +9,11 @@ import (
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/common"
 )
 
-var log = logf.KBLog.WithName("eventhandler").WithName("EnqueueRequestForObject")
+var log = logf.KBLog.WithName("eventhandler").WithName("EnqueueRequestForRelatedSBR")
 
-type EnqueueRequestForUnstructured struct{}
+type EnqueueRequestForRelatedSBR struct{}
 
-func (e EnqueueRequestForUnstructured) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (e EnqueueRequestForRelatedSBR) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
 	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.Object)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
@@ -27,7 +27,7 @@ func (e EnqueueRequestForUnstructured) Create(evt event.CreateEvent, q workqueue
 	q.Add(reconcile.Request{NamespacedName: *sbrSelector})
 }
 
-func (e EnqueueRequestForUnstructured) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (e EnqueueRequestForRelatedSBR) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
 	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.ObjectNew)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
@@ -41,7 +41,7 @@ func (e EnqueueRequestForUnstructured) Update(evt event.UpdateEvent, q workqueue
 	q.Add(reconcile.Request{NamespacedName: *sbrSelector})
 }
 
-func (e EnqueueRequestForUnstructured) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (e EnqueueRequestForRelatedSBR) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
 	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.Object)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
@@ -55,7 +55,7 @@ func (e EnqueueRequestForUnstructured) Delete(evt event.DeleteEvent, q workqueue
 	q.Add(reconcile.Request{NamespacedName: *sbrSelector})
 }
 
-func (e EnqueueRequestForUnstructured) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (e EnqueueRequestForRelatedSBR) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
 	sbrSelector, err := common.GetSBRNamespacedNameFromObject(evt.Object)
 	if err != nil {
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
