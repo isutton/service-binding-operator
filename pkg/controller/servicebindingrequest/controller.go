@@ -1,8 +1,10 @@
 package servicebindingrequest
 
 import (
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -34,14 +36,7 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 	return &Reconciler{client: mgr.GetClient(), dynClient: dynClient, scheme: mgr.GetScheme()}, nil
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("servicebindingrequest-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
+func addServiceBindingRequestWatches(c controller.Controller) error {
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			data, err := runtime.DefaultUnstructuredConverter.ToUnstructured(e.ObjectNew)
@@ -74,8 +69,33 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource ServiceBindingRequest
-	err = c.Watch(&source.Kind{Type: &v1alpha1.ServiceBindingRequest{}}, &handler.EnqueueRequestForObject{}, pred)
+	err := c.Watch(&source.Kind{Type: &v1alpha1.ServiceBindingRequest{}}, &handler.EnqueueRequestForObject{}, pred)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	// Create a new controller
+	c, err := controller.New("servicebindingrequest-controller", mgr, controller.Options{Reconciler: r})
+	if err != nil {
+		return err
+	}
+
+	// Register handling of ServiceBindingRequest objects..
+	if err = addServiceBindingRequestWatches(c); err != nil {
+		return err
+	}
+
+	// White list GVKs that should be observed to reconcile an existing related
+	// ServiceBindingRequest.
+	whiteListedGVKs := []schema.GroupVersionKind{
+		{Group: "", Version: "v1", Kind: "Secret"},
+	}
+	if err = common.AddWatchesWithGVKs(c, whiteListedGVKs, common.ReconcileRelatedSBR); err != nil {
 		return err
 	}
 
