@@ -11,29 +11,37 @@ const (
 	sbrNameAnnotation      = "service-binding-operator.apps.openshift.io/binding-name"
 )
 
-func extractNamespacedName(data map[string]string) types.NamespacedName {
+// extractNamespacedName returns a types.NamespacedName if the required service
+// binding request keys are present in the given data
+func extractNamespacedName(data map[string]string) *types.NamespacedName {
 	ns, exists := data[sbrNamespaceAnnotation]
 	if !exists {
-		return types.NamespacedName{}
+		return nil
 	}
 	name, exists := data[sbrNameAnnotation]
 	if !exists {
-		return types.NamespacedName{}
+		return nil
 	}
-	return types.NamespacedName{Namespace: ns, Name: name}
+	return &types.NamespacedName{Namespace: ns, Name: name}
 }
 
-func GetSBRNamespacedNameFromObject(obj runtime.Object) (types.NamespacedName, error) {
+// GetSBRNamespacedNameFromObject returns a types.NamespacedName if the
+// required service binding request annotations are present in the given
+// runtime.Object, nil otherwise. An error can be returned in the case the
+// object can't be decoded.
+func GetSBRNamespacedNameFromObject(obj runtime.Object) (*types.NamespacedName, error) {
 	data, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
-		return types.NamespacedName{}, err
+		return nil, err
 	}
 
 	u := &unstructured.Unstructured{Object: data}
 	return extractNamespacedName(u.GetAnnotations()), nil
 }
 
-func IsSBRSelectorEmpty(namespacedName types.NamespacedName) bool {
+// IsSBRNamespacedNameEmpty returns true if any of the fields from the given
+// namespacedName is empty.
+func IsSBRNamespacedNameEmpty(namespacedName types.NamespacedName) bool {
 	return namespacedName.Namespace == "" || namespacedName.Name == ""
 }
 

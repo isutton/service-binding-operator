@@ -19,11 +19,12 @@ func (e EnqueueRequestForUnstructured) Create(evt event.CreateEvent, q workqueue
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return
 	}
-	if common.IsSBRSelectorEmpty(sbrSelector) {
+
+	if sbrSelector == nil {
 		return
 	}
 
-	q.Add(reconcile.Request{NamespacedName: sbrSelector})
+	q.Add(reconcile.Request{NamespacedName: *sbrSelector})
 }
 
 func (e EnqueueRequestForUnstructured) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
@@ -32,11 +33,12 @@ func (e EnqueueRequestForUnstructured) Update(evt event.UpdateEvent, q workqueue
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return
 	}
-	if common.IsSBRSelectorEmpty(sbrSelector) {
+
+	if sbrSelector == nil {
 		return
 	}
 
-	q.Add(reconcile.Request{NamespacedName: sbrSelector})
+	q.Add(reconcile.Request{NamespacedName: *sbrSelector})
 }
 
 func (e EnqueueRequestForUnstructured) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
@@ -45,11 +47,12 @@ func (e EnqueueRequestForUnstructured) Delete(evt event.DeleteEvent, q workqueue
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return
 	}
-	if common.IsSBRSelectorEmpty(sbrSelector) {
+
+	if sbrSelector == nil {
 		return
 	}
 
-	q.Add(reconcile.Request{sbrSelector})
+	q.Add(reconcile.Request{NamespacedName: *sbrSelector})
 }
 
 func (e EnqueueRequestForUnstructured) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
@@ -58,9 +61,10 @@ func (e EnqueueRequestForUnstructured) Generic(evt event.GenericEvent, q workque
 		log.Error(err, "error on extracting SBR namespaced-name from annotations")
 		return
 	}
-	if common.IsSBRSelectorEmpty(sbrSelector) {
+
+	if sbrSelector == nil {
 		return
 	}
 
-	q.Add(reconcile.Request{sbrSelector})
+	q.Add(reconcile.Request{NamespacedName: *sbrSelector})
 }
