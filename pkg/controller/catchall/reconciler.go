@@ -5,7 +5,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
@@ -20,26 +19,6 @@ type CatchAllReconciler struct {
 }
 
 const bindingPending = "pending"
-
-// reconcileRelatedSBR attempts to map an arbitrary object into a
-// ServiceBindingRequest if the object contains the required information used
-// to identify one.
-func reconcileRelatedSBR(o handler.MapObject) []reconcile.Request {
-	logger := logf.Log.WithName("catchall")
-
-	var result []reconcile.Request
-
-	sbrSelector, err := common.GetSBRNamespacedNameFromObject(o.Object)
-	if err != nil {
-		logger.Error(err, "error on extracting SBR namespaced-name from annotations")
-	}
-
-	if sbrSelector != nil {
-		result = append(result, reconcile.Request{NamespacedName: *sbrSelector})
-	}
-
-	return result
-}
 
 // FIXME: update the SBR object, encoded in the request name, return done if successful to the
 // FIXME: make sure we can update SBR object to trigger re-reconciliation;

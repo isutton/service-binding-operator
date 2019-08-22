@@ -1,13 +1,11 @@
 package catchall
 
 import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/common"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // Add controller to the worker. Defines the method that will be called during operator bootstrap.
@@ -26,26 +24,10 @@ func add(mgr manager.Manager, r *CatchAllReconciler) error {
 		return err
 	}
 
-	if err = addWatchesWithGVKs(c, getGVKs(), reconcileRelatedSBR); err != nil {
+	if err = common.AddWatchesWithGVKs(c, getGVKs(), common.ReconcileRelatedSBR); err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func addWatchesWithGVKs(c controller.Controller, gvks []schema.GroupVersionKind, requestsFunc handler.ToRequestsFunc) error {
-	for _, gvk := range gvks {
-		u := &unstructured.Unstructured{}
-		u.SetGroupVersionKind(gvk)
-		h := &handler.EnqueueRequestsFromMapFunc{ToRequests: requestsFunc}
-
-		// FIXME: create a predicate to make sure we only allow reconciliation
-		//        of objects that are having service-binding-operator
-		//        annotations.
-		if err := c.Watch(&source.Kind{Type: u}, h); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
