@@ -26,7 +26,7 @@ func add(mgr manager.Manager, r *CatchAllReconciler) error {
 		return err
 	}
 
-	if err = addWatchesWithGVKs(c, getGVKs(), r.reconcileRelatedSBR); err != nil {
+	if err = addWatchesWithGVKs(c, getGVKs(), reconcileRelatedSBR); err != nil {
 		return err
 	}
 

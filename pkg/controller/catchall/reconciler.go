@@ -21,7 +21,10 @@ type CatchAllReconciler struct {
 
 const bindingPending = "pending"
 
-func (r *CatchAllReconciler) reconcileRelatedSBR(o handler.MapObject) []reconcile.Request {
+// reconcileRelatedSBR attempts to map an arbitrary object into a
+// ServiceBindingRequest if the object contains the required information used
+// to identify one.
+func reconcileRelatedSBR(o handler.MapObject) []reconcile.Request {
 	logger := logf.Log.WithName("catchall")
 
 	var result []reconcile.Request
