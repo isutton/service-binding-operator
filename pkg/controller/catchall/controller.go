@@ -5,6 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -30,7 +31,8 @@ func add(mgr manager.Manager, r *CatchAllReconciler) error {
 	for _, gvk := range getGVKs() {
 		u := &unstructured.Unstructured{}
 		u.SetGroupVersionKind(gvk)
-		if err = c.Watch(&source.Kind{Type: u}, &EnqueueRequestForRelatedSBR{}); err != nil {
+		h := &handler.EnqueueRequestsFromMapFunc{ToRequests: handler.ToRequestsFunc(r.reconcileRelatedSBR)}
+		if err = c.Watch(&source.Kind{Type: u}, h); err != nil {
 			return err
 		}
 	}
