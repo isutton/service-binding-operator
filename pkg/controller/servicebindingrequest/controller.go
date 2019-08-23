@@ -42,20 +42,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	pred := predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			// ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			// evaluates to false if the object has been confirmed deleted
-			return !e.DeleteStateUnknown
-		},
-	}
-
 	for _, gvk := range getWatchingGVKs() {
 		// TODO: add logging to show which GVKs this controller is considering;
-		if err = c.Watch(createSourceForGVK(gvk), newEnqueueRequestsWithMapper(), pred); err != nil {
+		err = c.Watch(
+			createSourceForGVK(gvk),
+			newEnqueueRequestsWithMapper(),
+			objectModifiedAndNotDeletedPredicate)
+		if err != nil {
 			return err
 		}
 	}
@@ -84,6 +77,17 @@ func getWatchingGVKs() []schema.GroupVersionKind {
 		v1alpha1.SchemeGroupVersion.WithKind("ServiceBindingRequest"),
 		{Group: "", Version: "v1", Kind: "Secret"},
 	}
+}
+
+var objectModifiedAndNotDeletedPredicate = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		// ignore updates to CR status in which case metadata.Generation does not change
+		return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		// evaluates to false if the object has been confirmed deleted
+		return !e.DeleteStateUnknown
+	},
 }
 
 // blank assignment to verify that ReconcileServiceBindingRequest implements reconcile.Reconciler
