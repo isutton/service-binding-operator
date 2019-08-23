@@ -55,15 +55,25 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	for _, gvk := range getWatchingGVKs() {
-		u := &unstructured.Unstructured{}
-		u.SetGroupVersionKind(gvk)
 		// TODO: add logging to show which GVKs this controller is considering;
-		if err = c.Watch(&source.Kind{Type: u}, enqueue, pred); err != nil {
+		if err = c.Watch(createSourceForGVK(gvk), enqueue, pred); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// createSourceForGVK creates a *source.Kind for the given gvk.
+func createSourceForGVK(gvk schema.GroupVersionKind) *source.Kind {
+	return &source.Kind{Type: createUnstructuredWithGVK(gvk)}
+}
+
+// createUnstructuredWithGVK creates a *unstructured.Unstructured with the given gvk.
+func createUnstructuredWithGVK(gvk schema.GroupVersionKind) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(gvk)
+	return u
 }
 
 func getWatchingGVKs() []schema.GroupVersionKind {
