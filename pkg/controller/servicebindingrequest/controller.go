@@ -13,6 +13,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
+
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+)
+
+var (
+	LOGGER         = logf.Log.WithName("controller")
+	controllerName = "servicebindingrequest-controller"
 )
 
 // Add creates a new ServiceBindingRequest Controller and adds it to the Manager. The Manager will
@@ -37,13 +44,13 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	opts := controller.Options{Reconciler: r}
-	c, err := controller.New("servicebindingrequest-controller", mgr, opts)
+	c, err := controller.New(controllerName, mgr, opts)
 	if err != nil {
 		return err
 	}
 
 	for _, gvk := range getWatchingGVKs() {
-		// TODO: add logging to show which GVKs this controller is considering;
+		logger := LOGGER.WithValues("GroupVersionKind", gvk)
 		err = c.Watch(
 			createSourceForGVK(gvk),
 			newEnqueueRequestsWithMapper(),
@@ -51,6 +58,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		if err != nil {
 			return err
 		}
+		logger.Info("Watch added")
 	}
 
 	return nil
