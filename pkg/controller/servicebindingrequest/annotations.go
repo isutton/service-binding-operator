@@ -31,8 +31,9 @@ func extractNamespacedName(data map[string]string) types.NamespacedName {
 }
 
 // GetSBRNamespacedNameFromObject returns a types.NamespacedName if the required service binding
-// request annotations are present in the given runtime.Object, empty otherwise. An error can be
-// returned in the case the object can't be decoded.
+// request annotations are present in the given runtime.Object, empty otherwise. When annotations are
+// not present, it checks if the object is an actual SBR, returning the details when positive. An
+// error can be returned in the case the object can't be decoded.
 func GetSBRNamespacedNameFromObject(obj runtime.Object) (types.NamespacedName, error) {
 	namespacedName := types.NamespacedName{}
 	data, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
