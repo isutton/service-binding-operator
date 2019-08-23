@@ -42,19 +42,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	enqueue := &handler.EnqueueRequestsFromMapFunc{ToRequests: &Mapper{}}
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			/*
-				sbrSelector, err := GetSBRNamespacedNameFromObject(e.ObjectNew)
-				if err != nil {
-					// TODO: add logging to show this error;
-					return false
-				}
-				if IsSBRNamespacedNameEmpty(sbrSelector) {
-					return false
-				}
-			*/
-
 			// ignore updates to CR status in which case metadata.Generation does not change
 			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
 		},
@@ -62,11 +52,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			// evaluates to false if the object has been confirmed deleted
 			return !e.DeleteStateUnknown
 		},
-	}
-
-	mapper := &Mapper{}
-	enqueue := &handler.EnqueueRequestsFromMapFunc{
-		ToRequests: mapper,
 	}
 
 	for _, gvk := range getWatchingGVKs() {
