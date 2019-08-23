@@ -42,7 +42,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	enqueue := &handler.EnqueueRequestsFromMapFunc{ToRequests: &Mapper{}}
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// ignore updates to CR status in which case metadata.Generation does not change
@@ -56,12 +55,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	for _, gvk := range getWatchingGVKs() {
 		// TODO: add logging to show which GVKs this controller is considering;
-		if err = c.Watch(createSourceForGVK(gvk), enqueue, pred); err != nil {
+		if err = c.Watch(createSourceForGVK(gvk), newEnqueueRequestsWithMapper(), pred); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func newEnqueueRequestsWithMapper() *handler.EnqueueRequestsFromMapFunc {
+	return &handler.EnqueueRequestsFromMapFunc{ToRequests: &Mapper{}}
 }
 
 // createSourceForGVK creates a *source.Kind for the given gvk.
