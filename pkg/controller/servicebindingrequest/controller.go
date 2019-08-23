@@ -53,7 +53,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		logger := LOGGER.WithValues("GroupVersionKind", gvk)
 		err = c.Watch(
 			createSourceForGVK(gvk),
-			newEnqueueRequestsWithMapper(),
+			newEnqueueRequestsForSBR(),
 			objectModifiedAndNotDeletedPredicate)
 		if err != nil {
 			return err
@@ -64,7 +64,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-func newEnqueueRequestsWithMapper() *handler.EnqueueRequestsFromMapFunc {
+// newEnqueueRequestsForSBR returns a handler.EventHandler configured to map any incoming object to a
+// ServiceBindingRequest if it contains the required configuration.
+func newEnqueueRequestsForSBR() handler.EventHandler {
 	return &handler.EnqueueRequestsFromMapFunc{ToRequests: &ObjectToSBRMapper{}}
 }
 
