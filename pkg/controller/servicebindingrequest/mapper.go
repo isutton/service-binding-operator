@@ -5,9 +5,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-type Mapper struct{}
+type ObjectToSBRMapper struct{}
 
-func (m *Mapper) Map(obj handler.MapObject) []reconcile.Request {
+func (m *ObjectToSBRMapper) Map(obj handler.MapObject) []reconcile.Request {
 	toReconcile := []reconcile.Request{}
 
 	sbrNamespacedName, err := GetSBRNamespacedNameFromObject(obj.Object)

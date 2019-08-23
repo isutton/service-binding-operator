@@ -65,7 +65,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func newEnqueueRequestsWithMapper() *handler.EnqueueRequestsFromMapFunc {
-	return &handler.EnqueueRequestsFromMapFunc{ToRequests: &Mapper{}}
+	return &handler.EnqueueRequestsFromMapFunc{ToRequests: &ObjectToSBRMapper{}}
 }
 
 // createSourceForGVK creates a *source.Kind for the given gvk.
