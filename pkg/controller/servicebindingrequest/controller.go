@@ -10,9 +10,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
+)
+
+var (
+	LOGGER         = logf.Log.WithName("controller")
+	controllerName = "servicebindingrequest-controller"
 )
 
 // Add creates a new ServiceBindingRequest Controller and adds it to the Manager. The Manager will
@@ -37,12 +43,11 @@ func newReconciler(mgr manager.Manager) (reconcile.Reconciler, error) {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler.
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	opts := controller.Options{Reconciler: r}
-	c, err := controller.New("servicebindingrequest-controller", mgr, opts)
+	c, err := controller.New(controllerName, mgr, opts)
 	if err != nil {
 		return err
 	}
 
-	enqueue := &handler.EnqueueRequestsFromMapFunc{ToRequests: &SBRRequestMapper{}}
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// ignore updates to CR status in which case metadata.Generation does not change
@@ -55,15 +60,33 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	for _, gvk := range getWatchingGVKs() {
-		u := &unstructured.Unstructured{}
-		u.SetGroupVersionKind(gvk)
-		// TODO: add logging to show which GVKs this controller is considering;
-		if err = c.Watch(&source.Kind{Type: u}, enqueue, pred); err != nil {
+		logger := LOGGER.WithValues("GroupVersionKind", gvk)
+		err = c.Watch(createSourceForGVK(gvk), newEnqueueRequestsForSBR(), pred)
+		if err != nil {
 			return err
 		}
+		logger.Info("Watch added")
 	}
 
 	return nil
+}
+
+// newEnqueueRequestsForSBR returns a handler.EventHandler configured to map any incoming object to a
+// ServiceBindingRequest if it contains the required configuration.
+func newEnqueueRequestsForSBR() handler.EventHandler {
+	return &handler.EnqueueRequestsFromMapFunc{ToRequests: &SBRRequestMapper{}}
+}
+
+// createSourceForGVK creates a *source.Kind for the given gvk.
+func createSourceForGVK(gvk schema.GroupVersionKind) *source.Kind {
+	return &source.Kind{Type: createUnstructuredWithGVK(gvk)}
+}
+
+// createUnstructuredWithGVK creates a *unstructured.Unstructured with the given gvk.
+func createUnstructuredWithGVK(gvk schema.GroupVersionKind) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(gvk)
+	return u
 }
 
 func getWatchingGVKs() []schema.GroupVersionKind {
