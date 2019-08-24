@@ -63,6 +63,6 @@ func IsSBRNamespacedNameEmpty(namespacedName types.NamespacedName) bool {
 	return namespacedName.Namespace == "" || namespacedName.Name == ""
 }
 
-func SetSBRSelectorInObject() error {
+func SetSBRAnnotations() error {
 	return nil
 }

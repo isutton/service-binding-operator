@@ -3,7 +3,9 @@ package servicebindingrequest
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -18,6 +20,8 @@ type Reconciler struct {
 	dynClient dynamic.Interface // kubernetes dynamic api client
 	scheme    *runtime.Scheme   // api scheme
 }
+
+type watchObjects map[types.NamespacedName]*unstructured.Unstructured
 
 const (
 	// binding is in progress

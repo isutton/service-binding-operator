@@ -33,13 +33,13 @@ func TestAnnotationsGetSBRNamespacedNameFromObject(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, types.NamespacedName{Namespace: "ns", Name: "name"}, namespacedName)
 
+	// it should also understand a actual SBR as well, so return not empty
 	sbr := &unstructured.Unstructured{}
 	sbr.SetGroupVersionKind(v1alpha1.SchemeGroupVersion.WithKind("ServiceBindingRequest"))
 	sbr.SetNamespace("ns")
 	sbr.SetName("name")
-
-	// it should also understand a actual SBR as well, so return not empty
 	namespacedName, err = GetSBRNamespacedNameFromObject(sbr.DeepCopyObject())
+	assert.Nil(t, err)
 	assert.Equal(t, types.NamespacedName{Namespace: "ns", Name: "name"}, namespacedName)
 }
 

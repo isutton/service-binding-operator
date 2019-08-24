@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -16,13 +17,14 @@ import (
 
 // Retriever reads all data referred in plan instance, and store in a secret.
 type Retriever struct {
-	ctx           context.Context   // request context
-	client        client.Client     // Kubernetes API client
-	plan          *Plan             // plan instance
-	logger        logr.Logger       // logger instance
-	data          map[string][]byte // data retrieved
-	volumeKeys    []string
-	bindingPrefix string
+	logger        logr.Logger               // logger instance
+	data          map[string][]byte         // data retrieved
+	objects       []schema.GroupVersionKind // list of GVKs employed
+	ctx           context.Context           // request context
+	client        client.Client             // Kubernetes API client
+	plan          *Plan                     // plan instance
+	volumeKeys    []string                  // list of keys found
+	bindingPrefix string                    // prefix for variable names
 }
 
 const (
@@ -147,6 +149,8 @@ func (r *Retriever) readSecret(name string, items []string) error {
 		// making sure key name has a secret reference
 		r.store(fmt.Sprintf("secret_%s", key), value)
 	}
+
+	r.objects = append(r.objects, secretObj.GroupVersionKind())
 	return nil
 }
 
@@ -169,6 +173,7 @@ func (r *Retriever) readConfigMap(name string, items []string) error {
 		r.store(fmt.Sprintf("configMap_%s", key), []byte(value))
 	}
 
+	r.objects = append(r.objects, configMapObj.GroupVersionKind())
 	return nil
 }
 
@@ -231,11 +236,11 @@ func (r *Retriever) Retrieve() error {
 // NewRetriever instantiate a new retriever instance.
 func NewRetriever(ctx context.Context, client client.Client, plan *Plan, bindingPrefix string) *Retriever {
 	return &Retriever{
+		logger:        logf.Log.WithName("retriever"),
+		data:          make(map[string][]byte),
 		ctx:           ctx,
 		client:        client,
-		logger:        logf.Log.WithName("retriever"),
 		plan:          plan,
-		data:          make(map[string][]byte),
 		volumeKeys:    []string{},
 		bindingPrefix: bindingPrefix,
 	}
