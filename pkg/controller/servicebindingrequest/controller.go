@@ -42,7 +42,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	enqueue := &handler.EnqueueRequestsFromMapFunc{ToRequests: &Mapper{}}
+	enqueue := &handler.EnqueueRequestsFromMapFunc{ToRequests: &SBRRequestMapper{}}
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// ignore updates to CR status in which case metadata.Generation does not change
