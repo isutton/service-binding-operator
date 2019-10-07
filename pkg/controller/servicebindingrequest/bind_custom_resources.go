@@ -1,7 +1,6 @@
 package servicebindingrequest
 
 import (
-	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -20,7 +19,6 @@ var (
 // BindNonBindableResources struct contains information about operator backed CR and
 // list of expected GVRs to extract information from.
 type BindNonBindableResources struct {
-	sbr              *v1alpha1.ServiceBindingRequest
 	cr               *unstructured.Unstructured
 	resourcesToCheck []schema.GroupVersionResource
 	client           dynamic.Interface
@@ -29,7 +27,6 @@ type BindNonBindableResources struct {
 
 // NewBindNonBindable returns new instance
 func NewBindNonBindable(
-	sbr *v1alpha1.ServiceBindingRequest,
 	cr *unstructured.Unstructured,
 	resources []schema.GroupVersionResource,
 	client dynamic.Interface,
@@ -38,12 +35,11 @@ func NewBindNonBindable(
 	b.client = client
 	b.cr = cr
 	b.resourcesToCheck = resources
-	b.sbr = sbr
 	b.data = make(map[string]interface{})
 	return b
 }
 
-// GetBindableVariables returns list of subresources owned by operator backed CR
+// GetOwnedResources returns list of subresources owned by operator backed CR
 func (b BindNonBindableResources) GetOwnedResources() ([]unstructured.Unstructured, error) {
 	var subResources []unstructured.Unstructured
 	for _, resource := range b.resourcesToCheck {

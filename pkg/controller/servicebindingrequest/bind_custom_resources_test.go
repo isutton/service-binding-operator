@@ -1,15 +1,17 @@
 package servicebindingrequest
 
 import (
+	"testing"
+
 	v12 "github.com/openshift/api/route/v1"
 	pgv1alpha1 "github.com/operator-backing-service-samples/postgresql-operator/pkg/apis/postgresql/v1alpha1"
-	"github.com/redhat-developer/service-binding-operator/test/mocks"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"testing"
+
+	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
 
 func TestBindNonBindableResources_GetOwnedResources(t *testing.T) {
@@ -43,7 +45,6 @@ func TestBindNonBindableResources_GetOwnedResources(t *testing.T) {
 	unstructuredCr, _ := runtime.DefaultUnstructuredConverter.ToUnstructured(cr)
 	u := &unstructured.Unstructured{Object: unstructuredCr}
 	b := NewBindNonBindable(
-		nil,
 		u,
 		[]schema.GroupVersionResource{
 			{

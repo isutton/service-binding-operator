@@ -338,7 +338,7 @@ func (r *Retriever) Retrieve() ([]*unstructured.Unstructured, error) {
 	r.logger.WithValues("cache", r.cache).Info("Final cache values...")
 
 	if r.plan.SBR.Spec.BindUnannotated {
-		b := NewBindNonBindable(&r.plan.SBR, r.plan.CR, []schema.GroupVersionResource{
+		b := NewBindNonBindable(r.plan.CR, []schema.GroupVersionResource{
 			// We can add extra gvrs here
 			{Group: "", Version: "v1", Resource: "configmaps"},
 			{Group: "", Version: "v1", Resource: "services"},
@@ -349,8 +349,8 @@ func (r *Retriever) Retrieve() ([]*unstructured.Unstructured, error) {
 		if err != nil {
 			return nil, err
 		}
-		for k,v := range vals {
-			r.store(k,[]byte(fmt.Sprintf("%v", v)))
+		for k, v := range vals {
+			r.store(k, []byte(fmt.Sprintf("%v", v)))
 		}
 	}
 
