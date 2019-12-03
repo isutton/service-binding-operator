@@ -8,13 +8,13 @@ import (
 	"gotest.tools/assert/cmp"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -474,17 +474,8 @@ func (b *Binder) update(objs *unstructured.UnstructuredList) ([]*unstructured.Un
 		}
 
 		log.Debug("Updating object...")
-		if err := b.client.Update(b.ctx, updatedObj); err != nil {
-			return nil, err
-		}
-
-		log.Debug("Reading back updated object...")
-		// reading object back again, to comply with possible modifications
-		namespacedName := types.NamespacedName{
-			Namespace: updatedObj.GetNamespace(),
-			Name:      updatedObj.GetName(),
-		}
-		if err = b.client.Get(b.ctx, namespacedName, updatedObj); err != nil {
+		updatedObj, err = updateUnstructured(b.dynClient, updatedObj)
+		if err != nil {
 			return nil, err
 		}
 
@@ -492,6 +483,14 @@ func (b *Binder) update(objs *unstructured.UnstructuredList) ([]*unstructured.Un
 	}
 
 	return updatedObjs, nil
+}
+
+// updateUnstructured is a helper function that updates the given unstructured using the given
+// dynamic client.
+func updateUnstructured(dynClient dynamic.Interface, u *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	gvr, _ := meta.UnsafeGuessKindToResource(u.GetObjectKind().GroupVersionKind())
+	resourceClient := dynClient.Resource(gvr).Namespace(u.GetNamespace())
+	return resourceClient.Update(u, metav1.UpdateOptions{})
 }
 
 // remove attempts to update each given object without any service binding related information.
@@ -507,15 +506,14 @@ func (b *Binder) remove(objs *unstructured.UnstructuredList) error {
 		}
 
 		if len(b.volumeKeys) > 0 {
-			if updatedObj, err = b.removeSpecVolumes(&obj); err != nil {
+			if updatedObj, err = b.removeSpecVolumes(updatedObj); err != nil {
 				return err
 			}
 		}
 
 		logger.Debug("Updating object...")
-		if err = b.client.Update(b.ctx, updatedObj); err != nil {
-			return err
-		}
+		_, err = updateUnstructured(b.dynClient, updatedObj)
+		return err
 	}
 	return nil
 }
