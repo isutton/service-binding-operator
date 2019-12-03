@@ -89,27 +89,23 @@ func assertServiceBindingRequestUpdate(t *testing.T, actions []k8stesting.Action
 
 // objectForAction attempts to return the runtime.Object associated with the given action, if any.
 func objectForAction(action k8stesting.Action, out interface{}) error {
-	var candidate runtime.Object
+	var obj runtime.Object
 
 	switch a := action.(type) {
 	case k8stesting.UpdateAction:
-		candidate = a.GetObject()
+		obj = a.GetObject()
 	}
 
-	if candidate != nil {
-		u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(candidate)
-		if err != nil {
-			return err
-		}
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(u, out)
-		if err != nil {
-			return err
-		}
-
-		return nil
+	if obj == nil {
+		// panicking here to force us to update this implementation early
+		panic("it is likely the action type is not yet supported, add support for it in the " +
+			"switch case above")
 	}
-
-	panic("ugh")
+	u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return err
+	}
+	return runtime.DefaultUnstructuredConverter.FromUnstructured(u, out)
 }
 
 // FilterOptionsVerb is the enum of all action verbs.
