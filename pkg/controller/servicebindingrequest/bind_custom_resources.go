@@ -22,7 +22,7 @@ var (
 type DetectBindableResources struct {
 	cr               *unstructured.Unstructured
 	resourcesToCheck []schema.GroupVersionResource
-	client           dynamic.Interface
+	dynClient        dynamic.Interface
 	data             map[string]interface{}
 }
 
@@ -31,10 +31,10 @@ func NewDetectBindableResources(
 	sbr *v1alpha1.ServiceBindingRequest,
 	cr *unstructured.Unstructured,
 	resources []schema.GroupVersionResource,
-	client dynamic.Interface,
+	dynClient dynamic.Interface,
 ) *DetectBindableResources {
 	b := new(DetectBindableResources)
-	b.client = client
+	b.dynClient = dynClient
 	b.cr = cr
 	b.resourcesToCheck = resources
 	b.data = make(map[string]interface{})
@@ -45,7 +45,7 @@ func NewDetectBindableResources(
 func (b DetectBindableResources) GetOwnedResources() ([]unstructured.Unstructured, error) {
 	var subResources []unstructured.Unstructured
 	for _, resource := range b.resourcesToCheck {
-		lst, err := b.client.Resource(resource).List(v1.ListOptions{})
+		lst, err := b.dynClient.Resource(resource).List(v1.ListOptions{})
 		if err != nil {
 			return subResources, err
 		}

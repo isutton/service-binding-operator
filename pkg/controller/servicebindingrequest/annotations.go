@@ -80,7 +80,7 @@ func GetSBRNamespacedNameFromObject(obj runtime.Object) (types.NamespacedName, e
 }
 
 func updateUnstructuredObj(
-	client dynamic.Interface,
+	dynClient dynamic.Interface,
 	obj *unstructured.Unstructured,
 ) error {
 	gvk := obj.GroupVersionKind()
@@ -96,7 +96,7 @@ func updateUnstructuredObj(
 	)
 	log.Debug("Updating resource annotations...")
 
-	_, err := client.Resource(gvr).Namespace(obj.GetNamespace()).Update(obj, opts)
+	_, err := dynClient.Resource(gvr).Namespace(obj.GetNamespace()).Update(obj, opts)
 	if err != nil {
 		log.Error(err, "unable to set/update annotations in object")
 	}
@@ -106,7 +106,7 @@ func updateUnstructuredObj(
 // SetSBRAnnotations update existing annotations to include operator's. The annotations added are
 // referring to a existing SBR namespaced name.
 func SetSBRAnnotations(
-	client dynamic.Interface,
+	dynClient dynamic.Interface,
 	namespacedName types.NamespacedName,
 	objs []*unstructured.Unstructured,
 ) error {
@@ -120,7 +120,7 @@ func SetSBRAnnotations(
 		annotations[sbrNameAnnotation] = namespacedName.Name
 		obj.SetAnnotations(annotations)
 
-		if err := updateUnstructuredObj(client, obj); err != nil {
+		if err := updateUnstructuredObj(dynClient, obj); err != nil {
 			return err
 		}
 	}
@@ -130,7 +130,7 @@ func SetSBRAnnotations(
 // RemoveSBRAnnotations removes SBR related annotations from all the objects and updates them using
 // the given client.
 func RemoveSBRAnnotations(
-	client dynamic.Interface,
+	dynClient dynamic.Interface,
 	objs []*unstructured.Unstructured,
 ) error {
 	for _, obj := range objs {
@@ -143,7 +143,7 @@ func RemoveSBRAnnotations(
 		delete(annotations, sbrNamespaceAnnotation)
 		obj.SetAnnotations(annotations)
 
-		if err := updateUnstructuredObj(client, obj); err != nil {
+		if err := updateUnstructuredObj(dynClient, obj); err != nil {
 			return err
 		}
 	}

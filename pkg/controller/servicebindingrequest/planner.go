@@ -22,10 +22,10 @@ var (
 // Planner plans resources needed to bind a given backend service, using OperatorLifecycleManager
 // standards and CustomResourceDefinitionDescription data to understand which attributes are needed.
 type Planner struct {
-	ctx    context.Context                 // request context
-	client dynamic.Interface               // kubernetes dynamic api client
-	sbr    *v1alpha1.ServiceBindingRequest // instantiated service binding request
-	logger *log.Log                        // logger instance
+	ctx       context.Context                 // request context
+	dynClient dynamic.Interface               // kubernetes dynamic api client
+	sbr       *v1alpha1.ServiceBindingRequest // instantiated service binding request
+	logger    *log.Log                        // logger instance
 }
 
 // Plan outcome, after executing planner.
@@ -47,7 +47,7 @@ func (p *Planner) searchCR() (*unstructured.Unstructured, error) {
 	log := p.logger.WithValues("CR.GVK", gvk.String(), "CR.GVR", gvr.String())
 	log.Debug("Searching for CR instance...")
 
-	cr, err := p.client.Resource(gvr).Namespace(p.sbr.GetNamespace()).Get(bss.ResourceRef, opts)
+	cr, err := p.dynClient.Resource(gvr).Namespace(p.sbr.GetNamespace()).Get(bss.ResourceRef, opts)
 
 	if err != nil {
 		log.Info("during reading CR")
@@ -70,7 +70,7 @@ func (p *Planner) searchCRD() (*unstructured.Unstructured, error) {
 
 	// TODO: This hack should be removed! Probably the name should be prompted from user through SBR CR.
 	name := strings.ToLower(bss.Kind) + "s." + bss.Group
-	crd, err := p.client.Resource(gvr).Get(name, opts)
+	crd, err := p.dynClient.Resource(gvr).Get(name, opts)
 
 	if err != nil {
 		logger.Info("during reading CRD")
@@ -85,7 +85,7 @@ func (p *Planner) searchCRD() (*unstructured.Unstructured, error) {
 func (p *Planner) Plan() (*Plan, error) {
 	bss := p.sbr.Spec.BackingServiceSelector
 	gvk := schema.GroupVersionKind{Group: bss.Group, Version: bss.Version, Kind: bss.Kind}
-	olm := NewOLM(p.client, p.sbr.GetNamespace())
+	olm := NewOLM(p.dynClient, p.sbr.GetNamespace())
 	crd, err := p.searchCRD()
 	if err != nil {
 		return nil, err
@@ -116,13 +116,13 @@ func (p *Planner) Plan() (*Plan, error) {
 // NewPlanner instantiate Planner type.
 func NewPlanner(
 	ctx context.Context,
-	client dynamic.Interface,
+	dynClient dynamic.Interface,
 	sbr *v1alpha1.ServiceBindingRequest,
 ) *Planner {
 	return &Planner{
-		ctx:    ctx,
-		client: client,
-		sbr:    sbr,
-		logger: plannerLog,
+		ctx:       ctx,
+		dynClient: dynClient,
+		sbr:       sbr,
+		logger:    plannerLog,
 	}
 }

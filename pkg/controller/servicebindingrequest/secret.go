@@ -13,9 +13,9 @@ import (
 
 // Secret represents the data collected by this operator, and later handled as a secret.
 type Secret struct {
-	logger *log.Log          // logger instance
-	client dynamic.Interface // Kubernetes API client
-	plan   *Plan             // plan instance
+	logger    *log.Log          // logger instance
+	dynClient dynamic.Interface // Kubernetes API client
+	plan      *Plan             // plan instance
 }
 
 // customEnvParser parse informed data in order to interpolate with values provided by custom
@@ -43,7 +43,7 @@ func (s *Secret) customEnvParser(data map[string][]byte) (map[string][]byte, err
 // buildResourceClient creates a resource client to handle corev1/secret resource.
 func (s *Secret) buildResourceClient() dynamic.ResourceInterface {
 	gvr := corev1.SchemeGroupVersion.WithResource(SecretResource)
-	return s.client.Resource(gvr).Namespace(s.plan.Ns)
+	return s.dynClient.Resource(gvr).Namespace(s.plan.Ns)
 }
 
 // createOrUpdate will take informed payload and either create a new secret or update an existing
@@ -110,10 +110,10 @@ func (s *Secret) Delete() error {
 }
 
 // NewSecret instantiate a new Secret.
-func NewSecret(client dynamic.Interface, plan *Plan) *Secret {
+func NewSecret(dynClient dynamic.Interface, plan *Plan) *Secret {
 	return &Secret{
-		logger: log.NewLog("secret"),
-		client: client,
-		plan:   plan,
+		logger:    log.NewLog("secret"),
+		dynClient: dynClient,
+		plan:      plan,
 	}
 }

@@ -18,7 +18,7 @@ type Retriever struct {
 	logger        *log.Log                     // logger instance
 	data          map[string][]byte            // data retrieved
 	Objects       []*unstructured.Unstructured // list of objects employed
-	client        dynamic.Interface            // Kubernetes API client
+	dynClient     dynamic.Interface            // Kubernetes API client
 	plan          *Plan                        // plan instance
 	volumeKeys    []string                     // list of keys found
 	bindingPrefix string                       // prefix for variable names
@@ -176,7 +176,7 @@ func (r *Retriever) readSecret(
 	log.Debug("Reading secret items...")
 
 	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
-	u, err := r.client.Resource(gvr).Namespace(r.plan.Ns).Get(name, metav1.GetOptions{})
+	u, err := r.dynClient.Resource(gvr).Namespace(r.plan.Ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (r *Retriever) readConfigMap(
 	log.Debug("Reading ConfigMap items...")
 
 	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
-	u, err := r.client.Resource(gvr).Namespace(r.plan.Ns).Get(name, metav1.GetOptions{})
+	u, err := r.dynClient.Resource(gvr).Namespace(r.plan.Ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func (r *Retriever) Retrieve() (map[string][]byte, error) {
 			{Group: "", Version: "v1", Resource: "configmaps"},
 			{Group: "", Version: "v1", Resource: "services"},
 			{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
-		}, r.client)
+		}, r.dynClient)
 
 		vals, err := b.GetBindableVariables()
 		if err != nil {
@@ -304,12 +304,12 @@ func (r *Retriever) Retrieve() (map[string][]byte, error) {
 }
 
 // NewRetriever instantiate a new retriever instance.
-func NewRetriever(client dynamic.Interface, plan *Plan, bindingPrefix string) *Retriever {
+func NewRetriever(dynClient dynamic.Interface, plan *Plan, bindingPrefix string) *Retriever {
 	return &Retriever{
 		logger:        log.NewLog("retriever"),
 		data:          make(map[string][]byte),
 		Objects:       []*unstructured.Unstructured{},
-		client:        client,
+		dynClient:     dynClient,
 		plan:          plan,
 		volumeKeys:    []string{},
 		bindingPrefix: bindingPrefix,

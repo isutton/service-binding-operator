@@ -19,9 +19,9 @@ import (
 // OLM represents the actions this operator needs to take upon Operator-Lifecycle-Manager resources,
 // like ClusterServiceVersions (CSV) and CRDDescriptions.
 type OLM struct {
-	client dynamic.Interface // kubernetes dynamic client
-	ns     string            // namespace
-	logger *log.Log          // logger instance
+	dynClient dynamic.Interface // kubernetes dynamic client
+	ns        string            // namespace
+	logger    *log.Log          // logger instance
 }
 
 const (
@@ -39,7 +39,7 @@ var (
 func (o *OLM) listCSVs() ([]unstructured.Unstructured, error) {
 	log := o.logger
 	gvr := olmv1alpha1.SchemeGroupVersion.WithResource(csvResource)
-	resourceClient := o.client.Resource(gvr).Namespace(o.ns)
+	resourceClient := o.dynClient.Resource(gvr).Namespace(o.ns)
 	csvs, err := resourceClient.List(metav1.ListOptions{})
 	if err != nil {
 		log.Error(err, "during listing CSV objects from cluster")
@@ -309,7 +309,7 @@ func (o *OLM) ListGVKsFromCSVNamespacedName(
 	log := o.logger.WithValues("CSV.NamespacedName", namespacedName)
 	log.Debug("Reading CSV to extract GVKs...")
 	gvr := olmv1alpha1.SchemeGroupVersion.WithResource(csvResource)
-	resourceClient := o.client.Resource(gvr).Namespace(namespacedName.Namespace)
+	resourceClient := o.dynClient.Resource(gvr).Namespace(namespacedName.Namespace)
 	u, err := resourceClient.Get(namespacedName.Name, metav1.GetOptions{})
 	if err != nil {
 		// the CSV might have disappeared between discovery and check, so not found is not an error
@@ -333,10 +333,10 @@ func (o *OLM) ListGVKsFromCSVNamespacedName(
 }
 
 // NewOLM instantiate a new OLM.
-func NewOLM(client dynamic.Interface, ns string) *OLM {
+func NewOLM(dynClient dynamic.Interface, ns string) *OLM {
 	return &OLM{
-		client: client,
-		ns:     ns,
-		logger: olmLog,
+		dynClient: dynClient,
+		ns:        ns,
+		logger:    olmLog,
 	}
 }
