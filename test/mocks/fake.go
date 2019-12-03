@@ -11,7 +11,6 @@ import (
 	apiextensionv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -157,7 +156,7 @@ func (f *Fake) FakeClient() client.Client {
 }
 
 // FakeDynClient returns fake dynamic api client.
-func (f *Fake) FakeDynClient() dynamic.Interface {
+func (f *Fake) FakeDynClient() *fakedynamic.FakeDynamicClient {
 	return fakedynamic.NewSimpleDynamicClient(f.S, f.objs...)
 }
 

@@ -1,12 +1,9 @@
 package servicebindingrequest
 
 import (
-	"context"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -61,126 +58,90 @@ func TestReconcilerReconcileError(t *testing.T) {
 	require.True(t, res.Requeue)
 }
 
-// TestApplicationSelectorByName tests discovery of application by name
-func TestApplicationSelectorByName(t *testing.T) {
-	backingServiceResourceRef := "backingServiceRef"
-	applicationResourceRef := "applicationRef"
-	f := mocks.NewFake(t, reconcilerNs)
-	f.AddMockedUnstructuredServiceBindingRequest(reconcilerName, backingServiceResourceRef, applicationResourceRef, nil)
-	f.AddMockedUnstructuredCSV("cluster-service-version-list")
-	f.AddMockedUnstructuredDatabaseCRD()
-	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
-	f.AddMockedUnstructuredDeployment(reconcilerName, nil)
-	f.AddMockedSecret("db-credentials")
-
-	fakeClient := f.FakeClient()
-	fakeDynClient := f.FakeDynClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
-
-	t.Run("test-application-selector-by-name", func(t *testing.T) {
-
-		res, err := reconciler.Reconcile(reconcileRequest())
-		require.NoError(t, err)
-		require.False(t, res.Requeue)
-
-		namespacedName := types.NamespacedName{Namespace: reconcilerNs, Name: reconcilerName}
-		sbrOutput, err := reconciler.getServiceBindingRequest(namespacedName)
-		require.NoError(t, err)
-
-		require.Equal(t, "Success", sbrOutput.Status.BindingStatus)
-		require.Equal(t, 1, len(sbrOutput.Status.ApplicationObjects))
-		expectedStatus := fmt.Sprintf("%s/%s", reconcilerNs, reconcilerName)
-		require.Equal(t, expectedStatus, sbrOutput.Status.ApplicationObjects[0])
-	})
-}
-
-// TestReconcilerReconcileUsingSecret test the reconciliation process using a secret, expected to be
+// TestReconcilerReconcile test the reconciliation process using a secret, expected to be
 // the regular approach.
-func TestReconcilerReconcileUsingSecret(t *testing.T) {
-	ctx := context.TODO()
-	backingServiceResourceRef := "test-using-secret"
+func TestReconcilerReconcile(t *testing.T) {
+	// Arrange
+	backingServiceResourceRef := "backingServiceRef"
 	matchLabels := map[string]string{
 		"connects-to": "database",
 		"environment": "reconciler",
 	}
 
-	f := mocks.NewFake(t, reconcilerNs)
-	f.AddMockedUnstructuredServiceBindingRequest(reconcilerName, backingServiceResourceRef, "", matchLabels)
-	f.AddMockedUnstructuredCSV("cluster-service-version-list")
-	f.AddMockedUnstructuredDatabaseCRD()
-	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
-	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)
-	f.AddMockedSecret("db-credentials")
+	t.Run("reconcile-using-applicationResourceRef", func(t *testing.T) {
+		// Arrange
+		f := mocks.NewFake(t, reconcilerNs)
+		addReconcilerCommonMocks(f, matchLabels, backingServiceResourceRef, "applicationRef", reconcilerName)
+		f.AddMockedUnstructuredCSV("cluster-service-version-list")
+		fakeClient := f.FakeClient()
+		fakeDynClient := f.FakeDynClient()
+		reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
 
-	fakeClient := f.FakeClient()
-	fakeDynClient := f.FakeDynClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
-
-	t.Run("reconcile-using-secret", func(t *testing.T) {
+		// Act
 		res, err := reconciler.Reconcile(reconcileRequest())
+
+		// Assert
+		updateActions := filterActions(fakeDynClient.Fake.Actions(), FilterOptions{Verb: Update})
 		require.NoError(t, err)
 		require.False(t, res.Requeue)
-
-		namespacedName := types.NamespacedName{Namespace: reconcilerNs, Name: reconcilerName}
-		d := appsv1.Deployment{}
-		require.NoError(t, fakeClient.Get(ctx, namespacedName, &d))
-
-		containers := d.Spec.Template.Spec.Containers
-		require.Equal(t, 1, len(containers))
-		require.Equal(t, 1, len(containers[0].EnvFrom))
-		require.NotNil(t, containers[0].EnvFrom[0].SecretRef)
-		require.Equal(t, reconcilerName, containers[0].EnvFrom[0].SecretRef.Name)
-
-		namespacedName = types.NamespacedName{Namespace: reconcilerNs, Name: reconcilerName}
-		sbrOutput, err := reconciler.getServiceBindingRequest(namespacedName)
-		require.NoError(t, err)
-
-		require.Equal(t, "Success", sbrOutput.Status.BindingStatus)
-		require.Equal(t, reconcilerName, sbrOutput.Status.Secret)
-
-		require.Equal(t, 1, len(sbrOutput.Status.ApplicationObjects))
-		expectedStatus := fmt.Sprintf("%s/%s", reconcilerNs, reconcilerName)
-		require.Equal(t, expectedStatus, sbrOutput.Status.ApplicationObjects[0])
+		assertServiceBindingRequestUpdate(t, updateActions)
 	})
-}
-
-func TestReconcilerReconcileUsingVolumes(t *testing.T) {
-	ctx := context.TODO()
-	backingServiceResourceRef := "test-using-volumes"
-	matchLabels := map[string]string{
-		"connects-to": "database",
-		"environment": "reconciler",
-	}
-
-	f := mocks.NewFake(t, reconcilerNs)
-	f.AddMockedUnstructuredServiceBindingRequest(reconcilerName, backingServiceResourceRef, "", matchLabels)
-	f.AddMockedUnstructuredCSVWithVolumeMount("cluster-service-version-list")
-	f.AddMockedUnstructuredDatabaseCRD()
-	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
-	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)
-	f.AddMockedSecret("db-credentials")
-
-	fakeClient := f.FakeClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
 
 	t.Run("reconcile-using-volume", func(t *testing.T) {
+		// Arrange
+		f := mocks.NewFake(t, reconcilerNs)
+		addReconcilerCommonMocks(f, matchLabels, backingServiceResourceRef, "", reconcilerName)
+		f.AddMockedUnstructuredCSVWithVolumeMount("csv-with-volume-mount")
+		fakeClient := f.FakeClient()
+		fakeDynClient := f.FakeDynClient()
+		reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
+
+		// Act
 		res, err := reconciler.Reconcile(reconcileRequest())
+
+		// Assert
+		updateActions := filterActions(fakeDynClient.Fake.Actions(), FilterOptions{Verb: Update})
 		require.NoError(t, err)
 		require.False(t, res.Requeue)
-
-		namespacedName := types.NamespacedName{Namespace: reconcilerNs, Name: reconcilerName}
-		d := appsv1.Deployment{}
-		require.NoError(t, fakeClient.Get(ctx, namespacedName, &d))
-
-		containers := d.Spec.Template.Spec.Containers
-
-		require.Equal(t, 1, len(containers[0].VolumeMounts))
-		require.Equal(t, "/var/redhat", containers[0].VolumeMounts[0].MountPath)
-		require.Equal(t, reconcilerName, containers[0].VolumeMounts[0].Name)
-
-		volumes := d.Spec.Template.Spec.Volumes
-		require.Equal(t, 1, len(volumes))
-		require.Equal(t, reconcilerName, volumes[0].Name)
-		require.Equal(t, reconcilerName, volumes[0].VolumeSource.Secret.SecretName)
+		require.Len(t, updateActions, 7)
+		assertDeploymentVolumesUpdate(t, updateActions)
+		assertServiceBindingRequestUpdate(t, updateActions)
 	})
+
+	t.Run("reconcile-using-secret", func(t *testing.T) {
+		// Arrange
+		f := mocks.NewFake(t, reconcilerNs)
+		addReconcilerCommonMocks(f, matchLabels, "reconcile-using-secret", "", reconcilerName)
+		f.AddMockedUnstructuredCSV("csv-with-secret-mount")
+		fakeClient := f.FakeClient()
+		fakeDynClient := f.FakeDynClient()
+		reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
+
+		// Act
+		res, err := reconciler.Reconcile(reconcileRequest())
+
+		// Assert
+		updateActions := filterActions(fakeDynClient.Fake.Actions(), FilterOptions{Verb: Update})
+		require.NoError(t, err)
+		require.False(t, res.Requeue)
+		require.Len(t, updateActions, 7)
+		assertDeploymentContainersUpdate(t, updateActions)
+		assertServiceBindingRequestUpdate(t, updateActions)
+	})
+}
+
+// addReconcilerCommonMocks installs common mocks that should be present for the reconcile to work.
+func addReconcilerCommonMocks(
+	f *mocks.Fake,
+	matchLabels map[string]string,
+	backingServiceResourceRef string,
+	applicationResourceRef string,
+	sbrName string,
+) {
+	f.AddMockedUnstructuredServiceBindingRequest(
+		sbrName, backingServiceResourceRef, applicationResourceRef, matchLabels)
+	f.AddMockedUnstructuredDatabaseCRD()
+	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
+	f.AddMockedUnstructuredDeployment(sbrName, matchLabels)
+	f.AddMockedSecret("db-credentials")
 }
