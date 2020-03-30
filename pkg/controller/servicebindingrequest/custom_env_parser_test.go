@@ -7,6 +7,108 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+func TestCustomEnvParser(t *testing.T) {
+	type wantedVar struct {
+		Name       string
+		Value      string
+		ErrMessage string
+	}
+
+	type args struct {
+		in           map[string]interface{}
+		wanted       []wantedVar
+		varTemplates []corev1.EnvVar
+	}
+
+	testCase := func(args args) func(t *testing.T) {
+		return func(t *testing.T) {
+			parser := NewCustomEnvParser(args.varTemplates, args.in)
+			values, err := parser.Parse()
+			require.NoError(t, err)
+
+			for _, w := range args.wanted {
+				require.Equal(t, values[w.Name], w.Value, w.ErrMessage)
+			}
+		}
+	}
+
+	t.Run("spec and status only", testCase(args{
+		in: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"dbName": "database-name",
+			},
+			"status": map[string]interface{}{
+				"creds": map[string]interface{}{
+					"user": "database-user",
+					"pass": "database-pass",
+				},
+			},
+		},
+		wanted: []wantedVar{
+			{Name: "JDBC_CONNECTION_STRING", Value: "database-name:database-user@database-pass"},
+			{Name: "ANOTHER_STRING", Value: "database-name_database-user"},
+		},
+		varTemplates: []corev1.EnvVar{
+			corev1.EnvVar{
+				Name:  "JDBC_CONNECTION_STRING",
+				Value: `{{ .spec.dbName }}:{{ .status.creds.user }}@{{ .status.creds.pass }}`,
+			},
+			corev1.EnvVar{
+				Name:  "ANOTHER_STRING",
+				Value: `{{ .spec.dbName }}_{{ .status.creds.user }}`,
+			},
+		},
+	}))
+
+	t.Run("arbitrary first level field", testCase(args{
+		in: map[string]interface{}{
+			"foo": "bar",
+		},
+		wanted: []wantedVar{
+			{Name: "FOO", Value: "bar"},
+		},
+		varTemplates: []corev1.EnvVar{
+			corev1.EnvVar{
+				Name:  "FOO",
+				Value: `{{ .foo }}`,
+			},
+		},
+	}))
+
+	t.Run("arbitrary 10th level field", testCase(args{
+		in: map[string]interface{}{
+			"a": map[string]interface{}{
+				"b": map[string]interface{}{
+					"c": map[string]interface{}{
+						"d": map[string]interface{}{
+							"e": map[string]interface{}{
+								"f": map[string]interface{}{
+									"g": map[string]interface{}{
+										"h": map[string]interface{}{
+											"i": map[string]interface{}{
+												"j": "tenth",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wanted: []wantedVar{
+			{Name: "TENTH", Value: "tenth"},
+		},
+		varTemplates: []corev1.EnvVar{
+			corev1.EnvVar{
+				Name:  "TENTH",
+				Value: `{{ .a.b.c.d.e.f.g.h.i.j }}`,
+			},
+		},
+	}))
+}
+
 func TestCustomEnvPath_Parse(t *testing.T) {
 	cache := map[string]interface{}{
 		"spec": map[string]interface{}{
