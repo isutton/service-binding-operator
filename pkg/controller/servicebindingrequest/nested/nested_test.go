@@ -6,14 +6,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetPathFromMap(t *testing.T) {
+func TestGetValueFromMap(t *testing.T) {
 	type args struct {
 		src      map[string]interface{}
 		path     string
 		expected interface{}
 	}
 
-	assertGetPathFromMap := func(args args) func(t *testing.T) {
+	assertGetValueFromMap := func(args args) func(t *testing.T) {
 		return func(t *testing.T) {
 			actual, found, err := GetValueFromMap(args.src, args.path)
 			require.NoError(t, err)
@@ -22,7 +22,7 @@ func TestGetPathFromMap(t *testing.T) {
 		}
 	}
 
-	t.Run("key", assertGetPathFromMap(args{
+	t.Run("key", assertGetValueFromMap(args{
 		src: map[string]interface{}{
 			"key": "value",
 		},
@@ -30,7 +30,7 @@ func TestGetPathFromMap(t *testing.T) {
 		expected: "value",
 	}))
 
-	t.Run("key.subKey", assertGetPathFromMap(args{
+	t.Run("key.subKey", assertGetValueFromMap(args{
 		path: "key.subKey",
 		src: map[string]interface{}{
 			"key": map[string]interface{}{
@@ -40,7 +40,7 @@ func TestGetPathFromMap(t *testing.T) {
 		expected: "value",
 	}))
 
-	t.Run("key.slice", assertGetPathFromMap(args{
+	t.Run("key.slice", assertGetValueFromMap(args{
 		src: map[string]interface{}{
 			"key": map[string]interface{}{
 				"slice": []map[string]interface{}{
@@ -54,7 +54,7 @@ func TestGetPathFromMap(t *testing.T) {
 		},
 	}))
 
-	t.Run("key.slice.0", assertGetPathFromMap(args{
+	t.Run("key.slice.0", assertGetValueFromMap(args{
 		src: map[string]interface{}{
 			"key": map[string]interface{}{
 				"slice": []map[string]interface{}{
@@ -68,7 +68,7 @@ func TestGetPathFromMap(t *testing.T) {
 		},
 	}))
 
-	t.Run("key.slice.1", assertGetPathFromMap(args{
+	t.Run("key.slice.1", assertGetValueFromMap(args{
 		src: map[string]interface{}{
 			"key": map[string]interface{}{
 				"slice": []map[string]interface{}{
@@ -83,7 +83,7 @@ func TestGetPathFromMap(t *testing.T) {
 		},
 	}))
 
-	t.Run("key.slice.*", assertGetPathFromMap(args{
+	t.Run("key.slice.*", assertGetValueFromMap(args{
 		src: map[string]interface{}{
 			"key": map[string]interface{}{
 				"slice": []map[string]interface{}{
