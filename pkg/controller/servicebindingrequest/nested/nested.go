@@ -185,7 +185,7 @@ func composeValue(val interface{}, path Path) map[string]interface{} {
 }
 
 // GetValue attempts to retrieve the value in the given string encoded path.
-func GetValue(obj interface{}, p string) (interface{}, bool, error) {
+func GetValue(obj interface{}, p string) (map[string]interface{}, bool, error) {
 	path := NewPath(p)
 
 	val, found, err := getValue(obj, path)
