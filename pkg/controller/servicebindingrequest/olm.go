@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
 
@@ -29,9 +30,6 @@ type OLM struct {
 
 const (
 	csvResource = "clusterserviceversions"
-
-	// ServiceBindingOperatorAnnotationPrefix is the prefix of Service Binding Operator related annotations.
-	ServiceBindingOperatorAnnotationPrefix = "servicebindingoperator.redhat.io/"
 )
 
 var (
@@ -253,13 +251,8 @@ func buildDescriptorsFromAnnotations(annotations map[string]string) (
 		// field path should accumulate all related annotations, so the StatusDescriptor referring
 		// "status.dbCredentials" have both "user" and "password" XDescriptors.
 
-		// do not process unknown annotations
-		if !strings.HasPrefix(n, ServiceBindingOperatorAnnotationPrefix) {
-			continue
-		}
-
 		// annotationName has the binding information encoded into it.
-		bindingInfo, err := NewBindingInfo(n, v)
+		bindingInfo, err := bindinginfo.NewBindingInfo(n, v)
 		if err != nil {
 			return nil, nil, err
 		}
