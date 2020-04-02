@@ -1,10 +1,15 @@
 package bindinginfo
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func prefix(s string) string {
+	return fmt.Sprintf("%s%s", ServiceBindingOperatorAnnotationPrefix, s)
+}
 
 // TestNewBindingInfo exercises annotation binding information parsing.
 func TestNewBindingInfo(t *testing.T) {
@@ -19,7 +24,7 @@ func TestNewBindingInfo(t *testing.T) {
 		want    *BindingInfo
 	}{
 		{
-			args: args{name: "status.configMapRef-password", value: "binding"},
+			args: args{name: prefix("status.configMapRef-password"), value: "binding"},
 			want: &BindingInfo{
 				FieldPath:  "status.configMapRef",
 				Descriptor: "binding:password",
@@ -30,7 +35,7 @@ func TestNewBindingInfo(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			args: args{name: "status.connectionString", value: "binding"},
+			args: args{name: prefix("status.connectionString"), value: "binding"},
 			want: &BindingInfo{
 				Descriptor: "binding:status.connectionString",
 				FieldPath:  "status.connectionString",
