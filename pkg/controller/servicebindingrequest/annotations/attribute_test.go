@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDo(t *testing.T) {
+func TestHandle(t *testing.T) {
 	type args struct {
 		HandlerArgs
 		expected map[string]interface{}
