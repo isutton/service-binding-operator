@@ -109,7 +109,7 @@ func TestGetValue(t *testing.T) {
 
 	assertGetValue := func(args args) func(t *testing.T) {
 		return func(t *testing.T) {
-			actual, found, err := GetValue(args.src, args.path)
+			actual, found, err := GetValue(args.src, args.path, args.path)
 			require.NoError(t, err)
 			require.True(t, found)
 			require.Equal(t, args.expected, actual)
