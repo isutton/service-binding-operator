@@ -3,6 +3,7 @@ package annotations
 import (
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const AttributeValue = "binding:env:attribute"
@@ -15,7 +16,7 @@ type AttributeHandler struct {
 	// resulting unstructured object in Handler.
 	outputPath string
 	// resource is the unstructured object to extract data using inputPath.
-	resource map[string]interface{}
+	resource unstructured.Unstructured
 }
 
 // OutputPath returns the path the extracted data should be placed under.
@@ -29,17 +30,23 @@ func (a *AttributeHandler) OutputPath() string {
 // Handle returns a unstructured object according to the "binding:env:attribute"
 // annotation strategy.
 func (h *AttributeHandler) Handle() (map[string]interface{}, error) {
-	val, _, err := nested.GetValue(h.resource, h.inputPath, h.OutputPath())
+	val, _, err := nested.GetValue(h.resource.Object, h.inputPath, h.OutputPath())
 	if err != nil {
 		return nil, err
 	}
 	return val, nil
 }
 
+// IsAttribute returns true if the annotation value should trigger the attribute
+// handler.
+func IsAttribute(s string) bool {
+	return AttributeValue == s
+}
+
 // NewAttributeHandler constructs an AttributeHandler.
 func NewAttributeHandler(
 	bindingInfo *bindinginfo.BindingInfo,
-	resource map[string]interface{},
+	resource unstructured.Unstructured,
 ) *AttributeHandler {
 	return &AttributeHandler{
 		inputPath:  bindingInfo.Path,

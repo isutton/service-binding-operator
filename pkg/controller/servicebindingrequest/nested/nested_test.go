@@ -43,14 +43,14 @@ func TestGetValueFromMap(t *testing.T) {
 	t.Run("key.slice", assertGetValueFromMap(args{
 		src: map[string]interface{}{
 			"key": map[string]interface{}{
-				"slice": []map[string]interface{}{
-					{"key": "value"},
+				"slice": map[string]interface{}{
+					"key": "value",
 				},
 			},
 		},
 		path: "key.slice",
-		expected: []map[string]interface{}{
-			{"key": "value"},
+		expected: map[string]interface{}{
+			"key": "value",
 		},
 	}))
 
@@ -122,7 +122,7 @@ func TestGetValue(t *testing.T) {
 		},
 		path: "key",
 		expected: map[string]interface{}{
-			"key": []string{"value"},
+			"key": "value",
 		},
 	}))
 
@@ -136,7 +136,7 @@ func TestGetValue(t *testing.T) {
 		path: "key.subKey0",
 		expected: map[string]interface{}{
 			"key": map[string]interface{}{
-				"subKey0": []string{"value0"},
+				"subKey0": "value0",
 			},
 		},
 	}))
@@ -172,8 +172,8 @@ func TestGetValue(t *testing.T) {
 		path: "key.slice.0",
 		expected: map[string]interface{}{
 			"key": map[string]interface{}{
-				"slice": []map[string]interface{}{
-					{"subKey0": "value0"},
+				"slice": map[string]interface{}{
+					"subKey0": "value0",
 				},
 			},
 		},
@@ -191,8 +191,8 @@ func TestGetValue(t *testing.T) {
 		path: "key.slice.1",
 		expected: map[string]interface{}{
 			"key": map[string]interface{}{
-				"slice": []map[string]interface{}{
-					{"subKey1": "value1"},
+				"slice": map[string]interface{}{
+					"subKey1": "value1",
 				},
 			},
 		},

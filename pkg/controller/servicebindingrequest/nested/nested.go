@@ -91,8 +91,8 @@ func getValueFromSlice(s interface{}, path Path) (interface{}, bool, error) {
 		return nil, false, err
 	}
 
-	// it is required for path to have a head in this case, since it is expected to contain either
-	// an Index or a sub-key in order to extract or aggregate the underlying value.
+	// it is required for path to have a head in this case, since it is expected to contain either an
+	// Index or a sub-key in order to extract or aggregate the underlying value.
 	head, ok := path.Head()
 	if !ok {
 		return nil, false, nil
@@ -106,7 +106,7 @@ func getValueFromSlice(s interface{}, path Path) (interface{}, bool, error) {
 		return getValue(m, path.Tail())
 	}
 
-	r, err := collectValues(obj, path.AdjustedPath())
+	r, err := collectValues(obj, path)
 	if err != nil {
 		return nil, false, err
 	}
@@ -135,11 +135,11 @@ func getValue(obj interface{}, path Path) (interface{}, bool, error) {
 	}
 }
 
-// composeValue returns a map containing the structure of `path`, with `val` as value.
+// ComposeValue returns a map containing the structure of `path`, with `val` as value.
 //
 // The value is always transformed into a slice unless it is already one. For example, the call
 //
-//     composeValue(42, "foo.bar")
+//     ComposeValue(42, "foo.bar")
 //
 // yields the following result:
 //
@@ -149,7 +149,7 @@ func getValue(obj interface{}, path Path) (interface{}, bool, error) {
 //         },
 //     }
 //
-func composeValue(val interface{}, path Path) map[string]interface{} {
+func ComposeValue(val interface{}, path Path) map[string]interface{} {
 	// root is the resulting data-structure to be returned to caller.
 	root := make(map[string]interface{})
 
@@ -169,17 +169,7 @@ func composeValue(val interface{}, path Path) map[string]interface{} {
 		n = newVal
 	}
 
-	// transform the value into a slice so it can be iterated by the caller.
-	switch v := val.(type) {
-	case string:
-		n[field.Name] = []string{v}
-	case map[string]interface{}:
-		n[field.Name] = []map[string]interface{}{v}
-	case []map[string]interface{}, []string, []int:
-		n[field.Name] = v
-	default:
-		panic("likely a type is missing from the related switch type statement")
-	}
+	n[field.Name] = val
 
 	return root
 }
@@ -194,5 +184,5 @@ func GetValue(obj interface{}, p string, o string) (map[string]interface{}, bool
 		return nil, found, err
 	}
 
-	return composeValue(val, outputPath), true, nil
+	return ComposeValue(val, outputPath), true, nil
 }
