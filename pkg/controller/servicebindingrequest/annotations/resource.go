@@ -50,24 +50,24 @@ func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
 
 // Handle returns a unstructured object according to the "binding:env:object:secret" annotation
 // strategy.
-func (h *ResourceHandler) Handle() (map[string]interface{}, error) {
+func (h *ResourceHandler) Handle() (Value, error) {
 	name, err := h.discoverRelatedResourceName()
 	if err != nil {
-		return nil, err
+		return Value{}, err
 	}
 
 	ns := h.resource.GetNamespace()
 	resource, err := h.client.Resource(h.relatedGroupVersionResource).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return Value{}, err
 	}
 
 	val, ok, err := nested.GetValueFromMap(resource.Object, h.valuePath)
 	if !ok {
-		return nil, InvalidArgumentErr(h.valuePath)
+		return Value{}, InvalidArgumentErr(h.valuePath)
 	}
 	if err != nil {
-		return nil, err
+		return Value{}, err
 	}
 
 	if mapVal, ok := val.(map[string]interface{}); ok {
@@ -75,7 +75,7 @@ func (h *ResourceHandler) Handle() (map[string]interface{}, error) {
 		for k, v := range mapVal {
 			decodedVal, err := h.valueDecoder(v)
 			if err != nil {
-				return nil, err
+				return Value{}, err
 			}
 			tmpVal[k] = decodedVal
 		}
@@ -83,11 +83,13 @@ func (h *ResourceHandler) Handle() (map[string]interface{}, error) {
 	} else {
 		val, err = h.valueDecoder(val)
 		if err != nil {
-			return nil, err
+			return Value{}, err
 		}
 	}
 
-	return nested.ComposeValue(val, nested.NewPath(h.outputPath)), nil
+	return Value{
+		Result: nested.ComposeValue(val, nested.NewPath(h.outputPath)),
+	}, nil
 }
 
 // NewSecretHandler constructs a SecretHandler.

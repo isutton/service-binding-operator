@@ -6,10 +6,22 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+type BindingType string
+
+const (
+	BindingTypeVolumeMount BindingType = "volumemount"
+	BindingTypeEnvVar      BindingType = "env"
+)
+
+type Value struct {
+	Result   map[string]interface{}
+	BindType string
+}
+
 // Handler produces a unstructured object produced from the strategy encoded in
 // an annotation value.
 type Handler interface {
-	Handle() (map[string]interface{}, error)
+	Handle() (Value, error)
 }
 
 // HandlerArgs are arguments that can be used by action constructors to perform
