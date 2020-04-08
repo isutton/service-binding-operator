@@ -51,6 +51,8 @@ func BuildHandler(args HandlerArgs) (Handler, error) {
 		return NewAttributeHandler(bindingInfo, args.Resource), nil
 	case IsSecret(val):
 		return NewSecretHandler(args.Client, bindingInfo, args.Resource)
+	case IsConfigMap(val):
+		return NewConfigMapHandler(args.Client, bindingInfo, args.Resource)
 	default:
 		panic("not implemented")
 	}
