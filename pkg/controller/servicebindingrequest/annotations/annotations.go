@@ -41,12 +41,12 @@ type Handler interface {
 // its task.
 type HandlerArgs struct {
 	// Resource is the owner resource unstructured representation.
-	Resource unstructured.Unstructured
+	Resource *unstructured.Unstructured
 	// Name is the annotation key, with prefix included.
 	Name string
 	// Value is the annotation value.
 	Value string
-
+	// Client is the Kubernetes dynamic client.
 	Client dynamic.Interface
 }
 
@@ -61,11 +61,11 @@ func BuildHandler(args HandlerArgs) (Handler, error) {
 
 	switch {
 	case IsAttribute(val):
-		return NewAttributeHandler(bindingInfo, args.Resource), nil
+		return NewAttributeHandler(bindingInfo, *args.Resource), nil
 	case IsSecret(val):
-		return NewSecretHandler(args.Client, bindingInfo, args.Resource)
+		return NewSecretHandler(args.Client, bindingInfo, *args.Resource)
 	case IsConfigMap(val):
-		return NewConfigMapHandler(args.Client, bindingInfo, args.Resource)
+		return NewConfigMapHandler(args.Client, bindingInfo, *args.Resource)
 	default:
 		panic("not implemented")
 	}
