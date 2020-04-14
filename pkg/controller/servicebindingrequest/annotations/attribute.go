@@ -29,13 +29,13 @@ func (a *AttributeHandler) OutputPath() string {
 
 // Handle returns a unstructured object according to the "binding:env:attribute"
 // annotation strategy.
-func (h *AttributeHandler) Handle() (Value, error) {
+func (h *AttributeHandler) Handle() (Result, error) {
 	val, _, err := nested.GetValue(h.resource.Object, h.inputPath, h.OutputPath())
 	if err != nil {
-		return Value{}, err
+		return Result{}, err
 	}
-	return Value{
-		Result: val,
+	return Result{
+		Object: val,
 	}, nil
 }
 

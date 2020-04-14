@@ -22,16 +22,16 @@ var supportedBindingTypes = map[bindingType]bool{
 	BindingTypeEnvVar:      true,
 }
 
-// Value contains meta-information regarding the result of Handle().
-type Value struct {
-	Result map[string]interface{}
+// Result contains meta-information regarding the result of Handle().
+type Result struct {
+	Object map[string]interface{}
 	Type   bindingType
 }
 
 // Handler produces a unstructured object produced from the strategy encoded in
 // an annotation value.
 type Handler interface {
-	Handle() (Value, error)
+	Handle() (Result, error)
 }
 
 // HandlerArgs are arguments that can be used by action constructors to perform

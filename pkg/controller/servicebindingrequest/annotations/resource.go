@@ -65,24 +65,24 @@ func discoverBindingType(val string) (bindingType, error) {
 }
 
 // Handle returns the value for an external resource strategy.
-func (h *ResourceHandler) Handle() (Value, error) {
+func (h *ResourceHandler) Handle() (Result, error) {
 	name, err := h.discoverRelatedResourceName()
 	if err != nil {
-		return Value{}, err
+		return Result{}, err
 	}
 
 	ns := h.resource.GetNamespace()
 	resource, err := h.client.Resource(h.relatedGroupVersionResource).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return Value{}, err
+		return Result{}, err
 	}
 
 	val, ok, err := nested.GetValueFromMap(resource.Object, h.valuePath)
 	if !ok {
-		return Value{}, InvalidArgumentErr(h.valuePath)
+		return Result{}, InvalidArgumentErr(h.valuePath)
 	}
 	if err != nil {
-		return Value{}, err
+		return Result{}, err
 	}
 
 	if mapVal, ok := val.(map[string]interface{}); ok {
@@ -90,7 +90,7 @@ func (h *ResourceHandler) Handle() (Value, error) {
 		for k, v := range mapVal {
 			decodedVal, err := h.valueDecoder(v)
 			if err != nil {
-				return Value{}, err
+				return Result{}, err
 			}
 			tmpVal[k] = decodedVal
 		}
@@ -98,12 +98,12 @@ func (h *ResourceHandler) Handle() (Value, error) {
 	} else {
 		val, err = h.valueDecoder(val)
 		if err != nil {
-			return Value{}, err
+			return Result{}, err
 		}
 	}
 
-	return Value{
-		Result: nested.ComposeValue(val, nested.NewPath(h.outputPath)),
+	return Result{
+		Object: nested.ComposeValue(val, nested.NewPath(h.outputPath)),
 		Type:   BindingTypeEnvVar,
 	}, nil
 }

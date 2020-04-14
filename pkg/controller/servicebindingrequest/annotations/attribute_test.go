@@ -22,7 +22,7 @@ func TestAttributeHandler(t *testing.T) {
 			got, err := handler.Handle()
 			require.NoError(t, err)
 			require.NotNil(t, got)
-			require.Equal(t, args.expected, got.Result)
+			require.Equal(t, args.expected, got.Object)
 		}
 	}
 
