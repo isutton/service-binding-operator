@@ -48,8 +48,10 @@ func NewSecretHandler(
 		},
 		&dataPath,
 	)
-	if err == nil {
-		h.valueDecoder = decodeBase64String
+	if err != nil {
+		return nil, err
 	}
-	return h, err
+
+	h.valueDecoder = decodeBase64String
+	return h, nil
 }
