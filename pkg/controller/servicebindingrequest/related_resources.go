@@ -7,9 +7,11 @@ import (
 
 // RelatedResource represents a SBR related resource, composed by its CR and CRDDescription.
 type RelatedResource struct {
-	CRDDescription *v1alpha1.CRDDescription
-	CR             *unstructured.Unstructured
-	EnvVarPrefix   *string
+	CRDDescription     *v1alpha1.CRDDescription
+	CR                 *unstructured.Unstructured
+	AnnotationsResults []map[string]interface{}
+	AggregatedValues   map[string]interface{}
+	EnvVarPrefix       *string
 }
 
 // RelatedResources contains a collection of SBR related resources.

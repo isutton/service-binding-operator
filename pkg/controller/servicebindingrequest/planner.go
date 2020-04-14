@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/imdario/mergo"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +15,7 @@ import (
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
 
@@ -140,12 +143,39 @@ func (p *Planner) Plan() (*Plan, error) {
 			return nil, err
 		}
 
-		p.logger.Debug("Computed CRDDescription", "CRDDescription", crdDescription)
-		r := &RelatedResource{
-			CRDDescription: crdDescription,
-			CR:             cr,
-			EnvVarPrefix:   s.EnvVarPrefix,
+		annotationsResults := make([]map[string]interface{}, 0)
+		aggregated := make(map[string]interface{})
+
+		for n, v := range crd.GetAnnotations() {
+			h, err := annotations.BuildHandler(annotations.HandlerArgs{
+				Name:     n,
+				Value:    v,
+				Resource: cr,
+				Client:   p.client,
+			})
+			if err != nil {
+				return nil, err
+			}
+			r, err := h.Handle()
+			if err != nil {
+				return nil, err
+			}
+
+			annotationsResults = append(annotationsResults, r.Object)
+			err = mergo.Merge(&aggregated, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
+			if err != nil {
+				return nil, err
+			}
 		}
+
+		r := &RelatedResource{
+			CRDDescription:     crdDescription,
+			CR:                 cr,
+			AnnotationsResults: annotationsResults,
+			AggregatedValues:   aggregated,
+			EnvVarPrefix:       s.EnvVarPrefix,
+		}
+
 		relatedResources = append(relatedResources, r)
 		p.logger.Debug("Resolved related resource", "RelatedResource", r)
 	}
