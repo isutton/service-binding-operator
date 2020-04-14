@@ -74,7 +74,7 @@ func (h *ResourceHandler) Handle() (Result, error) {
 	ns := h.resource.GetNamespace()
 	resource, err := h.client.Resource(h.relatedGroupVersionResource).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return Result{}, err
+		return Result{}, fmt.Errorf("error handling annotation: %w", err)
 	}
 
 	val, ok, err := nested.GetValueFromMap(resource.Object, h.valuePath)
