@@ -37,6 +37,7 @@ func TestPlanner(t *testing.T) {
 	f.AddMockedUnstructuredCSV("cluster-service-version")
 	f.AddMockedDatabaseCR(resourceRef, ns)
 	f.AddMockedUnstructuredDatabaseCRD()
+	f.AddMockedSecret("db-credentials")
 
 	planner = NewPlanner(context.TODO(), f.FakeDynClient(), sbr)
 	require.NotNil(t, planner)
