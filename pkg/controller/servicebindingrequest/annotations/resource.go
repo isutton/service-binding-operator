@@ -2,6 +2,7 @@ package annotations
 
 import (
 	"fmt"
+	"regexp"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -48,8 +49,22 @@ func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
 	return name, nil
 }
 
-// Handle returns a unstructured object according to the "binding:env:object:secret" annotation
-// strategy.
+// discoverBindingType attempts to extract a binding type from the given annotation value val.
+func discoverBindingType(val string) (bindingType, error) {
+	re := regexp.MustCompile("^binding:(.*?):object:(.*?)$")
+	parts := re.FindStringSubmatch(val)
+	if len(parts) == 0 {
+		return "", fmt.Errorf("error extracting binding type")
+	}
+	t := bindingType(parts[1])
+	_, ok := supportedBindingTypes[t]
+	if !ok {
+		return "", UnknownBindingTypeErr(t)
+	}
+	return t, nil
+}
+
+// Handle returns the value for an external resource strategy.
 func (h *ResourceHandler) Handle() (Value, error) {
 	name, err := h.discoverRelatedResourceName()
 	if err != nil {
@@ -89,6 +104,7 @@ func (h *ResourceHandler) Handle() (Value, error) {
 
 	return Value{
 		Result: nested.ComposeValue(val, nested.NewPath(h.outputPath)),
+		Type:   BindingTypeEnvVar,
 	}, nil
 }
 

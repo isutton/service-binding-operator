@@ -6,16 +6,26 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-type BindingType string
+// bindingType encodes the medium the binding should deliver the configuration value.
+type bindingType string
 
 const (
-	BindingTypeVolumeMount BindingType = "volumemount"
-	BindingTypeEnvVar      BindingType = "env"
+	// BindingTypeVolumeMount indicates the binding should happen through a volume mount.
+	BindingTypeVolumeMount bindingType = "volumemount"
+	// BindingTypeEnvVar indicates the binding should happen through environment variables.
+	BindingTypeEnvVar bindingType = "env"
 )
 
+// supportedBindingTypes contains all currently supported binding types.
+var supportedBindingTypes = map[bindingType]bool{
+	BindingTypeVolumeMount: true,
+	BindingTypeEnvVar:      true,
+}
+
+// Value contains meta-information regarding the result of Handle().
 type Value struct {
-	Result   map[string]interface{}
-	BindType string
+	Result map[string]interface{}
+	Type   bindingType
 }
 
 // Handler produces a unstructured object produced from the strategy encoded in

@@ -12,3 +12,9 @@ func (e InvalidArgumentErr) Error() string {
 }
 
 var ResourceNameFieldNotFoundErr = errors.New("secret name field not found")
+
+type UnknownBindingTypeErr string
+
+func (e UnknownBindingTypeErr) Error() string {
+	return string(e) + " is not supported"
+}
