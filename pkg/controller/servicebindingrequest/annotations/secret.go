@@ -46,6 +46,7 @@ func NewSecretHandler(
 			Version:  "v1",
 			Resource: "secrets",
 		},
+		&dataPath,
 	)
 	if err == nil {
 		h.valueDecoder = decodeBase64String

@@ -114,6 +114,7 @@ func NewResourceHandler(
 	bindingInfo *bindinginfo.BindingInfo,
 	resource unstructured.Unstructured,
 	relatedGroupVersionResource schema.GroupVersionResource,
+	valuePathPrefix *string,
 ) (*ResourceHandler, error) {
 	if client == nil {
 		return nil, InvalidArgumentErr("client")
@@ -129,11 +130,17 @@ func NewResourceHandler(
 
 	relatedNamePath := bindingInfo.FieldPath
 	outputPath := relatedNamePath
-	valuePath := "data"
+
+	var valuePath string
 
 	if len(bindingInfo.Path) > 0 && bindingInfo.FieldPath != bindingInfo.Path {
 		valuePath = bindingInfo.Path
 		outputPath = outputPath + "." + valuePath
+		if valuePathPrefix != nil && len(*valuePathPrefix) > 0 {
+			valuePath = *valuePathPrefix + "." + valuePath
+		}
+	} else if valuePathPrefix != nil && len(*valuePathPrefix) > 0 {
+		valuePath = *valuePathPrefix
 	}
 
 	return &ResourceHandler{

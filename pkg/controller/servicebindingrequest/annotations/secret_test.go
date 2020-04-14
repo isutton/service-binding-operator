@@ -47,7 +47,7 @@ func TestSecretHandler(t *testing.T) {
 	}
 
 	t.Run("secret/scalar", assertHandler(args{
-		name:  "servicebindingoperator.redhat.io/status.dbCredentials-data.password",
+		name:  "servicebindingoperator.redhat.io/status.dbCredentials-password",
 		value: "binding:env:object:secret",
 		service: map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -74,9 +74,7 @@ func TestSecretHandler(t *testing.T) {
 		expected: map[string]interface{}{
 			"status": map[string]interface{}{
 				"dbCredentials": map[string]interface{}{
-					"data": map[string]interface{}{
-						"password": "hunter2",
-					},
+					"password": "hunter2",
 				},
 			},
 		},

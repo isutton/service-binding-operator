@@ -47,7 +47,7 @@ func TestConfigMapHandler(t *testing.T) {
 	}
 
 	t.Run("configmap/scalar", assertHandler(args{
-		name:  "servicebindingoperator.redhat.io/status.dbCredentials-data.password",
+		name:  "servicebindingoperator.redhat.io/status.dbCredentials-password",
 		value: "binding:env:object:configmap",
 		service: map[string]interface{}{
 			"metadata": map[string]interface{}{
@@ -75,9 +75,7 @@ func TestConfigMapHandler(t *testing.T) {
 		expected: map[string]interface{}{
 			"status": map[string]interface{}{
 				"dbCredentials": map[string]interface{}{
-					"data": map[string]interface{}{
-						"password": "hunter2",
-					},
+					"password": "hunter2",
 				},
 			},
 		},

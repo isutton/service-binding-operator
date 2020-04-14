@@ -31,5 +31,6 @@ func NewConfigMapHandler(
 			Version:  "v1",
 			Resource: "configmaps",
 		},
+		&dataPath,
 	)
 }

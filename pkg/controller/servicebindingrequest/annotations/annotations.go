@@ -22,6 +22,9 @@ var supportedBindingTypes = map[bindingType]bool{
 	BindingTypeEnvVar:      true,
 }
 
+// dataPath is the path ConfigMap and Secret resources use to scope their data.
+var dataPath = "data"
+
 // Result contains meta-information regarding the result of Handle().
 type Result struct {
 	Object map[string]interface{}
