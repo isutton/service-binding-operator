@@ -7,11 +7,16 @@ import (
 
 // RelatedResource represents a SBR related resource, composed by its CR and CRDDescription.
 type RelatedResource struct {
-	CRDDescription     *v1alpha1.CRDDescription
-	CR                 *unstructured.Unstructured
+	// CRDDescription is the description of the resources CRD, either built from a manifest from the
+	// cluster or composed through annotations in the CRD.
+	CRDDescription *v1alpha1.CRDDescription
+	// CR is the resource being used as reference.
+	CR *unstructured.Unstructured
+	// AnnotationsResults contains all the data constructed through annotation handlers.
 	AnnotationsResults []map[string]interface{}
-	AggregatedValues   map[string]interface{}
-	EnvVarPrefix       *string
+	// AggregatedValues is the composition of all collected data for the reference CR.
+	AggregatedValues map[string]interface{}
+	EnvVarPrefix     *string
 }
 
 // RelatedResources contains a collection of SBR related resources.
