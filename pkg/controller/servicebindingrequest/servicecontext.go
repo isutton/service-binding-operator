@@ -5,8 +5,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// RelatedResource represents a SBR related resource, composed by its CR and CRDDescription.
-type RelatedResource struct {
+// ServiceContext contains information related to a service.
+type ServiceContext struct {
 	// CRDDescription is the description of the resources CRD, either built from a manifest from the
 	// cluster or composed through annotations in the CRD.
 	CRDDescription *v1alpha1.CRDDescription
@@ -19,11 +19,11 @@ type RelatedResource struct {
 	EnvVarPrefix *string
 }
 
-// RelatedResources contains a collection of SBR related resources.
-type RelatedResources []*RelatedResource
+// ServiceContexts contains a collection of service contexts.
+type ServiceContexts []*ServiceContext
 
 // GetCRs returns a slice of unstructured CRs contained in the collection.
-func (rr RelatedResources) GetCRs() []*unstructured.Unstructured {
+func (rr ServiceContexts) GetCRs() []*unstructured.Unstructured {
 	var crs []*unstructured.Unstructured
 	for _, r := range rr {
 		crs = append(crs, r.CR)

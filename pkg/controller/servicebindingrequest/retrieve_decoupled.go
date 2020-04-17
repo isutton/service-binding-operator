@@ -16,7 +16,7 @@ import (
 func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	envVarCtx := make(map[string]interface{})
 
-	for _, resource := range r.plan.GetRelatedResources() {
+	for _, resource := range r.plan.GetServiceContexts() {
 		// contribute values extracted from the service related resources
 		err := mergo.Merge(&envVarCtx, resource.EnvVars, mergo.WithAppendSlice, mergo.WithOverride)
 		if err != nil {

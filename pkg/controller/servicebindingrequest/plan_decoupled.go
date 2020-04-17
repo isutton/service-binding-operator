@@ -2,12 +2,12 @@ package servicebindingrequest
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-// GetCRs returns a slice of unstructured CRs contained in the internal related resources collection.
+// GetCRs returns all collected service resources.
 func (p *Plan) GetCRs() []*unstructured.Unstructured {
-	return p.RelatedResources.GetCRs()
+	return p.ServiceContexts.GetCRs()
 }
 
-// GetRelatedResources returns the collection of related resources enumerated in the plan.
-func (p *Plan) GetRelatedResources() RelatedResources {
-	return p.RelatedResources
+// GetServiceContexts returns all collected service contexts.
+func (p *Plan) GetServiceContexts() ServiceContexts {
+	return p.ServiceContexts
 }

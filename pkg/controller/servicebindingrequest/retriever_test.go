@@ -32,7 +32,7 @@ func TestRetriever(t *testing.T) {
 	plan := &Plan{
 		Ns:   ns,
 		Name: "retriever",
-		RelatedResources: []*RelatedResource{
+		ServiceContexts: []*ServiceContext{
 			{
 				CRDDescription: &crdDescription,
 				CR:             cr,
@@ -80,7 +80,7 @@ func TestRetrieverWithNestedCRKey(t *testing.T) {
 	plan := &Plan{
 		Ns:   ns,
 		Name: "retriever",
-		RelatedResources: []*RelatedResource{
+		ServiceContexts: []*ServiceContext{
 			{
 				CRDDescription: &crdDescription,
 				CR:             cr,

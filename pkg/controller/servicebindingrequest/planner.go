@@ -37,10 +37,10 @@ type Planner struct {
 
 // Plan outcome, after executing planner.
 type Plan struct {
-	Ns               string                         // namespace name
-	Name             string                         // plan name, same than ServiceBindingRequest
-	SBR              v1alpha1.ServiceBindingRequest // service binding request
-	RelatedResources RelatedResources               // CR and CRDDescription pairs SBR related
+	Ns              string                         // namespace name
+	Name            string                         // plan name, same than ServiceBindingRequest
+	SBR             v1alpha1.ServiceBindingRequest // service binding request
+	ServiceContexts ServiceContexts                // CR and CRDDescription pairs SBR related
 }
 
 // searchCR based on a CustomResourceDefinitionDescription and name, search for the object.
@@ -176,7 +176,7 @@ func (p *Planner) Plan() (*Plan, error) {
 		return nil, EmptyBackingServiceSelectorsErr
 	}
 
-	relatedResources := make([]*RelatedResource, 0)
+	ctxs := make([]*ServiceContext, 0)
 	for _, s := range selectors {
 		if s.Namespace == nil {
 			s.Namespace = &ns
@@ -224,7 +224,7 @@ func (p *Planner) Plan() (*Plan, error) {
 			}
 		}
 
-		r := &RelatedResource{
+		ctx := &ServiceContext{
 			CRDDescription: crdDescription,
 			CR:             cr,
 			EnvVars:        envVars,
@@ -232,15 +232,15 @@ func (p *Planner) Plan() (*Plan, error) {
 			EnvVarPrefix:   s.EnvVarPrefix,
 		}
 
-		relatedResources = append(relatedResources, r)
-		p.logger.Debug("Resolved related resource", "RelatedResource", r)
+		ctxs = append(ctxs, ctx)
+		p.logger.Debug("Resolved service context", "ServiceContext", ctx)
 	}
 
 	return &Plan{
-		Name:             p.sbr.GetName(),
-		Ns:               ns,
-		RelatedResources: relatedResources,
-		SBR:              *p.sbr,
+		Name:            p.sbr.GetName(),
+		Ns:              ns,
+		ServiceContexts: ctxs,
+		SBR:             *p.sbr,
 	}, nil
 }
 

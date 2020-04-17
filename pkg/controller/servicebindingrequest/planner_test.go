@@ -53,7 +53,7 @@ func TestPlanner(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, plan)
-		require.NotEmpty(t, plan.RelatedResources)
+		require.NotEmpty(t, plan.ServiceContexts)
 		require.Equal(t, ns, plan.Ns)
 		require.Equal(t, name, plan.Name)
 	})
@@ -100,9 +100,9 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, plan)
-		require.NotEmpty(t, plan.RelatedResources)
-		require.NotEmpty(t, plan.RelatedResources.GetCRs())
-		require.Equal(t, backingServiceNamespace, plan.RelatedResources.GetCRs()[0].GetNamespace())
+		require.NotEmpty(t, plan.ServiceContexts)
+		require.NotEmpty(t, plan.ServiceContexts.GetCRs())
+		require.Equal(t, backingServiceNamespace, plan.ServiceContexts.GetCRs()[0].GetNamespace())
 		require.Equal(t, ns, plan.Ns)
 		require.Equal(t, name, plan.Name)
 
