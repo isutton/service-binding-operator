@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
 
@@ -235,7 +235,7 @@ func buildCRDDescriptionFromCRD(crd *unstructured.Unstructured) (*olmv1alpha1.CR
 
 // buildDescriptorsFromAnnotations builds two descriptors collection, one for spec descriptors and
 // another for status descriptors.
-func buildDescriptorsFromAnnotations(annotations map[string]string) (
+func buildDescriptorsFromAnnotations(in map[string]string) (
 	[]olmv1alpha1.SpecDescriptor,
 	[]olmv1alpha1.StatusDescriptor,
 	error,
@@ -245,14 +245,14 @@ func buildDescriptorsFromAnnotations(annotations map[string]string) (
 
 	acc := make(map[string][]string)
 
-	for n, v := range annotations {
+	for n, v := range in {
 		// Iterate all annotations and compose related Spec and Status descriptors, where those
 		// descriptors should be grouped by field path.	So, for example, the "status.dbCredentials"
 		// field path should accumulate all related annotations, so the StatusDescriptor referring
 		// "status.dbCredentials" have both "user" and "password" XDescriptors.
 
 		// annotationName has the binding information encoded into it.
-		bindingInfo, err := bindinginfo.NewBindingInfo(n, v)
+		bindingInfo, err := annotations.NewBindingInfo(n, v)
 		if err != nil {
 			return nil, nil, err
 		}

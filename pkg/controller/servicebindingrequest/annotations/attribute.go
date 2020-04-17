@@ -1,7 +1,6 @@
 package annotations
 
 import (
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -47,7 +46,7 @@ func IsAttribute(s string) bool {
 
 // NewAttributeHandler constructs an AttributeHandler.
 func NewAttributeHandler(
-	bindingInfo *bindinginfo.BindingInfo,
+	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
 ) *AttributeHandler {
 	return &AttributeHandler{

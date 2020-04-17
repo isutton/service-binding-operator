@@ -4,8 +4,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 )
 
 const ConfigMapValue = "binding:env:object:configmap"
@@ -19,7 +17,7 @@ func IsConfigMap(s string) bool {
 // maps.
 func NewConfigMapHandler(
 	client dynamic.Interface,
-	bindingInfo *bindinginfo.BindingInfo,
+	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
 ) (Handler, error) {
 	return NewResourceHandler(

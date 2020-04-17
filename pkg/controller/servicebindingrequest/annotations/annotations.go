@@ -1,7 +1,6 @@
 package annotations
 
 import (
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 )
@@ -53,7 +52,7 @@ type HandlerArgs struct {
 
 // BuildHandler attempts to create an action for the given args.
 func BuildHandler(args HandlerArgs) (Handler, error) {
-	bindingInfo, err := bindinginfo.NewBindingInfo(args.Name, args.Value)
+	bindingInfo, err := NewBindingInfo(args.Name, args.Value)
 	if err != nil {
 		return nil, err
 	}

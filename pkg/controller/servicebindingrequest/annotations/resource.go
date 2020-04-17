@@ -9,14 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested"
 )
 
 // ResourceHandler handles annotations related to external resources.
 type ResourceHandler struct {
 	// bindingInfo contains the binding details related to the annotation handler.
-	bindingInfo *bindinginfo.BindingInfo
+	bindingInfo *BindingInfo
 	// client is the client used to retrieve a related secret.
 	client dynamic.Interface
 	// valuePath is the path that should be extracted from the secret.
@@ -119,7 +118,7 @@ func (h *ResourceHandler) Handle() (Result, error) {
 // NewSecretHandler constructs a SecretHandler.
 func NewResourceHandler(
 	client dynamic.Interface,
-	bindingInfo *bindinginfo.BindingInfo,
+	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
 	relatedGroupVersionResource schema.GroupVersionResource,
 	valuePathPrefix *string,

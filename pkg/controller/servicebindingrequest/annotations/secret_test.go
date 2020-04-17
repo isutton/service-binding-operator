@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
 
@@ -31,7 +30,7 @@ func TestSecretHandler(t *testing.T) {
 				f.AddMockResource(r)
 			}
 
-			bindingInfo, err := bindinginfo.NewBindingInfo(args.name, args.value)
+			bindingInfo, err := NewBindingInfo(args.name, args.value)
 			require.NoError(t, err)
 			handler, err := NewSecretHandler(
 				f.FakeDynClient(),

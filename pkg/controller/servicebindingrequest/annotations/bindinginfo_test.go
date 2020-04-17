@@ -1,4 +1,4 @@
-package bindinginfo
+package annotations
 
 import (
 	"fmt"

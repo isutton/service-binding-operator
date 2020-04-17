@@ -3,7 +3,6 @@ package annotations
 import (
 	"testing"
 
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -16,7 +15,7 @@ func TestAttributeHandler(t *testing.T) {
 
 	assertHandler := func(args args) func(t *testing.T) {
 		return func(t *testing.T) {
-			bindingInfo, err := bindinginfo.NewBindingInfo(args.Name, args.Value)
+			bindingInfo, err := NewBindingInfo(args.Name, args.Value)
 			require.NoError(t, err)
 			handler := NewAttributeHandler(bindingInfo, *args.Resource)
 			got, err := handler.Handle()

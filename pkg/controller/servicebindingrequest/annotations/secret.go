@@ -7,8 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/bindinginfo"
 )
 
 const SecretValue = "binding:env:object:secret"
@@ -35,7 +33,7 @@ func decodeBase64String(v interface{}) (string, error) {
 // NewSecretHandler constructs a SecretHandler.
 func NewSecretHandler(
 	client dynamic.Interface,
-	bindingInfo *bindinginfo.BindingInfo,
+	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
 ) (Handler, error) {
 	h, err := NewResourceHandler(
