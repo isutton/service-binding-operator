@@ -64,12 +64,7 @@ func (r *Retriever) getCRKey(u *unstructured.Unstructured, section string, key s
 
 	log.WithValues("SectionMap", sectionMap).Debug("Getting values from sectionmap")
 	v, _, err := r.getNestedValue(key, sectionMap)
-	for k, v := range sectionMap.(map[string]interface{}) {
-		if _, ok := r.cache[section]; !ok {
-			r.cache[section] = make(map[string]interface{})
-		}
-		r.cache[section].(map[string]interface{})[k] = v
-	}
+
 	return v, sectionMap, err
 }
 
