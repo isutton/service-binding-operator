@@ -1,13 +1,10 @@
 package servicebindingrequest
 
 import (
-	"encoding/base64"
 	"fmt"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
@@ -24,14 +21,6 @@ type Retriever struct {
 	bindingPrefix string                       // prefix for variable names
 	cache         map[string]interface{}       // store visited paths
 }
-
-const (
-	basePrefix              = "binding:env:object"
-	secretPrefix            = basePrefix + ":secret"
-	configMapPrefix         = basePrefix + ":configmap"
-	attributePrefix         = "binding:env:attribute"
-	volumeMountSecretPrefix = "binding:volumemount:secret"
-)
 
 // getNestedValue retrieve value from dotted key path
 func (r *Retriever) getNestedValue(key string, sectionMap interface{}) (string, interface{}, error) {
@@ -66,185 +55,6 @@ func (r *Retriever) getCRKey(u *unstructured.Unstructured, section string, key s
 	v, _, err := r.getNestedValue(key, sectionMap)
 
 	return v, sectionMap, err
-}
-
-// read attributes from CR, where place means which top level key name contains the "path" actual
-// value, and parsing x-descriptors in order to either directly read CR data, or read items from
-// a secret.
-func (r *Retriever) read(envVarPrefix *string, cr *unstructured.Unstructured, place, path string, xDescriptors []string) error {
-	log := r.logger.WithValues(
-		"CR.Section", place,
-		"CRDDescription.Path", path,
-		"CRDDescription.XDescriptors", xDescriptors,
-	)
-	log.Debug("Reading CRDDescription attributes...")
-
-	// holds the secret name and items
-	secrets := make(map[string][]string)
-
-	// holds the configMap name and items
-	configMaps := make(map[string][]string)
-	pathValue, _, err := r.getCRKey(cr, place, path)
-	if err != nil {
-		return err
-	}
-	for _, xDescriptor := range xDescriptors {
-		log = log.WithValues("CRDDescription.xDescriptor", xDescriptor, "cache", r.cache)
-		log.Debug("Inspecting xDescriptor...")
-
-		if _, ok := r.cache[place].(map[string]interface{}); !ok {
-			r.cache[place] = make(map[string]interface{})
-		}
-		if strings.HasPrefix(xDescriptor, secretPrefix) {
-			secrets[pathValue] = append(secrets[pathValue], r.extractSecretItemName(xDescriptor))
-			if _, ok := r.cache[place].(map[string]interface{})[r.extractSecretItemName(xDescriptor)]; !ok {
-				r.markVisitedPaths(r.extractSecretItemName(xDescriptor), pathValue, place)
-				r.cache[place].(map[string]interface{})[r.extractSecretItemName(xDescriptor)] = make(map[string]interface{})
-			}
-		} else if strings.HasPrefix(xDescriptor, configMapPrefix) {
-			configMaps[pathValue] = append(configMaps[pathValue], r.extractConfigMapItemName(xDescriptor))
-			r.markVisitedPaths(r.extractConfigMapItemName(xDescriptor), pathValue, place)
-		} else if strings.HasPrefix(xDescriptor, volumeMountSecretPrefix) {
-			secrets[pathValue] = append(secrets[pathValue], r.extractSecretItemName(xDescriptor))
-			r.markVisitedPaths(r.extractSecretItemName(xDescriptor), pathValue, place)
-			r.VolumeKeys = append(r.VolumeKeys, pathValue)
-		} else if strings.HasPrefix(xDescriptor, attributePrefix) {
-			r.store(envVarPrefix, cr, path, []byte(pathValue))
-		} else {
-			log.Debug("Defaulting....")
-		}
-	}
-
-	for name, items := range secrets {
-		// loading secret items all-at-once
-		err := r.readSecret(envVarPrefix, cr, name, items, place, path)
-		if err != nil {
-			return err
-		}
-	}
-	for name, items := range configMaps {
-		// add the function readConfigMap
-		err := r.readConfigMap(envVarPrefix, cr, name, items, place, path)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// extractSecretItemName based in x-descriptor entry, removing prefix in order to keep only the
-// secret item name.
-func (r *Retriever) extractSecretItemName(xDescriptor string) string {
-	return strings.ReplaceAll(xDescriptor, fmt.Sprintf("%s:", secretPrefix), "")
-}
-
-// extractConfigMapItemName based in x-descriptor entry, removing prefix in order to keep only the
-// configMap item name.
-func (r *Retriever) extractConfigMapItemName(xDescriptor string) string {
-	return strings.ReplaceAll(xDescriptor, fmt.Sprintf("%s:", configMapPrefix), "")
-}
-
-// markVisitedPaths updates all visited paths in cache, This initializes the cache map
-func (r *Retriever) markVisitedPaths(name, keyPath, fromPath string) {
-	if _, ok := r.cache[fromPath]; !ok {
-		r.cache[fromPath] = make(map[string]interface{})
-	}
-	if _, ok := r.cache[fromPath].(map[string]interface{})[name]; !ok {
-		r.cache[fromPath].(map[string]interface{})[name] = make(map[string]interface{})
-	}
-	if _, ok := r.cache[fromPath].(map[string]interface{})[name].(map[string]interface{}); !ok {
-		r.cache[fromPath].(map[string]interface{})[name] = make(map[string]interface{})
-	}
-	if _, ok := r.cache[fromPath].(map[string]interface{})[name].(map[string]interface{})[keyPath]; !ok {
-		r.cache[fromPath].(map[string]interface{})[name].(map[string]interface{})[keyPath] = make(map[string]interface{})
-	}
-}
-
-// readSecret based in secret name and list of items, read a secret from the same namespace informed
-// in plan instance.
-func (r *Retriever) readSecret(envVarPrefix *string, cr *unstructured.Unstructured, name string, items []string, fromPath string, path string) error {
-	log := r.logger.WithValues("Secret.Name", name, "Secret.Items", items)
-	log.Debug("Reading secret items...")
-
-	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
-	secret, err := r.client.Resource(gvr).Namespace(cr.GetNamespace()).Get(name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	data, exists, err := unstructured.NestedMap(secret.Object, []string{"data"}...)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("could not find 'data' in secret")
-	}
-
-	for k, v := range data {
-		value := v.(string)
-		data, err := base64.StdEncoding.DecodeString(value)
-		if err != nil {
-			return err
-		}
-		log = log.WithValues("Secret.Key.Name", k, "Secret.Key.Length", len(data))
-		log.Debug("Inspecting secret key...")
-		r.markVisitedPaths(path, k, fromPath)
-		// update cache after reading configmap/secret in cache
-		r.cache[fromPath].(map[string]interface{})[path].(map[string]interface{})[k] = string(data)
-		// making sure key name has a secret reference
-		if envVarPrefix != nil && *envVarPrefix == "" {
-			r.store(envVarPrefix, cr, k, data)
-
-		} else {
-			r.store(envVarPrefix, cr, fmt.Sprintf("secret_%s", k), data)
-
-		}
-	}
-
-	r.Objects = append(r.Objects, secret)
-	return nil
-}
-
-// readConfigMap based in configMap name and list of items, read a configMap from the same namespace informed
-// in plan instance.
-func (r *Retriever) readConfigMap(envVarPrefix *string, cr *unstructured.Unstructured, name string, items []string, fromPath string, path string) error {
-	log := r.logger.WithValues("ConfigMap.Name", name, "ConfigMap.Items", items)
-	log.Debug("Reading ConfigMap items...")
-
-	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
-	u, err := r.client.Resource(gvr).Namespace(cr.GetNamespace()).Get(name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	data, exists, err := unstructured.NestedMap(u.Object, []string{"data"}...)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("could not find 'data' in secret")
-	}
-
-	log.Debug("Inspecting configMap data...")
-	for k, v := range data {
-		value := v.(string)
-		log.Debug("Inspecting configMap key...",
-			"configMap.Key.Name", k,
-			"configMap.Key.Length", len(value),
-		)
-		r.markVisitedPaths(path, k, fromPath)
-		// update cache after reading configmap/secret in cache
-		r.cache[fromPath].(map[string]interface{})[path].(map[string]interface{})[k] = value
-		// making sure key name has a configMap reference
-		if envVarPrefix != nil && *envVarPrefix == "" {
-			r.store(envVarPrefix, cr, k, []byte(value))
-		} else {
-			r.store(envVarPrefix, cr, fmt.Sprintf("configMap_%s", k), []byte(value))
-		}
-	}
-
-	r.Objects = append(r.Objects, u)
-	return nil
 }
 
 // store key and value, formatting key to look like an environment variable.
