@@ -138,9 +138,6 @@ func (p *Planner) Plan() (*Plan, error) {
 
 	relatedResources := make([]*RelatedResource, 0)
 	for _, s := range selectors {
-
-		var crdDescription *olmv1alpha1.CRDDescription
-
 		if s.Namespace == nil {
 			s.Namespace = &ns
 		}
@@ -154,6 +151,8 @@ func (p *Planner) Plan() (*Plan, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		crdDescription := &olmv1alpha1.CRDDescription{}
 
 		// resolve the CRD using the service's GVK
 		crd, err := p.searchCRD(bssGVK)
@@ -176,10 +175,6 @@ func (p *Planner) Plan() (*Plan, error) {
 			p.logger.Debug("Tentatively resolved CRDDescription", "CRDDescription", crdDescription)
 		}
 
-		// Parse ( and override ) annotations from the CR or kubernetes object
-		if crdDescription == nil {
-			crdDescription = &olmv1alpha1.CRDDescription{}
-		}
 		err = buildCRDDescriptionFromCR(cr, crdDescription)
 		if err != nil {
 			return nil, err
