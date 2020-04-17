@@ -14,8 +14,8 @@ type RelatedResource struct {
 	CR *unstructured.Unstructured
 	// EnvVars is the composition of all collected data for the reference CR.
 	EnvVars map[string]interface{}
-	// VolumeMounts is ...
-	VolumeMounts []string
+	// VolumeKeys contains the keys that should be mounted as volume from the binding secret.
+	VolumeKeys   []string
 	EnvVarPrefix *string
 }
 

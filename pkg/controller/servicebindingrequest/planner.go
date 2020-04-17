@@ -186,7 +186,7 @@ func (p *Planner) Plan() (*Plan, error) {
 		}
 
 		anns := crdDescriptionToAnnotations(crd.GetAnnotations(), crdDescription)
-		volumeMounts := make([]string, 0)
+		volumeKeys := make([]string, 0)
 		envVars := make(map[string]interface{})
 
 		for n, v := range anns {
@@ -211,7 +211,7 @@ func (p *Planner) Plan() (*Plan, error) {
 
 			// FIXME(isuttonl): rename volumeMounts to volumeKeys
 			if r.Type == annotations.BindingTypeVolumeMount {
-				volumeMounts = append(volumeMounts, r.Path)
+				volumeKeys = append(volumeKeys, r.Path)
 			}
 		}
 
@@ -219,7 +219,7 @@ func (p *Planner) Plan() (*Plan, error) {
 			CRDDescription: crdDescription,
 			CR:             cr,
 			EnvVars:        envVars,
-			VolumeMounts:   volumeMounts,
+			VolumeKeys:     volumeKeys,
 			EnvVarPrefix:   s.EnvVarPrefix,
 		}
 
