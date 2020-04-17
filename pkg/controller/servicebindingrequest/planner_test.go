@@ -84,6 +84,7 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 	f.AddMockedUnstructuredCSV("cluster-service-version")
 	f.AddMockedDatabaseCR(resourceRef, backingServiceNamespace)
 	f.AddMockedUnstructuredDatabaseCRD()
+	f.AddNamespacedMockedSecret("db-credentials", backingServiceNamespace)
 
 	planner = NewPlanner(context.TODO(), f.FakeDynClient(), sbr)
 	require.NotNil(t, planner)
