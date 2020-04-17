@@ -15,7 +15,7 @@ type RelatedResource struct {
 	// EnvVars is the composition of all collected data for the reference CR.
 	EnvVars map[string]interface{}
 	// VolumeMounts is ...
-	VolumeMounts []map[string]interface{}
+	VolumeMounts []string
 	EnvVarPrefix *string
 }
 

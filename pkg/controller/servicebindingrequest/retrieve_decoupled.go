@@ -30,6 +30,9 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// FIXME(isuttonl): make volume keys a return value
+		r.VolumeKeys = append(r.VolumeKeys, resource.VolumeMounts...)
 	}
 
 	envVarTemplates := r.plan.SBR.Spec.CustomEnvVar

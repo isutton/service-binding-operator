@@ -176,7 +176,7 @@ func (p *Planner) Plan() (*Plan, error) {
 		}
 
 		anns := crdDescriptionToAnnotations(crd.GetAnnotations(), crdDescription)
-		volumeMounts := make([]map[string]interface{}, 0)
+		volumeMounts := make([]string, 0)
 		envVars := make(map[string]interface{})
 
 		for n, v := range anns {
@@ -194,14 +194,14 @@ func (p *Planner) Plan() (*Plan, error) {
 				return nil, err
 			}
 
-			switch r.Type {
-			case annotations.BindingTypeEnvVar:
 				err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
 				if err != nil {
 					return nil, err
 				}
-			case annotations.BindingTypeVolumeMount:
-				volumeMounts = append(volumeMounts, r.Object)
+
+			// FIXME(isuttonl): rename volumeMounts to volumeKeys
+			if r.Type == annotations.BindingTypeVolumeMount {
+				volumeMounts = append(volumeMounts, r.Path)
 			}
 		}
 
