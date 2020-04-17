@@ -15,6 +15,8 @@ import (
 
 // ResourceHandler handles annotations related to external resources.
 type ResourceHandler struct {
+	// bindingInfo contains the binding details related to the annotation handler.
+	bindingInfo *bindinginfo.BindingInfo
 	// client is the client used to retrieve a related secret.
 	client dynamic.Interface
 	// valuePath is the path that should be extracted from the secret.
@@ -51,7 +53,7 @@ func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
 
 // discoverBindingType attempts to extract a binding type from the given annotation value val.
 func discoverBindingType(val string) (bindingType, error) {
-	re := regexp.MustCompile("^binding:(.*?):object:(.*?)$")
+	re := regexp.MustCompile("^binding:(.*?):.*$")
 	parts := re.FindStringSubmatch(val)
 	if len(parts) == 0 {
 		return "", fmt.Errorf("error extracting binding type")
@@ -102,9 +104,14 @@ func (h *ResourceHandler) Handle() (Result, error) {
 		}
 	}
 
+	typ, err := discoverBindingType(h.bindingInfo.Value)
+	if err != nil {
+		return Result{}, err
+	}
+
 	return Result{
 		Object: nested.ComposeValue(val, nested.NewPath(h.outputPath)),
-		Type:   BindingTypeEnvVar,
+		Type:   typ,
 	}, nil
 }
 
@@ -144,6 +151,7 @@ func NewResourceHandler(
 	}
 
 	return &ResourceHandler{
+		bindingInfo:                 bindingInfo,
 		client:                      client,
 		valuePath:                   valuePath,
 		relatedNamePath:             relatedNamePath,

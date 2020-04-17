@@ -35,6 +35,11 @@ func TestDiscoverBindingType(t *testing.T) {
 		expected: BindingTypeEnvVar,
 	}))
 
+	t.Run("volumemount/secret", assertDiscoverBindingType(args{
+		value:    "binding:volumemount:secret",
+		expected: BindingTypeVolumeMount,
+	}))
+
 	t.Run("unknown/secret", assertDiscoverBindingType(args{
 		value:     "binding:unknown:object:secret",
 		expected:  BindingTypeEnvVar,
