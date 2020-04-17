@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+
 	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
@@ -120,6 +121,45 @@ func crdDescriptionToAnnotations(anns map[string]string, crdDescription *olmv1al
 	return anns
 }
 
+func (p *Planner) getResourceInfo(
+	cr *unstructured.Unstructured,
+	bssGVK schema.GroupVersionKind,
+) (
+	*unstructured.Unstructured,
+	*olmv1alpha1.CRDDescription,
+	error,
+) {
+	crdDescription := &olmv1alpha1.CRDDescription{}
+
+	// resolve the CRD using the service's GVK
+	crd, err := p.searchCRD(bssGVK)
+	if err != nil {
+		// expected this to work, but didn't
+		// if k8sError.IsNotFound(err) {...}
+		p.logger.Error(err, "Probably not a CRD")
+
+	} else {
+
+		p.logger.Debug("Resolved CRD", "CRD", crd)
+
+		olm := NewOLM(p.client, p.sbr.GetNamespace())
+
+		// Parse annotations from the OLM descriptors or the CRD
+		crdDescription, err = olm.SelectCRDByGVK(bssGVK, crd)
+		if err != nil {
+			p.logger.Error(err, "Probably not an OLM operator")
+		}
+		p.logger.Debug("Tentatively resolved CRDDescription", "CRDDescription", crdDescription)
+	}
+
+	err = buildCRDDescriptionFromCR(cr, crdDescription)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return crd, crdDescription, nil
+}
+
 // Plan by retrieving the necessary resources related to binding a service backend.
 func (p *Planner) Plan() (*Plan, error) {
 	ns := p.sbr.GetNamespace()
@@ -144,38 +184,12 @@ func (p *Planner) Plan() (*Plan, error) {
 
 		bssGVK := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 
-		// Start with looking up if the resource exists
-		// If yes, errors during lookups of the CRD and
-		// the CRD could be ignored.
 		cr, err := p.searchCR(s)
 		if err != nil {
 			return nil, err
 		}
 
-		crdDescription := &olmv1alpha1.CRDDescription{}
-
-		// resolve the CRD using the service's GVK
-		crd, err := p.searchCRD(bssGVK)
-		if err != nil {
-			// expected this to work, but didn't
-			// if k8sError.IsNotFound(err) {...}
-			p.logger.Error(err, "Probably not a CRD")
-
-		} else {
-
-			p.logger.Debug("Resolved CRD", "CRD", crd)
-
-			olm := NewOLM(p.client, ns)
-
-			// Parse annotations from the OLM descriptors or the CRD
-			crdDescription, err = olm.SelectCRDByGVK(bssGVK, crd)
-			if err != nil {
-				p.logger.Error(err, "Probably not an OLM operator")
-			}
-			p.logger.Debug("Tentatively resolved CRDDescription", "CRDDescription", crdDescription)
-		}
-
-		err = buildCRDDescriptionFromCR(cr, crdDescription)
+		crd, crdDescription, err := p.getResourceInfo(cr, bssGVK)
 		if err != nil {
 			return nil, err
 		}
