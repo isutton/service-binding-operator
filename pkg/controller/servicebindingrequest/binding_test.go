@@ -299,11 +299,11 @@ func TestServiceBinder_Bind(t *testing.T) {
 			CustomEnvVar: []corev1.EnvVar{
 				{
 					Name:  "MY_DB_NAME",
-					Value: `{{ .status.dbName }}`,
+					Value: `{{ index . "v1alpha1" "postgresql.baiju.dev" "Database" "db1" "status" "dbName" }}`,
 				},
 				{
 					Name:  "MY_DB_CONNECTIONIP",
-					Value: `{{ .status.dbConnectionIP }}`,
+					Value: `{{ index . "v1alpha1" "postgresql.baiju.dev" "Database" "db1" "status" "dbConnectionIP" }}`,
 				},
 			},
 		},
