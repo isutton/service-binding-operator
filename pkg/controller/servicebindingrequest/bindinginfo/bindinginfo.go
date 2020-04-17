@@ -17,9 +17,9 @@ type BindingInfo struct {
 	FieldPath string
 	// Path is the field that will be collected from the Backing Service CR or a related object.
 	Path string
-	// Descriptor is the field reference to another manifest
+	// Descriptor is the field reference to another manifest.
 	Descriptor string
-	// Value is the ...
+	// Value is the original annotation value.
 	Value string
 }
 
