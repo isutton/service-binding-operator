@@ -12,10 +12,11 @@ import (
 )
 
 const SecretValue = "binding:env:object:secret"
+const VolumeMountSecretValue = "binding:volumemount:secret"
 
 // IsSecret returns true if the annotation value should trigger the secret handler.
 func IsSecret(s string) bool {
-	return SecretValue == s
+	return SecretValue == s || VolumeMountSecretValue == s
 }
 
 // decodeBase64String asserts whether val is a string and returns its decoded value.
