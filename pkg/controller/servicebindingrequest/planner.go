@@ -3,6 +3,7 @@ package servicebindingrequest
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/imdario/mergo"
 
@@ -78,6 +79,37 @@ func (p *Planner) searchCRD(gvk schema.GroupVersionKind) (*unstructured.Unstruct
 
 var EmptyBackingServiceSelectorsErr = errors.New("backing service selectors are empty")
 
+func loadDescriptor(anns map[string]string, path string, descriptor string, root string) {
+	if !strings.HasPrefix(descriptor, "binding:") {
+		return
+	}
+	n := "servicebindingoperator.redhat.io/" + root + "." + path
+	v := strings.Split(descriptor, ":")
+	if len(v) > 4 {
+		n = n + "-" + v[4]
+		anns[n] = strings.Join(v[0:4], ":")
+	}
+	if len(v) == 3 {
+		anns[n] = descriptor
+	}
+}
+
+func crdDescriptionToAnnotations(anns map[string]string, crdDescription *olmv1alpha1.CRDDescription) map[string]string {
+	for _, sd := range crdDescription.StatusDescriptors {
+		for _, xd := range sd.XDescriptors {
+			loadDescriptor(anns, sd.Path, xd, "status")
+		}
+	}
+
+	for _, sd := range crdDescription.SpecDescriptors {
+		for _, xd := range sd.XDescriptors {
+			loadDescriptor(anns, sd.Path, xd, "spec")
+		}
+	}
+
+	return anns
+}
+
 // Plan by retrieving the necessary resources related to binding a service backend.
 func (p *Planner) Plan() (*Plan, error) {
 	ns := p.sbr.GetNamespace()
@@ -143,10 +175,11 @@ func (p *Planner) Plan() (*Plan, error) {
 			return nil, err
 		}
 
-		annotationsResults := make([]map[string]interface{}, 0)
-		aggregated := make(map[string]interface{})
+		anns := crdDescriptionToAnnotations(crd.GetAnnotations(), crdDescription)
+		volumeMounts := make([]map[string]interface{}, 0)
+		envVars := make(map[string]interface{})
 
-		for n, v := range crd.GetAnnotations() {
+		for n, v := range anns {
 			h, err := annotations.BuildHandler(annotations.HandlerArgs{
 				Name:     n,
 				Value:    v,
@@ -161,19 +194,23 @@ func (p *Planner) Plan() (*Plan, error) {
 				return nil, err
 			}
 
-			annotationsResults = append(annotationsResults, r.Object)
-			err = mergo.Merge(&aggregated, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
-			if err != nil {
-				return nil, err
+			switch r.Type {
+			case annotations.BindingTypeEnvVar:
+				err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
+				if err != nil {
+					return nil, err
+				}
+			case annotations.BindingTypeVolumeMount:
+				volumeMounts = append(volumeMounts, r.Object)
 			}
 		}
 
 		r := &RelatedResource{
-			CRDDescription:     crdDescription,
-			CR:                 cr,
-			AnnotationsResults: annotationsResults,
-			AggregatedValues:   aggregated,
-			EnvVarPrefix:       s.EnvVarPrefix,
+			CRDDescription: crdDescription,
+			CR:             cr,
+			EnvVars:        envVars,
+			VolumeMounts:   volumeMounts,
+			EnvVarPrefix:   s.EnvVarPrefix,
 		}
 
 		relatedResources = append(relatedResources, r)

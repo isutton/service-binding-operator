@@ -299,7 +299,6 @@ var InvalidOptionsErr = errors.New("invalid options")
 
 // BuildServiceBinder creates a new binding manager according to options.
 func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
-
 	var isSBRDeleting bool
 	if options.SBR != nil && options.SBR.GetDeletionTimestamp() != nil {
 		isSBRDeleting = true
@@ -334,23 +333,15 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		}
 	}
 
-	// read bindable data from the CRDDescription found by the planner
-	for _, r := range plan.GetRelatedResources() {
-		err = retriever.ReadCRDDescriptionData(r.EnvVarPrefix, r.CR, r.CRDDescription)
-		if err != nil {
-			return nil, err
-		}
+	if isSBRDeleting {
+		// FIXME(isuttonl): investigate this flag
 	}
 
-	var retrievedData map[string][]byte
-
-	if !isSBRDeleting {
-		// gather retriever's read data
-		// TODO: do not return error
-		retrievedData, err = retriever.Get()
-		if err != nil {
-			return nil, err
-		}
+	// gather retriever's read data
+	// TODO: do not return error
+	envVars, err := retriever.GetEnvVars()
+	if err != nil {
+		return nil, err
 	}
 
 	// gather related secret, again only appending it if there's a value.
@@ -362,7 +353,7 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		DynClient: options.DynClient,
 		SBR:       options.SBR,
 		Objects:   objs,
-		Data:      retrievedData,
+		Data:      envVars,
 		Secret:    secret,
 	}, nil
 }
