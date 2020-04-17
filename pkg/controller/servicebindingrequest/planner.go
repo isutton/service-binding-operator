@@ -83,15 +83,25 @@ func loadDescriptor(anns map[string]string, path string, descriptor string, root
 	if !strings.HasPrefix(descriptor, "binding:") {
 		return
 	}
+
 	n := "servicebindingoperator.redhat.io/" + root + "." + path
 	v := strings.Split(descriptor, ":")
-	if len(v) > 4 {
-		n = n + "-" + v[4]
-		anns[n] = strings.Join(v[0:4], ":")
+
+	if strings.HasPrefix(descriptor, "binding:env:") {
+		if len(v) > 4 {
+			n = n + "-" + v[4]
+			anns[n] = strings.Join(v[0:4], ":")
+		}
+		if len(v) == 4 {
+			anns[n] = strings.Join(v[0:4], ":")
+		}
+
 	}
-	if len(v) == 3 {
-		anns[n] = descriptor
+
+	if strings.HasPrefix(descriptor, "binding:volumemount:") {
+		anns[n] = strings.Join(v[0:3], ":")
 	}
+
 }
 
 func crdDescriptionToAnnotations(anns map[string]string, crdDescription *olmv1alpha1.CRDDescription) map[string]string {
@@ -194,10 +204,10 @@ func (p *Planner) Plan() (*Plan, error) {
 				return nil, err
 			}
 
-				err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
-				if err != nil {
-					return nil, err
-				}
+			err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
+			if err != nil {
+				return nil, err
+			}
 
 			// FIXME(isuttonl): rename volumeMounts to volumeKeys
 			if r.Type == annotations.BindingTypeVolumeMount {
