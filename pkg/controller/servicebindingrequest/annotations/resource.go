@@ -112,6 +112,7 @@ func (h *ResourceHandler) Handle() (Result, error) {
 	return Result{
 		Object: nested.ComposeValue(val, nested.NewPath(h.outputPath)),
 		Type:   typ,
+		Path:   h.outputPath,
 	}, nil
 }
 

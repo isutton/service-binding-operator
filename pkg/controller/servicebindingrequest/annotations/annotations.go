@@ -29,6 +29,7 @@ var dataPath = "data"
 type Result struct {
 	Object map[string]interface{}
 	Type   bindingType
+	Path   string
 }
 
 // Handler produces a unstructured object produced from the strategy encoded in
