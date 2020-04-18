@@ -79,22 +79,6 @@ func (r *Reconciler) unbind(logger *log.Log, bm *ServiceBinder) (reconcile.Resul
 	return Done()
 }
 
-// bind steps to bind backing service and applications together. It receive the elements collected
-// in the common parts of the reconciler, and execute the final binding steps.
-func (r *Reconciler) bind(
-	logger *log.Log,
-	bm *ServiceBinder,
-	sbrStatus *v1alpha1.ServiceBindingRequestStatus,
-) (
-	reconcile.Result,
-	error,
-) {
-	logger = logger.WithName("bind")
-
-	logger.Info("Binding applications with intermediary secret...")
-	return bm.Bind()
-}
-
 // Reconcile a ServiceBindingRequest by the following steps:
 // 1. Inspecting SBR in order to identify backend service. The service is composed by a CRD name and
 //    kind, and by inspecting "connects-to" label identify the name of service instance;
@@ -134,9 +118,6 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 
 	logger = logger.WithValues("ServiceBindingRequest.Name", sbr.Name)
 	logger.Debug("Found service binding request to inspect")
-
-	// splitting instance from it's status
-	sbrStatus := &sbr.Status
 
 	options := &ServiceBinderOptions{
 		Client:                 r.client,
@@ -178,6 +159,6 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		return r.unbind(logger, bm)
 	}
 
-	logger.Info("Starting the bind of application(s) with backing service...")
-	return r.bind(logger, bm, sbrStatus)
+	logger.Info("Binding applications with intermediary secret...")
+	return bm.Bind()
 }
