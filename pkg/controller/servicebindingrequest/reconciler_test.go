@@ -43,30 +43,6 @@ func reconcileRequest() reconcile.Request {
 	}
 }
 
-func TestReconcilerReconcileError(t *testing.T) {
-	backingServiceResourceRef := "test-using-secret"
-	matchLabels := map[string]string{
-		"connects-to": "database",
-		"environment": "reconciler",
-	}
-	f := mocks.NewFake(t, reconcilerNs)
-	f.AddMockedUnstructuredDatabaseCRD()
-	f.AddMockedUnstructuredServiceBindingRequest(reconcilerName, backingServiceResourceRef, "", deploymentsGVR, matchLabels)
-	f.AddMockedUnstructuredPostgresDatabaseCR("test-using-secret")
-
-	fakeClient := f.FakeClient()
-	fakeDynClient := f.FakeDynClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
-
-	res, err := reconciler.Reconcile(reconcileRequest())
-
-	// currently this test passes because annotations present in the Databases CRD being currently
-	// used doesn't have a 'status' field in its definition; once it does and this code is updated (
-	// since the Postgres CRD is being imported to be used in tests) this test will fail.
-	require.Error(t, err)
-	require.True(t, res.Requeue)
-}
-
 // TestApplicationSelectorByName tests discovery of application by name
 func TestApplicationSelectorByName(t *testing.T) {
 	backingServiceResourceRef := "backingServiceRef"
