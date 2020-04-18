@@ -53,8 +53,7 @@ func (p *Plan) GetServiceContexts() ServiceContexts {
 	return p.ServiceContexts
 }
 
-// searchCR based on a CustomResourceDefinitionDescription and name, search for the object.
-func (p *Planner) searchCR(selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
+func findCR(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
 	// gvr is the plural guessed resource for the given selector
 	gvk := schema.GroupVersionKind{
 		Group:   selector.Group,
@@ -68,7 +67,12 @@ func (p *Planner) searchCR(selector v1alpha1.BackingServiceSelector) (*unstructu
 	}
 
 	// delegate the search selector's namespaced resource client
-	return p.client.Resource(gvr).Namespace(*selector.Namespace).Get(selector.ResourceRef, metav1.GetOptions{})
+	return client.Resource(gvr).Namespace(*selector.Namespace).Get(selector.ResourceRef, metav1.GetOptions{})
+}
+
+// searchCR based on a CustomResourceDefinitionDescription and name, search for the object.
+func (p *Planner) searchCR(selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
+	return findCR(p.client, selector)
 }
 
 // CRDGVR is the plural GVR for Kubernetes CRDs.
@@ -78,14 +82,19 @@ var CRDGVR = schema.GroupVersionResource{
 	Resource: "customresourcedefinitions",
 }
 
-// searchCRD returns the CRD related to the gvk.
-func (p *Planner) searchCRD(gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
+func findCRD(client dynamic.Interface, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
 	// gvr is the plural guessed resource for the given GVK
 	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
 	// crdName is the string'fied GroupResource, e.g. "deployments.apps"
 	crdName := gvr.GroupResource().String()
 	// delegate the search to the CustomResourceDefinition resource client
-	return p.client.Resource(CRDGVR).Get(crdName, metav1.GetOptions{})
+	return client.Resource(CRDGVR).Get(crdName, metav1.GetOptions{})
+
+}
+
+// searchCRD returns the CRD related to the gvk.
+func (p *Planner) searchCRD(gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
+	return findCRD(p.client, gvk)
 }
 
 var EmptyBackingServiceSelectorsErr = errors.New("backing service selectors are empty")
@@ -115,7 +124,8 @@ func loadDescriptor(anns map[string]string, path string, descriptor string, root
 
 }
 
-func crdDescriptionToAnnotations(anns map[string]string, crdDescription *olmv1alpha1.CRDDescription) map[string]string {
+func crdDescriptionToAnnotations(crdDescription *olmv1alpha1.CRDDescription) map[string]string {
+	anns := make(map[string]string)
 	for _, sd := range crdDescription.StatusDescriptors {
 		for _, xd := range sd.XDescriptors {
 			loadDescriptor(anns, sd.Path, xd, "status")
@@ -131,80 +141,64 @@ func crdDescriptionToAnnotations(anns map[string]string, crdDescription *olmv1al
 	return anns
 }
 
-func (p *Planner) getResourceInfo(
-	cr *unstructured.Unstructured,
+// findCRDDescription attempts to find the CRDDescription resource related CustomResourceDefinition.
+func findCRDDescription(
+	ns string,
+	client dynamic.Interface,
 	bssGVK schema.GroupVersionKind,
-) (
-	*unstructured.Unstructured,
-	*olmv1alpha1.CRDDescription,
-	error,
-) {
-	crdDescription := &olmv1alpha1.CRDDescription{}
-
-	// resolve the CRD using the service's GVK
-	crd, err := p.searchCRD(bssGVK)
-	if err != nil {
-		// expected this to work, but didn't
-		// if k8sError.IsNotFound(err) {...}
-		p.logger.Error(err, "Probably not a CRD")
-
-	} else {
-
-		p.logger.Debug("Resolved CRD", "CRD", crd)
-
-		olm := NewOLM(p.client, p.sbr.GetNamespace())
-
-		// Parse annotations from the OLM descriptors or the CRD
-		crdDescription, err = olm.SelectCRDByGVK(bssGVK, crd)
-		if err != nil {
-			p.logger.Error(err, "Probably not an OLM operator")
-		}
-		p.logger.Debug("Tentatively resolved CRDDescription", "CRDDescription", crdDescription)
-	}
-
-	err = buildCRDDescriptionFromCR(cr, crdDescription)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return crd, crdDescription, nil
+	crd *unstructured.Unstructured,
+) (*olmv1alpha1.CRDDescription, error) {
+	return NewOLM(client, ns).SelectCRDByGVK(bssGVK, crd)
 }
 
-// Plan by retrieving the necessary resources related to binding a service backend.
-func (p *Planner) Plan() (*Plan, error) {
-	ns := p.sbr.GetNamespace()
-
-	var selectors []v1alpha1.BackingServiceSelector
-	if p.sbr.Spec.BackingServiceSelector != nil {
-		selectors = append(selectors, *p.sbr.Spec.BackingServiceSelector)
-	}
-	if p.sbr.Spec.BackingServiceSelectors != nil {
-		selectors = append(selectors, *p.sbr.Spec.BackingServiceSelectors...)
-	}
-
-	if len(selectors) == 0 {
-		return nil, EmptyBackingServiceSelectorsErr
-	}
-
-	ctxs := make([]*ServiceContext, 0)
+func buildServiceContexts(
+	client dynamic.Interface,
+	sbr *v1alpha1.ServiceBindingRequest,
+	ns string,
+	selectors []v1alpha1.BackingServiceSelector,
+) ([]*ServiceContext, error) {
+	serviceCtxs := make([]*ServiceContext, 0)
 	for _, s := range selectors {
 		if s.Namespace == nil {
 			s.Namespace = &ns
 		}
 
-		bssGVK := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
+		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 
-		cr, err := p.searchCR(s)
+		cr, err := findCR(client, s)
 		if err != nil {
 			return nil, err
 		}
 
-		crd, crdDescription, err := p.getResourceInfo(cr, bssGVK)
+		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
+		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
+		crd, err := findCRD(client, gvk)
 		if err != nil {
 			return nil, err
 		}
 
-		anns := crdDescriptionToAnnotations(crd.GetAnnotations(), crdDescription)
+		// attempt to search the a CRDDescription related to the obtained CRD.
+		crdDescription, err := findCRDDescription(ns, client, gvk, crd)
+		if err != nil {
+			// FIXME(isuttonl): return early if err is not NotFound
+			crdDescription = &olmv1alpha1.CRDDescription{}
+		}
+
+		// start with annotations extracted from CRDDescription
+		anns := crdDescriptionToAnnotations(crdDescription)
+
+		// then override collected annotations with CR annotations
+		err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
+
+		// and finally override collected annotations with CR annotations
+		err = mergo.Merge(&anns, cr.GetAnnotations(), mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
+
 		volumeKeys := make([]string, 0)
 		envVars := make(map[string]interface{})
 
@@ -213,7 +207,7 @@ func (p *Planner) Plan() (*Plan, error) {
 				Name:     n,
 				Value:    v,
 				Resource: cr,
-				Client:   p.client,
+				Client:   client,
 			})
 			if err != nil {
 				return nil, err
@@ -234,7 +228,7 @@ func (p *Planner) Plan() (*Plan, error) {
 			}
 		}
 
-		ctx := &ServiceContext{
+		serviceCtx := &ServiceContext{
 			CRDDescription: crdDescription,
 			CR:             cr,
 			EnvVars:        envVars,
@@ -242,8 +236,35 @@ func (p *Planner) Plan() (*Plan, error) {
 			EnvVarPrefix:   s.EnvVarPrefix,
 		}
 
-		ctxs = append(ctxs, ctx)
-		p.logger.Debug("Resolved service context", "ServiceContext", ctx)
+		serviceCtxs = append(serviceCtxs, serviceCtx)
+	}
+
+	return serviceCtxs, nil
+}
+
+// Plan by retrieving the necessary resources related to binding a service backend.
+func (p *Planner) Plan() (*Plan, error) {
+	sbr := p.sbr
+	ns := sbr.GetNamespace()
+	client := p.client
+	inSelector := sbr.Spec.BackingServiceSelector
+	inSelectors := sbr.Spec.BackingServiceSelectors
+	var selectors []v1alpha1.BackingServiceSelector
+
+	// FIXME(isuttonl): move the selectors compoosition to the caller.
+	if inSelector != nil {
+		selectors = append(selectors, *inSelector)
+	}
+	if inSelectors != nil {
+		selectors = append(selectors, *inSelectors...)
+	}
+	if len(selectors) == 0 {
+		return nil, EmptyBackingServiceSelectorsErr
+	}
+
+	ctxs, err := buildServiceContexts(client, sbr, ns, selectors)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Plan{
