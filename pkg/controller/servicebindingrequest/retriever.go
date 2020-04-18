@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -16,14 +17,15 @@ import (
 
 // Retriever reads all data referred in plan instance, and store in a secret.
 type Retriever struct {
-	logger        *log.Log                     // logger instance
-	data          map[string][]byte            // data retrieved
-	Objects       []*unstructured.Unstructured // list of objects employed
-	client        dynamic.Interface            // Kubernetes API client
-	plan          *Plan                        // plan instance
-	VolumeKeys    []string                     // list of keys found
-	bindingPrefix string                       // prefix for variable names
-	cache         map[string]interface{}       // store visited paths
+	logger          *log.Log                     // logger instance
+	data            map[string][]byte            // data retrieved
+	Objects         []*unstructured.Unstructured // list of objects employed
+	client          dynamic.Interface            // Kubernetes API client
+	VolumeKeys      []string                     // list of keys found
+	bindingPrefix   string                       // prefix for variable names
+	cache           map[string]interface{}       // store visited paths
+	envVarTemplates []corev1.EnvVar              // list of environment variable names and templates
+	serviceCtxs     ServiceContexts              // list of service contexts associated with a SBR
 }
 
 // GetEnvVars returns the data read from related resources (see ReadBindableResourcesData and
@@ -31,7 +33,7 @@ type Retriever struct {
 func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	envVarCtx := make(map[string]interface{})
 
-	for _, resource := range r.plan.GetServiceContexts() {
+	for _, resource := range r.serviceCtxs {
 		// contribute values extracted from the service related resources
 		err := mergo.Merge(&envVarCtx, resource.EnvVars, mergo.WithAppendSlice, mergo.WithOverride)
 		if err != nil {
@@ -50,7 +52,7 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		r.VolumeKeys = append(r.VolumeKeys, resource.VolumeKeys...)
 	}
 
-	envVarTemplates := r.plan.SBR.Spec.CustomEnvVar
+	envVarTemplates := r.envVarTemplates
 	envParser := NewCustomEnvParser(envVarTemplates, envVarCtx)
 	envVars, err := envParser.Parse()
 	if err != nil {
@@ -152,15 +154,21 @@ func (r *Retriever) store(envVarPrefix *string, u *unstructured.Unstructured, ke
 }
 
 // NewRetriever instantiate a new retriever instance.
-func NewRetriever(client dynamic.Interface, plan *Plan, bindingPrefix string) *Retriever {
+func NewRetriever(
+	client dynamic.Interface,
+	envVars []corev1.EnvVar,
+	serviceContexts ServiceContexts,
+	bindingPrefix string,
+) *Retriever {
 	return &Retriever{
-		logger:        log.NewLog("retriever"),
-		data:          make(map[string][]byte),
-		Objects:       []*unstructured.Unstructured{},
-		client:        client,
-		plan:          plan,
-		VolumeKeys:    []string{},
-		bindingPrefix: bindingPrefix,
-		cache:         make(map[string]interface{}),
+		logger:          log.NewLog("retriever"),
+		data:            make(map[string][]byte),
+		Objects:         []*unstructured.Unstructured{},
+		client:          client,
+		VolumeKeys:      []string{},
+		bindingPrefix:   bindingPrefix,
+		cache:           make(map[string]interface{}),
+		envVarTemplates: envVars,
+		serviceCtxs:     serviceContexts,
 	}
 }

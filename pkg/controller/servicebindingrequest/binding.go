@@ -303,6 +303,21 @@ func buildPlan(
 // InvalidOptionsErr is returned when ServiceBinderOptions are not valid.
 var InvalidOptionsErr = errors.New("invalid options")
 
+// collectServiceContexts returns a list of values containing relevant information related to a
+// service.
+func collectServiceContexts(
+	ctx context.Context,
+	client dynamic.Interface,
+	sbr *v1alpha1.ServiceBindingRequest,
+) (ServiceContexts, error) {
+	// plan is a source of information regarding the binding process
+	plan, err := buildPlan(ctx, client, sbr)
+	if err != nil {
+		return nil, err
+	}
+	return plan.ServiceContexts, nil
+}
+
 // BuildServiceBinder creates a new binding manager according to options.
 func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 	var isSBRDeleting bool
@@ -314,26 +329,27 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		return nil, InvalidOptionsErr
 	}
 
-	// objs groups all extra objects related to the informed SBR
-	objs := make([]*unstructured.Unstructured, 0)
-
-	// plan is a source of information regarding the binding process
 	ctx := context.Background()
-	plan, err := buildPlan(ctx, options.DynClient, options.SBR)
+
+	serviceCtxs, err := collectServiceContexts(ctx, options.DynClient, options.SBR)
 	if err != nil {
 		return nil, err
 	}
 
-	rs := plan.GetCRs()
 	// append all SBR related CRs
-	objs = append(objs, rs...)
+	objs := serviceCtxs.GetCRs()
 
 	// retriever is responsible for gathering data related to the given plan.
-	retriever := NewRetriever(options.DynClient, plan, options.EnvVarPrefix)
+	retriever := NewRetriever(
+		options.DynClient,
+		options.SBR.Spec.CustomEnvVar,
+		serviceCtxs,
+		options.EnvVarPrefix,
+	)
 
 	// read bindable data from the specified resources
 	if options.DetectBindingResources {
-		err := retriever.ReadBindableResourcesData(&plan.SBR, plan.GetRelatedResources())
+		err := retriever.ReadBindableResourcesData(options.SBR, objs)
 		if err != nil {
 			return nil, err
 		}
@@ -344,14 +360,17 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 	}
 
 	// gather retriever's read data
-	// TODO: do not return error
 	envVars, err := retriever.GetEnvVars()
 	if err != nil {
 		return nil, err
 	}
 
 	// gather related secret, again only appending it if there's a value.
-	secret := NewSecret(options.DynClient, plan)
+	secret := NewSecret(
+		options.DynClient,
+		options.SBR.GetNamespace(),
+		options.SBR.GetName(),
+	)
 
 	return &ServiceBinder{
 		Logger:    options.Logger,

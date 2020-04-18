@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
@@ -29,24 +30,25 @@ func TestRetriever(t *testing.T) {
 	crInSameNamespace, err := mocks.UnstructuredDatabaseCRMock(ns, crName)
 	require.NoError(t, err)
 
-	plan := &Plan{
-		Ns:   ns,
-		Name: "retriever",
-		ServiceContexts: []*ServiceContext{
-			{
-				CRDDescription: &crdDescription,
-				CR:             cr,
-			},
-			{
-				CRDDescription: &crdDescription,
-				CR:             crInSameNamespace,
-			},
+	serviceCtxs := ServiceContexts{
+		{
+			CRDDescription: &crdDescription,
+			CR:             cr,
+		},
+		{
+			CRDDescription: &crdDescription,
+			CR:             crInSameNamespace,
 		},
 	}
 
 	fakeDynClient := f.FakeDynClient()
 
-	retriever = NewRetriever(fakeDynClient, plan, "SERVICE_BINDING")
+	retriever = NewRetriever(
+		fakeDynClient,
+		[]v1.EnvVar{},
+		serviceCtxs,
+		"SERVICE_BINDING",
+	)
 	require.NotNil(t, retriever)
 
 	t.Run("getCRKey", func(t *testing.T) {
@@ -77,20 +79,21 @@ func TestRetrieverWithNestedCRKey(t *testing.T) {
 	cr, err := mocks.UnstructuredNestedDatabaseCRMock(ns, crName)
 	require.NoError(t, err)
 
-	plan := &Plan{
-		Ns:   ns,
-		Name: "retriever",
-		ServiceContexts: []*ServiceContext{
-			{
-				CRDDescription: &crdDescription,
-				CR:             cr,
-			},
+	serviceCtxs := ServiceContexts{
+		{
+			CRDDescription: &crdDescription,
+			CR:             cr,
 		},
 	}
 
 	fakeDynClient := f.FakeDynClient()
 
-	retriever = NewRetriever(fakeDynClient, plan, "SERVICE_BINDING")
+	retriever = NewRetriever(
+		fakeDynClient,
+		[]v1.EnvVar{},
+		serviceCtxs,
+		"SERVICE_BINDING",
+	)
 	require.NotNil(t, retriever)
 
 	t.Run("Second level", func(t *testing.T) {
