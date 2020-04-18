@@ -111,25 +111,15 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 
 func TestPlannerAnnotation(t *testing.T) {
 	ns := "planner"
-	name := "service-binding-request"
-	resourceRef := "db-testing"
-	matchLabels := map[string]string{
-		"connects-to": "database",
-		"environment": "planner",
-	}
 	f := mocks.NewFake(t, ns)
-	sbr := f.AddMockedServiceBindingRequest(name, nil, resourceRef, "", deploymentsGVR, matchLabels)
-	f.AddMockedUnstructuredDatabaseCRD()
+	expected := f.AddMockedUnstructuredDatabaseCRD()
 	cr := f.AddMockedDatabaseCR("database", ns)
 
-	planner = NewPlanner(context.TODO(), f.FakeDynClient(), sbr)
-	require.NotNil(t, planner)
-
-	t.Run("searchCRD", func(t *testing.T) {
-		crd, err := planner.searchCRD(cr.GetObjectKind().GroupVersionKind())
-
+	t.Run("findCRD", func(t *testing.T) {
+		crd, err := findCRD(f.FakeDynClient(), cr.GetObjectKind().GroupVersionKind())
 		require.NoError(t, err)
 		require.NotNil(t, crd)
+		require.Equal(t, expected, crd)
 	})
 }
 

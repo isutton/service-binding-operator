@@ -79,12 +79,6 @@ func findCRD(client dynamic.Interface, gvk schema.GroupVersionKind) (*unstructur
 	crdName := gvr.GroupResource().String()
 	// delegate the search to the CustomResourceDefinition resource client
 	return client.Resource(CRDGVR).Get(crdName, metav1.GetOptions{})
-
-}
-
-// searchCRD returns the CRD related to the gvk.
-func (p *Planner) searchCRD(gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
-	return findCRD(p.client, gvk)
 }
 
 var EmptyBackingServiceSelectorsErr = errors.New("backing service selectors are empty")
