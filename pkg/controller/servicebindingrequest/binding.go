@@ -336,9 +336,6 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		return nil, err
 	}
 
-	// append all SBR related CRs
-	objs := serviceCtxs.GetCRs()
-
 	// retriever is responsible for gathering data related to the given plan.
 	retriever := NewRetriever(
 		options.DynClient,
@@ -347,13 +344,19 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		options.EnvVarPrefix,
 	)
 
-	// read bindable data from the specified resources
-	if options.DetectBindingResources {
-		err := retriever.ReadBindableResourcesData(options.SBR, objs)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// FIXME(isuttonl): commenting out the block below to disable the feature until further
+	// clarification on whether it is required or there are other mechanisms to achieve the same
+	// goal (when un-commenting change ServiceBinder Objects key to objs).
+	//
+	// // append all SBR related CRs
+	// objs := serviceCtxs.GetCRs()
+	// // read bindable data from the specified resources
+	// if options.DetectBindingResources {
+	// 	err := retriever.ReadBindableResourcesData(options.SBR, objs)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 
 	if isSBRDeleting {
 		// FIXME(isuttonl): investigate this flag
@@ -377,7 +380,7 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		Binder:    NewBinder(ctx, options.Client, options.DynClient, options.SBR, retriever.VolumeKeys),
 		DynClient: options.DynClient,
 		SBR:       options.SBR,
-		Objects:   objs,
+		Objects:   serviceCtxs.GetCRs(),
 		Data:      envVars,
 		Secret:    secret,
 	}, nil
