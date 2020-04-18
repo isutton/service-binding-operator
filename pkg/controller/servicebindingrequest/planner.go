@@ -142,15 +142,14 @@ func buildServiceContexts(
 			s.Namespace = &ns
 		}
 
-		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
-
-		cr, err := findCR(client, s)
+		obj, err := findCR(client, s)
 		if err != nil {
 			return nil, err
 		}
 
 		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
 		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
+		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 		crd, err := findCRD(client, gvk)
 		if err != nil {
 			return nil, err
@@ -173,7 +172,7 @@ func buildServiceContexts(
 		}
 
 		// and finally override collected annotations with CR annotations
-		err = mergo.Merge(&anns, cr.GetAnnotations(), mergo.WithOverride)
+		err = mergo.Merge(&anns, obj.GetAnnotations(), mergo.WithOverride)
 		if err != nil {
 			return nil, err
 		}
@@ -185,7 +184,7 @@ func buildServiceContexts(
 			h, err := annotations.BuildHandler(annotations.HandlerArgs{
 				Name:     n,
 				Value:    v,
-				Resource: cr,
+				Resource: obj,
 				Client:   client,
 			})
 			if err != nil {
@@ -209,7 +208,7 @@ func buildServiceContexts(
 
 		serviceCtx := &ServiceContext{
 			CRDDescription: crdDescription,
-			CR:             cr,
+			Object:         obj,
 			EnvVars:        envVars,
 			VolumeKeys:     volumeKeys,
 			EnvVarPrefix:   s.EnvVarPrefix,

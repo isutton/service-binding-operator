@@ -41,9 +41,9 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		}
 
 		// contribute the entire CR to the context
-		gvk := resource.CR.GetObjectKind().GroupVersionKind()
+		gvk := resource.Object.GetObjectKind().GroupVersionKind()
 		err = unstructured.SetNestedField(
-			envVarCtx, resource.CR.Object, gvk.Version, gvk.Group, gvk.Kind, resource.CR.GetName())
+			envVarCtx, resource.Object.Object, gvk.Version, gvk.Group, gvk.Kind, resource.Object.GetName())
 		if err != nil {
 			return nil, err
 		}

@@ -33,11 +33,11 @@ func TestRetriever(t *testing.T) {
 	serviceCtxs := ServiceContexts{
 		{
 			CRDDescription: &crdDescription,
-			CR:             cr,
+			Object:         cr,
 		},
 		{
 			CRDDescription: &crdDescription,
-			CR:             crInSameNamespace,
+			Object:         crInSameNamespace,
 		},
 	}
 
@@ -82,7 +82,7 @@ func TestRetrieverWithNestedCRKey(t *testing.T) {
 	serviceCtxs := ServiceContexts{
 		{
 			CRDDescription: &crdDescription,
-			CR:             cr,
+			Object:         cr,
 		},
 	}
 

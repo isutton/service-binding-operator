@@ -380,7 +380,7 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		Binder:    NewBinder(ctx, options.Client, options.DynClient, options.SBR, retriever.VolumeKeys),
 		DynClient: options.DynClient,
 		SBR:       options.SBR,
-		Objects:   serviceCtxs.GetCRs(),
+		Objects:   serviceCtxs.GetObjects(),
 		Data:      envVars,
 		Secret:    secret,
 	}, nil

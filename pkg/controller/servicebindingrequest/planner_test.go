@@ -101,8 +101,8 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, plan)
 		require.NotEmpty(t, plan.ServiceContexts)
-		require.NotEmpty(t, plan.ServiceContexts.GetCRs())
-		require.Equal(t, backingServiceNamespace, plan.ServiceContexts.GetCRs()[0].GetNamespace())
+		require.NotEmpty(t, plan.ServiceContexts.GetObjects())
+		require.Equal(t, backingServiceNamespace, plan.ServiceContexts.GetObjects()[0].GetNamespace())
 		require.Equal(t, ns, plan.Ns)
 		require.Equal(t, name, plan.Name)
 
