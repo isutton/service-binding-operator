@@ -60,11 +60,6 @@ func findCR(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) 
 	return client.Resource(gvr).Namespace(*selector.Namespace).Get(selector.ResourceRef, metav1.GetOptions{})
 }
 
-// searchCR based on a CustomResourceDefinitionDescription and name, search for the object.
-func (p *Planner) searchCR(selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
-	return findCR(p.client, selector)
-}
-
 // CRDGVR is the plural GVR for Kubernetes CRDs.
 var CRDGVR = schema.GroupVersionResource{
 	Group:    "apiextensions.k8s.io",
