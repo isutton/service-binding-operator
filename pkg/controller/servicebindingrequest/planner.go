@@ -43,16 +43,6 @@ type Plan struct {
 	ServiceContexts ServiceContexts                // CR and CRDDescription pairs SBR related
 }
 
-// GetCRs returns all collected service resources.
-func (p *Plan) GetCRs() []*unstructured.Unstructured {
-	return p.ServiceContexts.GetCRs()
-}
-
-// GetServiceContexts returns all collected service contexts.
-func (p *Plan) GetServiceContexts() ServiceContexts {
-	return p.ServiceContexts
-}
-
 func findCR(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
 	// gvr is the plural guessed resource for the given selector
 	gvk := schema.GroupVersionKind{
