@@ -135,13 +135,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	if sbr.GetDeletionTimestamp() != nil {
 		logger := logger.WithName("unbind")
 		logger.Info("Executing unbinding steps...")
-		if res, err := bm.Unbind(); err != nil {
-			logger.Error(err, "On unbinding application.")
-			return res, err
-		}
-
-		logger.Debug("Deletion done!")
-		return Done()
+		return bm.Unbind()
 	}
 
 	logger.Info("Binding applications with intermediary secret...")
