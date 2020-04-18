@@ -106,7 +106,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		Logger:                 logger,
 	}
 
-	bm, err := BuildServiceBinder(options)
+	sb, err := BuildServiceBinder(options)
 	if err != nil {
 		logger.Error(err, "Creating binding context")
 		if err == EmptyBackingServiceSelectorsErr || err == EmptyApplicationSelectorErr {
@@ -135,9 +135,9 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	if sbr.GetDeletionTimestamp() != nil {
 		logger := logger.WithName("unbind")
 		logger.Info("Executing unbinding steps...")
-		return bm.Unbind()
+		return sb.Unbind()
 	}
 
 	logger.Info("Binding applications with intermediary secret...")
-	return bm.Bind()
+	return sb.Bind()
 }
