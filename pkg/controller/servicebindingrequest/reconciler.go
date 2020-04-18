@@ -57,28 +57,6 @@ func (r *Reconciler) getServiceBindingRequest(
 	return sbr, nil
 }
 
-// unbind removes the relationship between the given sbr and the manifests the operator has
-// previously modified. This process also deletes any manifests created to support the binding
-// functionality, such as ConfigMaps and Secrets.
-func (r *Reconciler) unbind(logger *log.Log, bm *ServiceBinder) (reconcile.Result, error) {
-	logger = logger.WithName("unbind")
-
-	// when finalizer is not found anymore, it can be safely removed
-	if !containsStringSlice(bm.SBR.GetFinalizers(), Finalizer) {
-		logger.Info("Resource can be safely deleted!")
-		return Done()
-	}
-
-	logger.Info("Executing unbinding steps...")
-	if res, err := bm.Unbind(); err != nil {
-		logger.Error(err, "On unbinding application.")
-		return res, err
-	}
-
-	logger.Debug("Deletion done!")
-	return Done()
-}
-
 // Reconcile a ServiceBindingRequest by the following steps:
 // 1. Inspecting SBR in order to identify backend service. The service is composed by a CRD name and
 //    kind, and by inspecting "connects-to" label identify the name of service instance;
@@ -155,8 +133,15 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	}
 
 	if sbr.GetDeletionTimestamp() != nil {
-		logger.Info("Resource is marked for deletion...")
-		return r.unbind(logger, bm)
+		logger := logger.WithName("unbind")
+		logger.Info("Executing unbinding steps...")
+		if res, err := bm.Unbind(); err != nil {
+			logger.Error(err, "On unbinding application.")
+			return res, err
+		}
+
+		logger.Debug("Deletion done!")
+		return Done()
 	}
 
 	logger.Info("Binding applications with intermediary secret...")

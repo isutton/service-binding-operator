@@ -114,6 +114,12 @@ func (b *ServiceBinder) updateServiceBindingRequest(
 func (b *ServiceBinder) Unbind() (reconcile.Result, error) {
 	logger := b.Logger.WithName("Unbind")
 
+	// when finalizer is not found anymore, it can be safely removed
+	if !containsStringSlice(b.SBR.GetFinalizers(), Finalizer) {
+		logger.Info("Resource can be safely deleted!")
+		return Done()
+	}
+
 	logger.Info("Cleaning related objects from operator's annotations...")
 	if err := RemoveSBRAnnotations(b.DynClient, b.Objects); err != nil {
 		logger.Error(err, "On removing annotations from related objects.")
