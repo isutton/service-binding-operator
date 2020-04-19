@@ -49,6 +49,7 @@ type ServiceBinderOptions struct {
 	Client                 client.Client
 	Objects                []*unstructured.Unstructured
 	EnvVars                map[string][]byte
+	EnvVarPrefix           string
 }
 
 // Valid returns whether the options are valid.

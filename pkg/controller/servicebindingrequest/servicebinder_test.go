@@ -3,7 +3,6 @@ package servicebindingrequest
 import (
 	"encoding/base64"
 	"errors"
-	"strings"
 	"testing"
 	"time"
 
@@ -26,27 +25,17 @@ import (
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
 
-// wantedFieldFunc evaluates a Unstructured object
-type wantedFieldFunc func(t *testing.T, u *unstructured.Unstructured) bool
+// objAssertionFunc implements an assertion of given obj in the context of given test t.
+type objAssertionFunc func(t *testing.T, obj *unstructured.Unstructured)
 
-// assertNestedStringEqual creates a wantedFieldFunc comparing a nested string optionally base64
-// encoded.
-func assertNestedStringEqual(expected string, isBase64 bool, fields ...string) wantedFieldFunc {
-	return func(t *testing.T, u *unstructured.Unstructured) bool {
-		actual, found, err := unstructured.NestedString(u.Object, fields...)
-
+func base64StringEqual(expected string, fields ...string) objAssertionFunc {
+	return func(t *testing.T, obj *unstructured.Unstructured) {
+		raw, found, err := unstructured.NestedString(obj.Object, fields...)
 		require.NoError(t, err)
-		require.True(t, found, "nested string %s couldn't be found", strings.Join(fields, "."))
-
-		if isBase64 {
-			sDec, err := base64.StdEncoding.DecodeString(actual)
-			require.NoError(t, err)
-			actual = string(sDec)
-		}
-
-		require.Equal(t, expected, actual)
-
-		return false
+		require.True(t, found)
+		decoded, err := base64.StdEncoding.DecodeString(raw)
+		require.NoError(t, err)
+		require.Equal(t, expected, string(decoded))
 	}
 }
 
@@ -55,10 +44,10 @@ func TestServiceBinder_Bind(t *testing.T) {
 	// wantedAction represents an action issued by the component that is required to exist after it
 	// finished the operation
 	type wantedAction struct {
-		verb         string
-		resource     string
-		name         string
-		wantedFields []wantedFieldFunc
+		verb          string
+		resource      string
+		name          string
+		objAssertions []objAssertionFunc
 	}
 
 	type wantedCondition struct {
@@ -177,12 +166,8 @@ func TestServiceBinder_Bind(t *testing.T) {
 									match = true
 
 									// in the case a field is not found or the value isn't the expected, break.
-								WantedFields:
-									for _, wantedField := range w.wantedFields {
-										if !wantedField(t, u) {
-											match = false
-											break WantedFields
-										}
+									for _, wantedField := range w.objAssertions {
+										wantedField(t, u)
 									}
 								}
 							}
@@ -202,6 +187,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		"connects-to": "database",
 	}
 
+	reconcilerName := "service-binder"
 	f := mocks.NewFake(t, reconcilerName)
 	f.S.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.ServiceBindingRequest{})
 	f.S.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ConfigMap{})
@@ -496,6 +482,9 @@ func TestServiceBinder_Bind(t *testing.T) {
 			DetectBindingResources: false,
 			SBR:                    sbrSingleServiceWithCustomEnvVar,
 			Client:                 f.FakeClient(),
+			EnvVars: map[string][]byte{
+				"MY_DB_NAME": []byte("db1"),
+			},
 		},
 		wantConditions: []wantedCondition{
 			{
@@ -513,8 +502,8 @@ func TestServiceBinder_Bind(t *testing.T) {
 				resource: "secrets",
 				verb:     "update",
 				name:     sbrSingleServiceWithCustomEnvVar.GetName(),
-				wantedFields: []wantedFieldFunc{
-					assertNestedStringEqual("db1", true, "data", "MY_DB_NAME"),
+				objAssertions: []objAssertionFunc{
+					base64StringEqual("db1", "data", "MY_DB_NAME"),
 				},
 			},
 			{
