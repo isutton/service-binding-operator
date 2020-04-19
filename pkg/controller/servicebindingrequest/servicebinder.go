@@ -48,6 +48,8 @@ type ServiceBinderOptions struct {
 	EnvVarPrefix           string
 	SBR                    *v1alpha1.ServiceBindingRequest
 	Client                 client.Client
+	Objects                []*unstructured.Unstructured
+	EnvVars                map[string][]byte
 }
 
 // Valid returns whether the options are valid.
@@ -290,16 +292,6 @@ func (b *ServiceBinder) setApplicationObjects(
 	sbrStatus.Applications = boundApps
 }
 
-// buildPlan creates a new plan.
-func buildPlan(
-	ctx context.Context,
-	dynClient dynamic.Interface,
-	sbr *v1alpha1.ServiceBindingRequest,
-) (*Plan, error) {
-	planner := NewPlanner(ctx, dynClient, sbr)
-	return planner.Plan()
-}
-
 // InvalidOptionsErr is returned when ServiceBinderOptions are not valid.
 var InvalidOptionsErr = errors.New("invalid options")
 
@@ -310,16 +302,33 @@ func collectServiceContexts(
 	client dynamic.Interface,
 	sbr *v1alpha1.ServiceBindingRequest,
 ) (ServiceContexts, error) {
-	// plan is a source of information regarding the binding process
-	plan, err := buildPlan(ctx, client, sbr)
-	if err != nil {
-		return nil, err
+	ns := sbr.GetNamespace()
+	selector := sbr.Spec.BackingServiceSelector
+	inSelectors := sbr.Spec.BackingServiceSelectors
+	var selectors []v1alpha1.BackingServiceSelector
+
+	if selector != nil {
+		selectors = append(selectors, *selector)
 	}
-	return plan.ServiceContexts, nil
+	if inSelectors != nil {
+		selectors = append(selectors, *inSelectors...)
+	}
+	if len(selectors) == 0 {
+		return nil, EmptyBackingServiceSelectorsErr
+	}
+
+	return buildServiceContexts(client, ns, selectors)
 }
 
 // BuildServiceBinder creates a new binding manager according to options.
-func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
+func BuildServiceBinder(
+	ctx context.Context,
+	result *bindingResult,
+	options *ServiceBinderOptions,
+) (
+	*ServiceBinder,
+	error,
+) {
 	var isSBRDeleting bool
 	if options.SBR != nil && options.SBR.GetDeletionTimestamp() != nil {
 		isSBRDeleting = true
@@ -329,19 +338,41 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		return nil, InvalidOptionsErr
 	}
 
-	ctx := context.Background()
+	// gather related secret, again only appending it if there's a value.
+	secret := NewSecret(
+		options.DynClient,
+		options.SBR.GetNamespace(),
+		options.SBR.GetName(),
+	)
 
-	serviceCtxs, err := collectServiceContexts(ctx, options.DynClient, options.SBR)
-	if err != nil {
-		return nil, err
-	}
+	return &ServiceBinder{
+		Logger:    options.Logger,
+		Binder:    NewBinder(ctx, options.Client, options.DynClient, options.SBR, result.VolumeKeys),
+		DynClient: options.DynClient,
+		SBR:       options.SBR,
+		Objects:   options.Objects,
+		Data:      options.EnvVars,
+		Secret:    secret,
+	}, nil
+}
 
+type bindingResult struct {
+	EnvVars    map[string][]byte
+	VolumeKeys []string
+}
+
+func buildBinding(
+	client dynamic.Interface,
+	customEnvVar []corev1.EnvVar,
+	serviceCtxs ServiceContexts,
+	envVarPrefix string,
+) (*bindingResult, error) {
 	// retriever is responsible for gathering data related to the given plan.
 	retriever := NewRetriever(
-		options.DynClient,
-		options.SBR.Spec.CustomEnvVar,
+		client,
+		customEnvVar,
 		serviceCtxs,
-		options.EnvVarPrefix,
+		envVarPrefix,
 	)
 
 	// FIXME(isuttonl): commenting out the block below to disable the feature until further
@@ -373,20 +404,8 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 		return nil, err
 	}
 
-	// gather related secret, again only appending it if there's a value.
-	secret := NewSecret(
-		options.DynClient,
-		options.SBR.GetNamespace(),
-		options.SBR.GetName(),
-	)
-
-	return &ServiceBinder{
-		Logger:    options.Logger,
-		Binder:    NewBinder(ctx, options.Client, options.DynClient, options.SBR, retriever.VolumeKeys),
-		DynClient: options.DynClient,
-		SBR:       options.SBR,
-		Objects:   serviceCtxs.GetObjects(),
-		Data:      envVars,
-		Secret:    secret,
+	return &bindingResult{
+		EnvVars:    envVars,
+		VolumeKeys: retriever.VolumeKeys,
 	}, nil
 }

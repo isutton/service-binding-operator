@@ -1,6 +1,7 @@
 package servicebindingrequest
 
 import (
+	"context"
 	"errors"
 
 	v1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -97,6 +98,24 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	logger = logger.WithValues("ServiceBindingRequest.Name", sbr.Name)
 	logger.Debug("Found service binding request to inspect")
 
+	ctx := context.Background()
+
+	// NOTE(isuttonl): replace call by buildServiceContexts when spec.backingServiceSelector is deprecated
+	serviceCtxs, err := collectServiceContexts(ctx, r.dynClient, sbr)
+	if err != nil {
+		return RequeueError(err)
+	}
+
+	result, err := buildBinding(
+		r.dynClient,
+		sbr.Spec.CustomEnvVar,
+		serviceCtxs,
+		sbr.Spec.EnvVarPrefix,
+	)
+	if err != nil {
+		return RequeueError(err)
+	}
+
 	options := &ServiceBinderOptions{
 		Client:                 r.client,
 		DynClient:              r.dynClient,
@@ -104,9 +123,10 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		EnvVarPrefix:           sbr.Spec.EnvVarPrefix,
 		SBR:                    sbr,
 		Logger:                 logger,
+		Objects:                serviceCtxs.GetObjects(),
 	}
 
-	sb, err := BuildServiceBinder(options)
+	sb, err := BuildServiceBinder(ctx, result, options)
 	if err != nil {
 		logger.Error(err, "Creating binding context")
 		if err == EmptyBackingServiceSelectorsErr || err == EmptyApplicationSelectorErr {

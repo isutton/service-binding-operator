@@ -130,9 +130,12 @@ func findCRDDescription(
 	return NewOLM(client, ns).SelectCRDByGVK(bssGVK, crd)
 }
 
+// buildServiceContexts return a collection of ServiceContext values from the given service
+// selectors.
+//
+// TODO(isuttonl): implement tests
 func buildServiceContexts(
 	client dynamic.Interface,
-	sbr *v1alpha1.ServiceBindingRequest,
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
 ) ([]*ServiceContext, error) {
@@ -240,7 +243,7 @@ func (p *Planner) Plan() (*Plan, error) {
 		return nil, EmptyBackingServiceSelectorsErr
 	}
 
-	ctxs, err := buildServiceContexts(client, sbr, ns, selectors)
+	ctxs, err := buildServiceContexts(client, ns, selectors)
 	if err != nil {
 		return nil, err
 	}

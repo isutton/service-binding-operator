@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"context"
+
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/redhat-developer/service-binding-operator/pkg/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -87,7 +89,12 @@ func TestServiceBinder_Bind(t *testing.T) {
 	// assertBind exercises the bind functionality
 	assertBind := func(args args) func(*testing.T) {
 		return func(t *testing.T) {
-			sb, err := BuildServiceBinder(args.options)
+			ctx := context.TODO()
+			result := &bindingResult{
+				EnvVars:    map[string][]byte{},
+				VolumeKeys: []string{},
+			}
+			sb, err := BuildServiceBinder(ctx, result, args.options)
 			if args.wantBuildErr != nil {
 				require.EqualError(t, err, args.wantBuildErr.Error())
 				return
