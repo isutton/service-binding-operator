@@ -272,6 +272,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		Status: v1alpha1.ServiceBindingRequestStatus{},
 	}
+	f.AddMockResource(sbrSingleService)
 
 	sbrSingleServiceWithCustomEnvVar := &v1alpha1.ServiceBindingRequest{
 		TypeMeta: metav1.TypeMeta{
@@ -316,7 +317,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		Status: v1alpha1.ServiceBindingRequestStatus{},
 	}
-	f.AddMockResource(sbrSingleService)
+	f.AddMockResource(sbrSingleServiceWithCustomEnvVar)
 
 	sbrWithBadCustomEnvVarTemplate := &v1alpha1.ServiceBindingRequest{
 		TypeMeta: metav1.TypeMeta{
