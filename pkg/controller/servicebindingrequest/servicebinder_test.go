@@ -560,25 +560,6 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 	}))
 
-	t.Run("empty backingServiceSelector", assertBind(args{
-		options: &ServiceBinderOptions{
-			Logger:                 logger,
-			DynClient:              f.FakeDynClient(),
-			DetectBindingResources: true,
-			SBR:                    sbrEmptyBackingServiceSelector,
-			Client:                 f.FakeClient(),
-		},
-		wantBuildErr: EmptyBackingServiceSelectorsErr,
-		wantConditions: []wantedCondition{
-			{
-				Type:    conditions.BindingReady,
-				Status:  corev1.ConditionFalse,
-				Reason:  BindingFail,
-				Message: EmptyBackingServiceSelectorsErr.Error(),
-			},
-		},
-	}))
-
 	// Missing SBR returns an InvalidOptionsErr
 	t.Run("bind missing SBR", assertBind(args{
 		options: &ServiceBinderOptions{
