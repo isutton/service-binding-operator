@@ -61,8 +61,8 @@ func (o *ServiceBinderOptions) Valid() bool {
 type ServiceBinder struct {
 	// Binder is responsible for interacting with the cluster and apply binding related changes.
 	Binder *Binder
-	// Data is the collection of all data read by the manager.
-	Data map[string][]byte
+	// EnvVars contains the environment variables to bind.
+	EnvVars map[string][]byte
 	// DynClient is the Kubernetes dynamic client used to interact with the cluster.
 	DynClient dynamic.Interface
 	// Logger provides logging facilities for internal components.
@@ -228,7 +228,7 @@ func (b *ServiceBinder) Bind() (reconcile.Result, error) {
 	sbrStatus := b.SBR.Status.DeepCopy()
 
 	b.Logger.Info("Saving data on intermediary secret...")
-	secretObj, err := b.Secret.Commit(b.Data)
+	secretObj, err := b.Secret.Commit(b.EnvVars)
 	if err != nil {
 		b.Logger.Error(err, "On saving secret data..")
 		return b.onError(err, b.SBR, sbrStatus, nil)
@@ -351,7 +351,7 @@ func BuildServiceBinder(
 		DynClient: options.DynClient,
 		SBR:       options.SBR,
 		Objects:   options.Objects,
-		Data:      options.EnvVars,
+		EnvVars:   options.EnvVars,
 		Secret:    secret,
 	}, nil
 }
