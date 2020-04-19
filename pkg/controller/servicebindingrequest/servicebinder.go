@@ -45,7 +45,6 @@ type ServiceBinderOptions struct {
 	Logger                 *log.Log
 	DynClient              dynamic.Interface
 	DetectBindingResources bool
-	EnvVarPrefix           string
 	SBR                    *v1alpha1.ServiceBindingRequest
 	Client                 client.Client
 	Objects                []*unstructured.Unstructured

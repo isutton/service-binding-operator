@@ -120,7 +120,6 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		Client:                 r.client,
 		DynClient:              r.dynClient,
 		DetectBindingResources: sbr.Spec.DetectBindingResources,
-		EnvVarPrefix:           sbr.Spec.EnvVarPrefix,
 		SBR:                    sbr,
 		Logger:                 logger,
 		Objects:                serviceCtxs.GetObjects(),
