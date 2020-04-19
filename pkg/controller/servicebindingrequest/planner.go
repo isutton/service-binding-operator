@@ -5,8 +5,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/imdario/mergo"
-
 	"k8s.io/apimachinery/pkg/api/meta"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +15,6 @@ import (
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 
 	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
 
@@ -128,99 +125,6 @@ func findCRDDescription(
 	crd *unstructured.Unstructured,
 ) (*olmv1alpha1.CRDDescription, error) {
 	return NewOLM(client, ns).SelectCRDByGVK(bssGVK, crd)
-}
-
-// buildServiceContexts return a collection of ServiceContext values from the given service
-// selectors.
-//
-// TODO(isuttonl): implement tests
-func buildServiceContexts(
-	client dynamic.Interface,
-	ns string,
-	selectors []v1alpha1.BackingServiceSelector,
-) ([]*ServiceContext, error) {
-	serviceCtxs := make([]*ServiceContext, 0)
-	for _, s := range selectors {
-		if s.Namespace == nil {
-			s.Namespace = &ns
-		}
-
-		obj, err := findCR(client, s)
-		if err != nil {
-			return nil, err
-		}
-
-		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
-		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
-		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
-		crd, err := findCRD(client, gvk)
-		if err != nil {
-			return nil, err
-		}
-
-		// attempt to search the a CRDDescription related to the obtained CRD.
-		crdDescription, err := findCRDDescription(ns, client, gvk, crd)
-		if err != nil {
-			// FIXME(isuttonl): return early if err is not NotFound
-			crdDescription = &olmv1alpha1.CRDDescription{}
-		}
-
-		// start with annotations extracted from CRDDescription
-		anns := crdDescriptionToAnnotations(crdDescription)
-
-		// then override collected annotations with CR annotations
-		err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
-		if err != nil {
-			return nil, err
-		}
-
-		// and finally override collected annotations with CR annotations
-		err = mergo.Merge(&anns, obj.GetAnnotations(), mergo.WithOverride)
-		if err != nil {
-			return nil, err
-		}
-
-		volumeKeys := make([]string, 0)
-		envVars := make(map[string]interface{})
-
-		for n, v := range anns {
-			h, err := annotations.BuildHandler(annotations.HandlerArgs{
-				Name:     n,
-				Value:    v,
-				Resource: obj,
-				Client:   client,
-			})
-			if err != nil {
-				return nil, err
-			}
-			r, err := h.Handle()
-			if err != nil {
-				return nil, err
-			}
-
-			err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
-			if err != nil {
-				return nil, err
-			}
-
-			// FIXME(isuttonl): rename volumeMounts to volumeKeys
-			if r.Type == annotations.BindingTypeVolumeMount {
-				volumeKeys = append(volumeKeys, r.Path)
-			}
-		}
-
-		serviceCtx := &ServiceContext{
-			CRDDescription: crdDescription,
-			Object:         obj,
-			EnvVars:        envVars,
-			VolumeKeys:     volumeKeys,
-			EnvVarPrefix:   s.EnvVarPrefix,
-		}
-
-		serviceCtxs = append(serviceCtxs, serviceCtx)
-	}
-
-	return serviceCtxs, nil
 }
 
 // Plan by retrieving the necessary resources related to binding a service backend.

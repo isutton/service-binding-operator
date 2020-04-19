@@ -1,15 +1,21 @@
 package servicebindingrequest
 
 import (
-	"github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	"github.com/imdario/mergo"
+	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+
+	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 )
 
 // ServiceContext contains information related to a service.
 type ServiceContext struct {
 	// CRDDescription is the description of the resources CRD, either built from a manifest from the
 	// cluster or composed through annotations in the CRD.
-	CRDDescription *v1alpha1.CRDDescription
+	CRDDescription *olmv1alpha1.CRDDescription
 	// Object is the resource being used as reference.
 	Object *unstructured.Unstructured
 	// EnvVars contains the service's contributed environment variables.
@@ -29,4 +35,96 @@ func (sc ServiceContexts) GetObjects() []*unstructured.Unstructured {
 		crs = append(crs, s.Object)
 	}
 	return crs
+}
+
+// buildServiceContexts return a collection of ServiceContext values from the given service
+// selectors.
+//
+// TODO(isuttonl): implement tests
+func buildServiceContexts(
+	client dynamic.Interface,
+	ns string,
+	selectors []v1alpha1.BackingServiceSelector,
+) ([]*ServiceContext, error) {
+	serviceCtxs := make([]*ServiceContext, 0)
+	for _, s := range selectors {
+		if s.Namespace == nil {
+			s.Namespace = &ns
+		}
+
+		obj, err := findCR(client, s)
+		if err != nil {
+			return nil, err
+		}
+
+		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
+		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
+		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
+		crd, err := findCRD(client, gvk)
+		if err != nil {
+			return nil, err
+		}
+
+		// attempt to search the a CRDDescription related to the obtained CRD.
+		crdDescription, err := findCRDDescription(ns, client, gvk, crd)
+		if err != nil {
+			// FIXME(isuttonl): return early if err is not NotFound
+			crdDescription = &olmv1alpha1.CRDDescription{}
+		}
+
+		// start with annotations extracted from CRDDescription
+		anns := crdDescriptionToAnnotations(crdDescription)
+
+		// then override collected annotations with CR annotations
+		err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
+
+		// and finally override collected annotations with CR annotations
+		err = mergo.Merge(&anns, obj.GetAnnotations(), mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
+
+		volumeKeys := make([]string, 0)
+		envVars := make(map[string]interface{})
+
+		for n, v := range anns {
+			h, err := annotations.BuildHandler(annotations.HandlerArgs{
+				Name:     n,
+				Value:    v,
+				Resource: obj,
+				Client:   client,
+			})
+			if err != nil {
+				return nil, err
+			}
+			r, err := h.Handle()
+			if err != nil {
+				return nil, err
+			}
+
+			err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
+			if err != nil {
+				return nil, err
+			}
+
+			// FIXME(isuttonl): rename volumeMounts to volumeKeys
+			if r.Type == annotations.BindingTypeVolumeMount {
+				volumeKeys = append(volumeKeys, r.Path)
+			}
+		}
+
+		serviceCtx := &ServiceContext{
+			CRDDescription: crdDescription,
+			Object:         obj,
+			EnvVars:        envVars,
+			VolumeKeys:     volumeKeys,
+		}
+
+		serviceCtxs = append(serviceCtxs, serviceCtx)
+	}
+
+	return serviceCtxs, nil
 }
