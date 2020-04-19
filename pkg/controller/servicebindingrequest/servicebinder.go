@@ -345,8 +345,13 @@ func BuildServiceBinder(options *ServiceBinderOptions) (*ServiceBinder, error) {
 	)
 
 	// FIXME(isuttonl): commenting out the block below to disable the feature until further
-	// clarification on whether it is required or there are other mechanisms to achieve the same
-	// goal (when un-commenting change ServiceBinder Objects key to objs).
+	// clarification on whether it is required or there are other mechanisms to achieve the same goal
+	// (when un-commenting change ServiceBinder Objects key to objs).
+	//
+	// NOTE(isuttonl): the block below should be refactored to a function 'searchOwnedResources(obj)'
+	// and be called in 'buildServiceContexts', perhaps creating additional service contexts for the
+	// resources owned by the service resource.
+
 	//
 	// // append all SBR related CRs
 	// objs := serviceCtxs.GetCRs()
