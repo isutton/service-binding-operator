@@ -23,7 +23,6 @@ type Retriever struct {
 	client          dynamic.Interface            // Kubernetes API client
 	VolumeKeys      []string                     // list of keys found
 	bindingPrefix   string                       // prefix for variable names
-	cache           map[string]interface{}       // store visited paths
 	envVarTemplates []corev1.EnvVar              // list of environment variable names and templates
 	serviceCtxs     ServiceContexts              // list of service contexts associated with a SBR
 }
@@ -167,7 +166,6 @@ func NewRetriever(
 		client:          client,
 		VolumeKeys:      []string{},
 		bindingPrefix:   bindingPrefix,
-		cache:           make(map[string]interface{}),
 		envVarTemplates: envVars,
 		serviceCtxs:     serviceContexts,
 	}
