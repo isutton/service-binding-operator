@@ -313,7 +313,8 @@ func BuildServiceBinder(
 		return nil, InvalidOptionsErr
 	}
 
-	// gather related secret, again only appending it if there's a value.
+	// FIXME(isuttonl): review whether it is possible to move Secret.Commit() and Secret.Delete() to
+	// ServiceBinder.
 	secret := NewSecret(
 		options.DynClient,
 		options.SBR.GetNamespace(),
