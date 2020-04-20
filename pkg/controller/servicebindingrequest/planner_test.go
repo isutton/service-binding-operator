@@ -40,27 +40,26 @@ func TestPlanner(t *testing.T) {
 
 	// Out of the box, our mocks don't set the namespace
 	// ensure SearchCR fails.
-	t.Run("search CR with namespace not set", func(t *testing.T) {
+	t.Run("findCR missing service namespace", func(t *testing.T) {
 		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
 		require.Error(t, err)
+		require.Equal(t, err, errBackingServiceNamespace)
 		require.Nil(t, cr)
 	})
 
 	// Plan should pass because namespaces in the
 	// selector are set if missing.
-	t.Run("plan", func(t *testing.T) {
-		plan, err := planner.Plan()
-
+	// FIXME(isuttonl): move this test to servicecontext
+	t.Run("extract existing selectors", func(t *testing.T) {
+		serviceCtxs, err := buildServiceContexts(
+			f.FakeDynClient(), ns, extractServiceSelectors(sbr))
 		require.NoError(t, err)
-		require.NotNil(t, plan)
-		require.NotEmpty(t, plan.ServiceContexts)
-		require.Equal(t, ns, plan.Ns)
-		require.Equal(t, name, plan.Name)
+		require.NotEmpty(t, serviceCtxs)
 	})
 
 	// The searchCR contract only cares about the backingServiceNamespace
 	sbr.Spec.BackingServiceSelector.Namespace = &ns
-	t.Run("searchCR", func(t *testing.T) {
+	t.Run("findCR", func(t *testing.T) {
 		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
@@ -68,7 +67,6 @@ func TestPlanner(t *testing.T) {
 }
 
 func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
-
 	ns := "planner"
 	backingServiceNamespace := "backing-service-namespace"
 	name := "service-binding-request"
@@ -89,23 +87,10 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 	planner = NewPlanner(context.TODO(), f.FakeDynClient(), sbr)
 	require.NotNil(t, planner)
 
-	t.Run("searchCR", func(t *testing.T) {
+	t.Run("findCR", func(t *testing.T) {
 		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
-	})
-
-	t.Run("plan : backing service in different namespace", func(t *testing.T) {
-		plan, err := planner.Plan()
-
-		require.NoError(t, err)
-		require.NotNil(t, plan)
-		require.NotEmpty(t, plan.ServiceContexts)
-		require.NotEmpty(t, plan.ServiceContexts.GetObjects())
-		require.Equal(t, backingServiceNamespace, plan.ServiceContexts.GetObjects()[0].GetNamespace())
-		require.Equal(t, ns, plan.Ns)
-		require.Equal(t, name, plan.Name)
-
 	})
 }
 
