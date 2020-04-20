@@ -251,10 +251,10 @@ func buildDescriptorsFromAnnotations(in map[string]string) (
 		// field path should accumulate all related annotations, so the StatusDescriptor referring
 		// "status.dbCredentials" have both "user" and "password" XDescriptors.
 
-		// annotationName has the binding information encoded into it.
 		bindingInfo, err := annotations.NewBindingInfo(n, v)
 		if err != nil {
-			return nil, nil, err
+			// continue to the next annotation if an error is returned
+			continue
 		}
 
 		descriptors, exists := acc[bindingInfo.FieldPath]
