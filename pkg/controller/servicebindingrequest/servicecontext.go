@@ -52,7 +52,7 @@ func buildServiceContexts(
 			s.Namespace = &ns
 		}
 
-		obj, err := findCR(client, s)
+		obj, err := findService(client, s)
 		if err != nil {
 			return nil, err
 		}

@@ -20,7 +20,7 @@ var (
 	errBackingServiceNamespace = errors.New("backing Service Namespace is unspecified")
 )
 
-func findCR(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
+func findService(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
 	// gvr is the plural guessed resource for the given selector
 	gvk := schema.GroupVersionKind{
 		Group:   selector.Group,

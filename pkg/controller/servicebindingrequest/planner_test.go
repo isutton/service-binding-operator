@@ -15,7 +15,7 @@ func init() {
 	logf.SetLogger(logf.ZapLogger(true))
 }
 
-func TestFindCR(t *testing.T) {
+func TestFindService(t *testing.T) {
 	ns := "find-cr-tests"
 	resourceRef := "db-testing"
 
@@ -38,7 +38,7 @@ func TestFindCR(t *testing.T) {
 			Namespace:        nil,
 			ResourceRef:      resourceRef,
 		}
-		cr, err := findCR(f.FakeDynClient(), s)
+		cr, err := findService(f.FakeDynClient(), s)
 		require.Error(t, err)
 		require.Equal(t, err, errBackingServiceNamespace)
 		require.Nil(t, cr)
@@ -50,7 +50,7 @@ func TestFindCR(t *testing.T) {
 			Namespace:        &ns,
 			ResourceRef:      resourceRef,
 		}
-		cr, err := findCR(f.FakeDynClient(), s)
+		cr, err := findService(f.FakeDynClient(), s)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
 	})
@@ -75,7 +75,7 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 	f.AddNamespacedMockedSecret("db-credentials", backingServiceNamespace)
 
 	t.Run("findCR", func(t *testing.T) {
-		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
+		cr, err := findService(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
 	})
