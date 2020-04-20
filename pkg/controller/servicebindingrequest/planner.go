@@ -127,39 +127,6 @@ func findCRDDescription(
 	return NewOLM(client, ns).SelectCRDByGVK(bssGVK, crd)
 }
 
-// Plan by retrieving the necessary resources related to binding a service backend.
-func (p *Planner) Plan() (*Plan, error) {
-	sbr := p.sbr
-	ns := sbr.GetNamespace()
-	client := p.client
-	inSelector := sbr.Spec.BackingServiceSelector
-	inSelectors := sbr.Spec.BackingServiceSelectors
-	var selectors []v1alpha1.BackingServiceSelector
-
-	// FIXME(isuttonl): move the selectors compoosition to the caller.
-	if inSelector != nil {
-		selectors = append(selectors, *inSelector)
-	}
-	if inSelectors != nil {
-		selectors = append(selectors, *inSelectors...)
-	}
-	if len(selectors) == 0 {
-		return nil, EmptyBackingServiceSelectorsErr
-	}
-
-	ctxs, err := buildServiceContexts(client, ns, selectors)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Plan{
-		Name:            p.sbr.GetName(),
-		Ns:              ns,
-		ServiceContexts: ctxs,
-		SBR:             *p.sbr,
-	}, nil
-}
-
 // NewPlanner instantiate Planner type.
 func NewPlanner(
 	ctx context.Context,
