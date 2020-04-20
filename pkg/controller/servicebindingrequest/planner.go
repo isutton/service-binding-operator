@@ -1,7 +1,6 @@
 package servicebindingrequest
 
 import (
-	"context"
 	"errors"
 	"strings"
 
@@ -15,22 +14,11 @@ import (
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 
 	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
-	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
 
 var (
-	plannerLog                 = log.NewLog("planner")
 	errBackingServiceNamespace = errors.New("backing Service Namespace is unspecified")
 )
-
-// Planner plans resources needed to bind a given backend service, using OperatorLifecycleManager
-// standards and CustomResourceDefinitionDescription data to understand which attributes are needed.
-type Planner struct {
-	ctx    context.Context                 // request context
-	client dynamic.Interface               // kubernetes dynamic api client
-	sbr    *v1alpha1.ServiceBindingRequest // instantiated service binding request
-	logger *log.Log                        // logger instance
-}
 
 func findCR(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
 	// gvr is the plural guessed resource for the given selector
@@ -117,18 +105,4 @@ func findCRDDescription(
 	crd *unstructured.Unstructured,
 ) (*olmv1alpha1.CRDDescription, error) {
 	return NewOLM(client, ns).SelectCRDByGVK(bssGVK, crd)
-}
-
-// NewPlanner instantiate Planner type.
-func NewPlanner(
-	ctx context.Context,
-	client dynamic.Interface,
-	sbr *v1alpha1.ServiceBindingRequest,
-) *Planner {
-	return &Planner{
-		ctx:    ctx,
-		client: client,
-		sbr:    sbr,
-		logger: plannerLog,
-	}
 }

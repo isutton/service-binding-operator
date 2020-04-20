@@ -1,7 +1,6 @@
 package servicebindingrequest
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,8 +9,6 @@ import (
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
-
-var planner *Planner
 
 func init() {
 	logf.SetLogger(logf.ZapLogger(true))
@@ -35,9 +32,6 @@ func TestPlanner(t *testing.T) {
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedSecret("db-credentials")
 
-	planner = NewPlanner(context.TODO(), f.FakeDynClient(), sbr)
-	require.NotNil(t, planner)
-
 	// Out of the box, our mocks don't set the namespace
 	// ensure SearchCR fails.
 	t.Run("findCR missing service namespace", func(t *testing.T) {
@@ -47,8 +41,6 @@ func TestPlanner(t *testing.T) {
 		require.Nil(t, cr)
 	})
 
-	// Plan should pass because namespaces in the
-	// selector are set if missing.
 	// FIXME(isuttonl): move this test to servicecontext
 	t.Run("extract existing selectors", func(t *testing.T) {
 		serviceCtxs, err := buildServiceContexts(
@@ -83,9 +75,6 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 	f.AddMockedDatabaseCR(resourceRef, backingServiceNamespace)
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddNamespacedMockedSecret("db-credentials", backingServiceNamespace)
-
-	planner = NewPlanner(context.TODO(), f.FakeDynClient(), sbr)
-	require.NotNil(t, planner)
 
 	t.Run("findCR", func(t *testing.T) {
 		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
