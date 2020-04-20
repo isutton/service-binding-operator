@@ -295,31 +295,6 @@ func (b *ServiceBinder) setApplicationObjects(
 // InvalidOptionsErr is returned when ServiceBinderOptions are not valid.
 var InvalidOptionsErr = errors.New("invalid options")
 
-// collectServiceContexts returns a list of values containing relevant information related to a
-// service.
-func collectServiceContexts(
-	ctx context.Context,
-	client dynamic.Interface,
-	sbr *v1alpha1.ServiceBindingRequest,
-) (ServiceContexts, error) {
-	ns := sbr.GetNamespace()
-	selector := sbr.Spec.BackingServiceSelector
-	inSelectors := sbr.Spec.BackingServiceSelectors
-	var selectors []v1alpha1.BackingServiceSelector
-
-	if selector != nil {
-		selectors = append(selectors, *selector)
-	}
-	if inSelectors != nil {
-		selectors = append(selectors, *inSelectors...)
-	}
-	if len(selectors) == 0 {
-		return nil, EmptyBackingServiceSelectorsErr
-	}
-
-	return buildServiceContexts(client, ns, selectors)
-}
-
 // BuildServiceBinder creates a new binding manager according to options.
 func BuildServiceBinder(
 	ctx context.Context,
