@@ -79,11 +79,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 	assertBind := func(args args) func(*testing.T) {
 		return func(t *testing.T) {
 			ctx := context.TODO()
-			result := &Binding{
-				EnvVars:    map[string][]byte{},
-				VolumeKeys: []string{},
-			}
-			sb, err := BuildServiceBinder(ctx, result, args.options)
+			sb, err := BuildServiceBinder(ctx, args.options)
 			if args.wantBuildErr != nil {
 				require.EqualError(t, err, args.wantBuildErr.Error())
 				return
@@ -449,6 +445,10 @@ func TestServiceBinder_Bind(t *testing.T) {
 			DetectBindingResources: false,
 			SBR:                    sbrSingleService,
 			Client:                 f.FakeClient(),
+			Binding: &Binding{
+				EnvVars:    map[string][]byte{},
+				VolumeKeys: []string{},
+			},
 		},
 		wantConditions: []wantedCondition{
 			{
@@ -482,8 +482,11 @@ func TestServiceBinder_Bind(t *testing.T) {
 			DetectBindingResources: false,
 			SBR:                    sbrSingleServiceWithCustomEnvVar,
 			Client:                 f.FakeClient(),
-			EnvVars: map[string][]byte{
-				"MY_DB_NAME": []byte("db1"),
+			Binding: &Binding{
+				EnvVars: map[string][]byte{
+					"MY_DB_NAME": []byte("db1"),
+				},
+				VolumeKeys: []string{},
 			},
 		},
 		wantConditions: []wantedCondition{
@@ -521,6 +524,10 @@ func TestServiceBinder_Bind(t *testing.T) {
 			DetectBindingResources: true,
 			SBR:                    sbrSingleService,
 			Client:                 f.FakeClient(),
+			Binding: &Binding{
+				EnvVars:    map[string][]byte{},
+				VolumeKeys: []string{},
+			},
 		},
 		wantConditions: []wantedCondition{
 			{
@@ -537,6 +544,10 @@ func TestServiceBinder_Bind(t *testing.T) {
 			DetectBindingResources: true,
 			SBR:                    sbrEmptyAppSelector,
 			Client:                 f.FakeClient(),
+			Binding: &Binding{
+				EnvVars:    map[string][]byte{},
+				VolumeKeys: []string{},
+			},
 		},
 		wantErr: EmptyApplicationSelectorErr,
 		wantConditions: []wantedCondition{
@@ -568,6 +579,10 @@ func TestServiceBinder_Bind(t *testing.T) {
 			DetectBindingResources: false,
 			SBR:                    sbrMultipleServices,
 			Client:                 f.FakeClient(),
+			Binding: &Binding{
+				EnvVars:    map[string][]byte{},
+				VolumeKeys: []string{},
+			},
 		},
 		wantConditions: []wantedCondition{
 			{

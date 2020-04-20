@@ -55,7 +55,7 @@ type ServiceBinderOptions struct {
 
 // Valid returns whether the options are valid.
 func (o *ServiceBinderOptions) Valid() bool {
-	return o.SBR != nil && o.DynClient != nil && o.Client != nil
+	return o.SBR != nil && o.DynClient != nil && o.Client != nil && o.Binding != nil
 }
 
 // ServiceBinder manages binding for a Service Binding Request and associated objects.
@@ -337,7 +337,7 @@ func BuildServiceBinder(
 		DynClient: options.DynClient,
 		SBR:       options.SBR,
 		Objects:   options.Objects,
-		EnvVars:   options.EnvVars,
+		EnvVars:   options.Binding.EnvVars,
 		Secret:    secret,
 	}, nil
 }

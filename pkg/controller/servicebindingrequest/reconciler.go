@@ -160,7 +160,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		Binding:                binding,
 	}
 
-	sb, err := BuildServiceBinder(ctx, binding, options)
+	sb, err := BuildServiceBinder(ctx, options)
 	if err != nil {
 		logger.Error(err, "Creating binding context")
 		if err == EmptyBackingServiceSelectorsErr || err == EmptyApplicationSelectorErr {
