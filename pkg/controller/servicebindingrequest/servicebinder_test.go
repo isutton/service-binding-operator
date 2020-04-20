@@ -32,7 +32,7 @@ func base64StringEqual(expected string, fields ...string) objAssertionFunc {
 	return func(t *testing.T, obj *unstructured.Unstructured) {
 		raw, found, err := unstructured.NestedString(obj.Object, fields...)
 		require.NoError(t, err)
-		require.True(t, found)
+		require.True(t, found, "path %+v not found in %+v", fields, obj)
 		decoded, err := base64.StdEncoding.DecodeString(raw)
 		require.NoError(t, err)
 		require.Equal(t, expected, string(decoded))
