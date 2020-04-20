@@ -81,14 +81,14 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 	})
 }
 
-func TestFindCRD(t *testing.T) {
+func TestFindServiceCRD(t *testing.T) {
 	ns := "planner"
 	f := mocks.NewFake(t, ns)
 	expected := f.AddMockedUnstructuredDatabaseCRD()
 	cr := f.AddMockedDatabaseCR("database", ns)
 
 	t.Run("golden path", func(t *testing.T) {
-		crd, err := findCRD(f.FakeDynClient(), cr.GetObjectKind().GroupVersionKind())
+		crd, err := findServiceCRD(f.FakeDynClient(), cr.GetObjectKind().GroupVersionKind())
 		require.NoError(t, err)
 		require.NotNil(t, crd)
 		require.Equal(t, expected, crd)

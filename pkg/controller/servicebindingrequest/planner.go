@@ -44,7 +44,7 @@ var CRDGVR = schema.GroupVersionResource{
 	Resource: "customresourcedefinitions",
 }
 
-func findCRD(client dynamic.Interface, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
+func findServiceCRD(client dynamic.Interface, gvk schema.GroupVersionKind) (*unstructured.Unstructured, error) {
 	// gvr is the plural guessed resource for the given GVK
 	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
 	// crdName is the string'fied GroupResource, e.g. "deployments.apps"

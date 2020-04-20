@@ -60,7 +60,7 @@ func buildServiceContexts(
 		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
 		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
 		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
-		crd, err := findCRD(client, gvk)
+		crd, err := findServiceCRD(client, gvk)
 		if err != nil {
 			return nil, err
 		}
