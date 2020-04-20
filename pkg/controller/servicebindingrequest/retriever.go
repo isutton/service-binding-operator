@@ -24,7 +24,7 @@ type Retriever struct {
 	VolumeKeys      []string                     // list of keys found
 	bindingPrefix   string                       // prefix for variable names
 	envVarTemplates []corev1.EnvVar              // list of environment variable names and templates
-	serviceCtxs     ServiceContexts              // list of service contexts associated with a SBR
+	serviceCtxs     ServiceContextList           // list of service contexts associated with a SBR
 }
 
 // GetEnvVars returns the data read from related resources (see ReadBindableResourcesData and
@@ -156,7 +156,7 @@ func (r *Retriever) store(envVarPrefix *string, u *unstructured.Unstructured, ke
 func NewRetriever(
 	client dynamic.Interface,
 	envVars []corev1.EnvVar,
-	serviceContexts ServiceContexts,
+	serviceContexts ServiceContextList,
 	bindingPrefix string,
 ) *Retriever {
 	return &Retriever{

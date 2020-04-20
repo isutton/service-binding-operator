@@ -25,11 +25,11 @@ type ServiceContext struct {
 	EnvVarPrefix *string
 }
 
-// ServiceContexts contains a collection of service contexts.
-type ServiceContexts []*ServiceContext
+// ServiceContextList is a list of ServiceContext values.
+type ServiceContextList []*ServiceContext
 
 // GetObjects returns a slice of service unstructured objects contained in the collection.
-func (sc ServiceContexts) GetObjects() []*unstructured.Unstructured {
+func (sc ServiceContextList) GetObjects() []*unstructured.Unstructured {
 	var crs []*unstructured.Unstructured
 	for _, s := range sc {
 		crs = append(crs, s.Object)
@@ -45,7 +45,7 @@ func buildServiceContexts(
 	client dynamic.Interface,
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
-) (ServiceContexts, error) {
+) (ServiceContextList, error) {
 	serviceCtxs := make([]*ServiceContext, 0)
 	for _, s := range selectors {
 		if s.Namespace == nil {

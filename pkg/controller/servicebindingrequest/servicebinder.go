@@ -339,7 +339,7 @@ type bindingResult struct {
 func buildBinding(
 	client dynamic.Interface,
 	customEnvVar []corev1.EnvVar,
-	serviceCtxs ServiceContexts,
+	serviceCtxs ServiceContextList,
 	envVarPrefix string,
 ) (*bindingResult, error) {
 	// retriever is responsible for gathering data related to the given plan.

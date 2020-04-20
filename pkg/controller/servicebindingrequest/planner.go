@@ -37,7 +37,7 @@ type Plan struct {
 	Ns              string                         // namespace name
 	Name            string                         // plan name, same than ServiceBindingRequest
 	SBR             v1alpha1.ServiceBindingRequest // service binding request
-	ServiceContexts ServiceContexts                // CR and CRDDescription pairs SBR related
+	ServiceContexts ServiceContextList             // CR and CRDDescription pairs SBR related
 }
 
 func findCR(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {

@@ -30,7 +30,7 @@ func TestRetriever(t *testing.T) {
 	crInSameNamespace, err := mocks.UnstructuredDatabaseCRMock(ns, crName)
 	require.NoError(t, err)
 
-	serviceCtxs := ServiceContexts{
+	serviceCtxs := ServiceContextList{
 		{
 			CRDDescription: &crdDescription,
 			Object:         cr,
@@ -79,7 +79,7 @@ func TestRetrieverWithNestedCRKey(t *testing.T) {
 	cr, err := mocks.UnstructuredNestedDatabaseCRMock(ns, crName)
 	require.NoError(t, err)
 
-	serviceCtxs := ServiceContexts{
+	serviceCtxs := ServiceContextList{
 		{
 			CRDDescription: &crdDescription,
 			Object:         cr,
