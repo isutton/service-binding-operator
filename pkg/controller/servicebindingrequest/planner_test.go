@@ -41,14 +41,6 @@ func TestPlanner(t *testing.T) {
 		require.Nil(t, cr)
 	})
 
-	// FIXME(isuttonl): move this test to servicecontext
-	t.Run("extract existing selectors", func(t *testing.T) {
-		serviceCtxs, err := buildServiceContexts(
-			f.FakeDynClient(), ns, extractServiceSelectors(sbr))
-		require.NoError(t, err)
-		require.NotEmpty(t, serviceCtxs)
-	})
-
 	// The searchCR contract only cares about the backingServiceNamespace
 	sbr.Spec.BackingServiceSelector.Namespace = &ns
 	t.Run("findCR", func(t *testing.T) {
