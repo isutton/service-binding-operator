@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
@@ -15,33 +16,41 @@ func init() {
 }
 
 func TestFindCR(t *testing.T) {
-	ns := "planner"
-	name := "service-binding-request"
+	ns := "find-cr-tests"
 	resourceRef := "db-testing"
-	matchLabels := map[string]string{
-		"connects-to": "database",
-		"environment": "planner",
-	}
+
 	f := mocks.NewFake(t, ns)
-	sbr := f.AddMockedServiceBindingRequest(name, nil, resourceRef, "", deploymentsGVR, matchLabels)
-	sbr.Spec.BackingServiceSelectors = &[]v1alpha1.BackingServiceSelector{
-		*sbr.Spec.BackingServiceSelector,
-	}
+
 	f.AddMockedUnstructuredCSV("cluster-service-version")
-	f.AddMockedDatabaseCR(resourceRef, ns)
+	db := f.AddMockedDatabaseCR(resourceRef, ns)
 	f.AddMockedUnstructuredDatabaseCRD()
-	f.AddMockedSecret("db-credentials")
+
+	// NOTE(isuttonl): is there any utility to convert between schema and meta GroupVersionKind?
+	gvk := metav1.GroupVersionKind{
+		Group:   db.GetObjectKind().GroupVersionKind().Group,
+		Version: db.GetObjectKind().GroupVersionKind().Version,
+		Kind:    db.GetObjectKind().GroupVersionKind().Kind,
+	}
 
 	t.Run("missing service namespace", func(t *testing.T) {
-		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
+		s := v1alpha1.BackingServiceSelector{
+			GroupVersionKind: gvk,
+			Namespace:        nil,
+			ResourceRef:      resourceRef,
+		}
+		cr, err := findCR(f.FakeDynClient(), s)
 		require.Error(t, err)
 		require.Equal(t, err, errBackingServiceNamespace)
 		require.Nil(t, cr)
 	})
 
-	sbr.Spec.BackingServiceSelector.Namespace = &ns
 	t.Run("golden path", func(t *testing.T) {
-		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
+		s := v1alpha1.BackingServiceSelector{
+			GroupVersionKind: gvk,
+			Namespace:        &ns,
+			ResourceRef:      resourceRef,
+		}
+		cr, err := findCR(f.FakeDynClient(), s)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
 	})
