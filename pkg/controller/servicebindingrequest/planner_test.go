@@ -14,7 +14,7 @@ func init() {
 	logf.SetLogger(logf.ZapLogger(true))
 }
 
-func TestPlanner(t *testing.T) {
+func TestFindCR(t *testing.T) {
 	ns := "planner"
 	name := "service-binding-request"
 	resourceRef := "db-testing"
@@ -32,18 +32,15 @@ func TestPlanner(t *testing.T) {
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedSecret("db-credentials")
 
-	// Out of the box, our mocks don't set the namespace
-	// ensure SearchCR fails.
-	t.Run("findCR missing service namespace", func(t *testing.T) {
+	t.Run("missing service namespace", func(t *testing.T) {
 		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
 		require.Error(t, err)
 		require.Equal(t, err, errBackingServiceNamespace)
 		require.Nil(t, cr)
 	})
 
-	// The searchCR contract only cares about the backingServiceNamespace
 	sbr.Spec.BackingServiceSelector.Namespace = &ns
-	t.Run("findCR", func(t *testing.T) {
+	t.Run("golden path", func(t *testing.T) {
 		cr, err := findCR(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
@@ -75,13 +72,13 @@ func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 	})
 }
 
-func TestPlannerAnnotation(t *testing.T) {
+func TestFindCRD(t *testing.T) {
 	ns := "planner"
 	f := mocks.NewFake(t, ns)
 	expected := f.AddMockedUnstructuredDatabaseCRD()
 	cr := f.AddMockedDatabaseCR("database", ns)
 
-	t.Run("findCRD", func(t *testing.T) {
+	t.Run("golden path", func(t *testing.T) {
 		crd, err := findCRD(f.FakeDynClient(), cr.GetObjectKind().GroupVersionKind())
 		require.NoError(t, err)
 		require.NotNil(t, crd)
