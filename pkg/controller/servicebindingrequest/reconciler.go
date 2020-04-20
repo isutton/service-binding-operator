@@ -130,7 +130,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		return RequeueError(err)
 	}
 
-	result, err := buildBinding(
+	binding, err := buildBinding(
 		r.dynClient,
 		sbr.Spec.CustomEnvVar,
 		serviceCtxs,
@@ -147,9 +147,10 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		SBR:                    sbr,
 		Logger:                 logger,
 		Objects:                serviceCtxs.GetObjects(),
+		Binding:                binding,
 	}
 
-	sb, err := BuildServiceBinder(ctx, result, options)
+	sb, err := BuildServiceBinder(ctx, binding, options)
 	if err != nil {
 		logger.Error(err, "Creating binding context")
 		if err == EmptyBackingServiceSelectorsErr || err == EmptyApplicationSelectorErr {

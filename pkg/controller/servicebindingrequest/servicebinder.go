@@ -50,6 +50,7 @@ type ServiceBinderOptions struct {
 	Objects                []*unstructured.Unstructured
 	EnvVars                map[string][]byte
 	EnvVarPrefix           string
+	Binding                *Binding
 }
 
 // Valid returns whether the options are valid.
@@ -298,7 +299,6 @@ var InvalidOptionsErr = errors.New("invalid options")
 // BuildServiceBinder creates a new binding manager according to options.
 func BuildServiceBinder(
 	ctx context.Context,
-	result *Binding,
 	options *ServiceBinderOptions,
 ) (
 	*ServiceBinder,
@@ -321,9 +321,19 @@ func BuildServiceBinder(
 		options.SBR.GetName(),
 	)
 
+	// FIXME(isuttonl): review whether binder can be lazily created in Bind() and Unbind(); also
+	// consider renaming to ResourceBinder
+	binder := NewBinder(
+		ctx,
+		options.Client,
+		options.DynClient,
+		options.SBR,
+		options.Binding.VolumeKeys,
+	)
+
 	return &ServiceBinder{
 		Logger:    options.Logger,
-		Binder:    NewBinder(ctx, options.Client, options.DynClient, options.SBR, result.VolumeKeys),
+		Binder:    binder,
 		DynClient: options.DynClient,
 		SBR:       options.SBR,
 		Objects:   options.Objects,
