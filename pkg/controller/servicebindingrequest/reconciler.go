@@ -162,28 +162,10 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 
 	sb, err := BuildServiceBinder(ctx, options)
 	if err != nil {
-		logger.Error(err, "Creating binding context")
-		if err == EmptyBackingServiceSelectorsErr || err == EmptyApplicationSelectorErr {
-			// TODO: find or create an error type containing suitable information to be propagated
-			var reason string
-			if errors.Is(err, EmptyBackingServiceSelectorsErr) {
-				reason = "EmptyBackingServiceSelectors"
-			} else {
-				reason = "EmptyApplicationSelector"
-			}
-
-			v1.SetStatusCondition(&sbr.Status.Conditions, v1.Condition{
-				Type:    conditions.BindingReady,
-				Status:  corev1.ConditionFalse,
-				Reason:  reason,
-				Message: err.Error(),
-			})
-			_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
-			if updateErr == nil {
-				return Done()
-			}
-		}
-		return RequeueError(err)
+		// BuildServiceBinder can return only InvalidOptionsErr, and it is a programmer's error so
+		// just bail out without re-queueing nor updating conditions.
+		logger.Error(err, "Building ServiceBinder")
+		return NoRequeue(err)
 	}
 
 	if sbr.GetDeletionTimestamp() != nil {
