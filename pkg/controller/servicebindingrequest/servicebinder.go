@@ -298,7 +298,7 @@ var InvalidOptionsErr = errors.New("invalid options")
 // BuildServiceBinder creates a new binding manager according to options.
 func BuildServiceBinder(
 	ctx context.Context,
-	result *bindingResult,
+	result *Binding,
 	options *ServiceBinderOptions,
 ) (
 	*ServiceBinder,
@@ -332,7 +332,7 @@ func BuildServiceBinder(
 	}, nil
 }
 
-type bindingResult struct {
+type Binding struct {
 	EnvVars    map[string][]byte
 	VolumeKeys []string
 }
@@ -342,7 +342,7 @@ func buildBinding(
 	customEnvVar []corev1.EnvVar,
 	serviceCtxs ServiceContextList,
 	envVarPrefix string,
-) (*bindingResult, error) {
+) (*Binding, error) {
 	// retriever is responsible for gathering data related to the given plan.
 	retriever := NewRetriever(
 		client,
@@ -380,7 +380,7 @@ func buildBinding(
 		return nil, err
 	}
 
-	return &bindingResult{
+	return &Binding{
 		EnvVars:    envVars,
 		VolumeKeys: retriever.VolumeKeys,
 	}, nil

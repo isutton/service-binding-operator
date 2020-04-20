@@ -79,7 +79,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 	assertBind := func(args args) func(*testing.T) {
 		return func(t *testing.T) {
 			ctx := context.TODO()
-			result := &bindingResult{
+			result := &Binding{
 				EnvVars:    map[string][]byte{},
 				VolumeKeys: []string{},
 			}
