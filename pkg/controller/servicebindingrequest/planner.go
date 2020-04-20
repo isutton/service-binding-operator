@@ -32,14 +32,6 @@ type Planner struct {
 	logger *log.Log                        // logger instance
 }
 
-// Plan outcome, after executing planner.
-type Plan struct {
-	Ns              string                         // namespace name
-	Name            string                         // plan name, same than ServiceBindingRequest
-	SBR             v1alpha1.ServiceBindingRequest // service binding request
-	ServiceContexts ServiceContextList             // CR and CRDDescription pairs SBR related
-}
-
 func findCR(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
 	// gvr is the plural guessed resource for the given selector
 	gvk := schema.GroupVersionKind{
