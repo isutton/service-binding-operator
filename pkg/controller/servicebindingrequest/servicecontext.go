@@ -45,7 +45,7 @@ func buildServiceContexts(
 	client dynamic.Interface,
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
-) ([]*ServiceContext, error) {
+) (ServiceContexts, error) {
 	serviceCtxs := make([]*ServiceContext, 0)
 	for _, s := range selectors {
 		if s.Namespace == nil {

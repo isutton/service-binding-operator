@@ -58,6 +58,26 @@ func (r *Reconciler) getServiceBindingRequest(
 	return sbr, nil
 }
 
+// extractServiceSelectors returns a list of all BackingServiceSelector items from a
+// ServiceBindingRequest.
+//
+// NOTE(isuttonl): remove this method when spec.backingServiceSelector is deprecated
+func extractServiceSelectors(
+	sbr *v1alpha1.ServiceBindingRequest,
+) []v1alpha1.BackingServiceSelector {
+	selector := sbr.Spec.BackingServiceSelector
+	inSelectors := sbr.Spec.BackingServiceSelectors
+	var selectors []v1alpha1.BackingServiceSelector
+
+	if selector != nil {
+		selectors = append(selectors, *selector)
+	}
+	if inSelectors != nil {
+		selectors = append(selectors, *inSelectors...)
+	}
+	return selectors
+}
+
 // Reconcile a ServiceBindingRequest by the following steps:
 // 1. Inspecting SBR in order to identify backend service. The service is composed by a CRD name and
 //    kind, and by inspecting "connects-to" label identify the name of service instance;
@@ -100,8 +120,12 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 
 	ctx := context.Background()
 
-	// NOTE(isuttonl): replace call by buildServiceContexts when spec.backingServiceSelector is deprecated
-	serviceCtxs, err := collectServiceContexts(ctx, r.dynClient, sbr)
+	selectors := extractServiceSelectors(sbr)
+	if len(selectors) == 0 {
+		return NoRequeue(EmptyBackingServiceSelectorsErr)
+	}
+
+	serviceCtxs, err := buildServiceContexts(r.dynClient, sbr.GetNamespace(), selectors)
 	if err != nil {
 		return RequeueError(err)
 	}
