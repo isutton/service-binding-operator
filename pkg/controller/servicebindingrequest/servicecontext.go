@@ -98,6 +98,9 @@ func buildServiceContexts(
 				Client:   client,
 			})
 			if err != nil {
+				if err == annotations.InvalidAnnotationPrefixErr {
+					continue
+				}
 				return nil, err
 			}
 			r, err := h.Handle()
