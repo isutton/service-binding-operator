@@ -65,7 +65,7 @@ var (
 		Path:        "dbConfigMap",
 		XDescriptors: []string{
 			"urn:alm:descriptor:io.kubernetes:ConfigMap",
-			"binding:env:object:configmap:user",
+			"binding:env:object:configmap:username",
 			"binding:env:object:configmap:password",
 		},
 	}
@@ -77,7 +77,7 @@ var (
 		Path:        "dbCredentials",
 		XDescriptors: []string{
 			"urn:alm:descriptor:io.kubernetes:Secret",
-			"binding:env:object:secret:user",
+			"binding:env:object:secret:username",
 			"binding:env:object:secret:password",
 		},
 	}
@@ -89,7 +89,7 @@ var (
 		Path:        "dbCredentials",
 		XDescriptors: []string{
 			"urn:alm:descriptor:io.kubernetes:Secret",
-			"binding:volumemount:secret:user",
+			"binding:volumemount:secret:username",
 			"binding:volumemount:secret:password",
 		},
 	}
@@ -397,6 +397,10 @@ func MultiNamespaceServiceBindingRequestMock(
 	applicationGVR schema.GroupVersionResource,
 	matchLabels map[string]string,
 ) *v1alpha1.ServiceBindingRequest {
+	indexPathTemplate := fmt.Sprintf(
+		`{{ index . "v1alpha1" "postgresql.baiju.dev" "Database" "%s" "spec" "image" }}`,
+		backingServiceResourceRef,
+	)
 	sbr := &v1alpha1.ServiceBindingRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -407,7 +411,7 @@ func MultiNamespaceServiceBindingRequestMock(
 			CustomEnvVar: []corev1.EnvVar{
 				{
 					Name:  "IMAGE_PATH",
-					Value: "spec.imagePath",
+					Value: indexPathTemplate,
 				},
 			},
 			ApplicationSelector: v1alpha1.ApplicationSelector{
@@ -436,6 +440,10 @@ func ServiceBindingRequestMock(
 	applicationGVR schema.GroupVersionResource,
 	matchLabels map[string]string,
 ) *v1alpha1.ServiceBindingRequest {
+	imagePathTemplate := fmt.Sprintf(
+		`{{ index . "v1alpha1" "postgresql.baiju.dev" "Database" "%s" "spec" "image" }}`,
+		backingServiceResourceRef,
+	)
 	sbr := &v1alpha1.ServiceBindingRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -446,7 +454,7 @@ func ServiceBindingRequestMock(
 			CustomEnvVar: []corev1.EnvVar{
 				{
 					Name:  "IMAGE_PATH",
-					Value: "spec.imagePath",
+					Value: imagePathTemplate,
 				},
 			},
 			ApplicationSelector: v1alpha1.ApplicationSelector{
