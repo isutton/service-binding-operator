@@ -201,6 +201,7 @@ get-test-namespace: out/test-namespace
 .PHONY: deploy-e2e-crds
 deploy-e2e-crds:
 	$(Q)kubectl --namespace $(TEST_NAMESPACE) apply -f ./test/third-party-crds/postgresql_v1alpha1_database_crd.yaml
+	$(Q)kubectl --namespace $(TEST_NAMESPACE) apply -f ./test/third-party-crds/etcd_v1beta2_etcdcluster_crd.yaml
 
 # E2E test
 .PHONY: e2e-setup
