@@ -300,9 +300,18 @@ func CreateDB(
 	require.NoError(t, f.Client.Create(ctx, db, cleanupOpts))
 
 	t.Logf("Updating Database '%#v' status, adding 'DBCredentials'", namespacedName)
-	require.NoError(t, f.Client.Get(ctx, namespacedName, db))
-	db.Status.DBCredentials = secretName
-	require.NoError(t, f.Client.Status().Update(ctx, db))
+	require.Eventually(t, func() bool {
+		if err := f.Client.Get(ctx, namespacedName, db); err != nil {
+			t.Logf("get error: %s", err)
+			return false
+		}
+		db.Status.DBCredentials = secretName
+		if err := f.Client.Status().Update(ctx, db); err != nil {
+			t.Logf("update error: %s", err)
+			return false
+		}
+		return true
+	}, 10*time.Second, 1*time.Second)
 
 	t.Log("Creating Database credentials secret mock object...")
 	dbSecret := mocks.SecretMock(ns, secretName)
