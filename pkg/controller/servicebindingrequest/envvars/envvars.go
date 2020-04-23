@@ -23,6 +23,12 @@ func Build(obj interface{}, path []string) (map[string]string, error) {
 		return buildSliceOfMap(val, path)
 	case string:
 		return buildString(val, path), nil
+	case int:
+		return buildString(strconv.Itoa(val), path), nil
+	case int64:
+		return buildString(strconv.FormatInt(val, 10), path), nil
+	case float64:
+		return buildString(strconv.FormatFloat(val, 'f', -1, 64), path), nil
 	default:
 		return nil, UnsupportedTypeErr
 	}
