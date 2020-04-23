@@ -99,10 +99,6 @@ func (b *Binder) search() (*unstructured.UnstructuredList, error) {
 
 	}
 
-	// Return fake NotFound error explicitly to ensure requeue when objList(^) is empty.
-	if len(objList.Items) == 0 {
-		return nil, ApplicationNotFound
-	}
 	return objList, err
 }
 
