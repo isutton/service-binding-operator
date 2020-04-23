@@ -3,6 +3,7 @@ package annotations
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,7 +20,7 @@ type ResourceHandler struct {
 	// client is the client used to retrieve a related secret.
 	client dynamic.Interface
 	// valuePath is the path that should be extracted from the secret.
-	valuePath string
+	valuePath []string
 	// relatedNamePath is the path the related resource name can be found in the resource.
 	relatedNamePath string
 	// relatedGroupVersionResource is the related resource GVR, used to retrieve the related resource
@@ -36,7 +37,10 @@ type ResourceHandler struct {
 // discoverRelatedResourceName returns the resource name referenced by the handler. Can return an
 // error in the case the expected information doesn't exist in the handler's resource object.
 func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
-	resourceNameValue, ok, err := nested.GetValueFromMap(h.resource.Object, h.relatedNamePath)
+	resourceNameValue, ok, err := nested.GetValueFromMap(
+		h.resource.Object,
+		strings.Split(h.relatedNamePath, ".")...,
+	)
 	if !ok {
 		return "", ResourceNameFieldNotFoundErr
 	}
@@ -78,9 +82,9 @@ func (h *ResourceHandler) Handle() (Result, error) {
 		return Result{}, fmt.Errorf("error handling annotation: %w", err)
 	}
 
-	val, ok, err := nested.GetValueFromMap(resource.Object, h.valuePath)
+	val, ok, err := nested.GetValueFromMap(resource.Object, h.valuePath...)
 	if !ok {
-		return Result{}, InvalidArgumentErr(h.valuePath)
+		return Result{}, InvalidArgumentErr(strings.Join(h.valuePath, ", "))
 	}
 	if err != nil {
 		return Result{}, err
@@ -138,16 +142,16 @@ func NewResourceHandler(
 	relatedNamePath := bindingInfo.FieldPath
 	outputPath := relatedNamePath
 
-	var valuePath string
+	valuePath := []string{}
 
 	if len(bindingInfo.Path) > 0 && bindingInfo.FieldPath != bindingInfo.Path {
-		valuePath = bindingInfo.Path
-		outputPath = outputPath + "." + valuePath
+		valuePath = append(valuePath, bindingInfo.Path)
+		outputPath = outputPath + "." + bindingInfo.Path
 		if valuePathPrefix != nil && len(*valuePathPrefix) > 0 {
-			valuePath = *valuePathPrefix + "." + valuePath
+			valuePath = append([]string{*valuePathPrefix}, valuePath...)
 		}
 	} else if valuePathPrefix != nil && len(*valuePathPrefix) > 0 {
-		valuePath = *valuePathPrefix
+		valuePath = []string{*valuePathPrefix}
 	}
 
 	return &ResourceHandler{

@@ -9,13 +9,13 @@ import (
 func TestGetValueFromMap(t *testing.T) {
 	type args struct {
 		src      map[string]interface{}
-		path     string
+		path     []string
 		expected interface{}
 	}
 
 	assertGetValueFromMap := func(args args) func(t *testing.T) {
 		return func(t *testing.T) {
-			actual, found, err := GetValueFromMap(args.src, args.path)
+			actual, found, err := GetValueFromMap(args.src, args.path...)
 			require.NoError(t, err)
 			require.True(t, found)
 			require.Equal(t, args.expected, actual)
@@ -26,12 +26,12 @@ func TestGetValueFromMap(t *testing.T) {
 		src: map[string]interface{}{
 			"key": "value",
 		},
-		path:     "key",
+		path:     []string{"key"},
 		expected: "value",
 	}))
 
 	t.Run("key.subKey", assertGetValueFromMap(args{
-		path: "key.subKey",
+		path: []string{"key", "subKey"},
 		src: map[string]interface{}{
 			"key": map[string]interface{}{
 				"subKey": "value",
@@ -48,7 +48,7 @@ func TestGetValueFromMap(t *testing.T) {
 				},
 			},
 		},
-		path: "key.slice",
+		path: []string{"key", "slice"},
 		expected: map[string]interface{}{
 			"key": "value",
 		},
@@ -62,7 +62,7 @@ func TestGetValueFromMap(t *testing.T) {
 				},
 			},
 		},
-		path: "key.slice.0",
+		path: []string{"key", "slice", "0"},
 		expected: map[string]interface{}{
 			"subKey": "value",
 		},
@@ -77,7 +77,7 @@ func TestGetValueFromMap(t *testing.T) {
 				},
 			},
 		},
-		path: "key.slice.1",
+		path: []string{"key", "slice", "1"},
 		expected: map[string]interface{}{
 			"subKey": "value1",
 		},
@@ -92,7 +92,7 @@ func TestGetValueFromMap(t *testing.T) {
 				},
 			},
 		},
-		path: "key.slice.*",
+		path: []string{"key", "slice", "*"},
 		expected: []map[string]interface{}{
 			{"subKey": "value0"},
 			{"subKey": "value1"},

@@ -24,8 +24,8 @@ func getValueFromMap(obj map[string]interface{}, path Path) (interface{}, bool, 
 
 // GetValueFromMap attempts to retrieve from `obj` a value from the given path
 // `p`.
-func GetValueFromMap(obj map[string]interface{}, p string) (interface{}, bool, error) {
-	path := NewPath(p)
+func GetValueFromMap(obj map[string]interface{}, p ...string) (interface{}, bool, error) {
+	path := NewPathWithParts(p)
 	return getValueFromMap(obj, path)
 }
 
