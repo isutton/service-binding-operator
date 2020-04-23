@@ -97,10 +97,14 @@ func (p Path) Clean() Path {
 // NewPath creates a new path with the given string.
 func NewPath(s string) Path {
 	parts := strings.Split(s, ".")
+	return NewPathWithParts(parts)
+}
+
+// NewPathWithParts constructs a Path from given parts.
+func NewPathWithParts(parts []string) Path {
 	path := make(Path, len(parts))
 	for i, p := range parts {
 		path[i] = NewField(p)
 	}
 	return path
 }
-
