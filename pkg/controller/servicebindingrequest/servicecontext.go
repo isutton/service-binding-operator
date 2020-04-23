@@ -105,7 +105,7 @@ func buildServiceContexts(
 			}
 			r, err := h.Handle()
 			if err != nil {
-				return nil, err
+				continue
 			}
 
 			err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
