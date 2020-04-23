@@ -558,6 +558,18 @@ func serviceBindingRequestTest(
 	t.Log("Inspecting SBR status...")
 	inspectSBRStatus(todoCtx, t, f, sbrNamespacedName)
 
+	require.Eventually(t, func() bool {
+		// checking intermediary secret contents, right after deployment the secrets must be in place
+		intermediarySecretNamespacedName := types.NamespacedName{Namespace: ns, Name: sbrName}
+		sbrSecret, err := assertSBRSecret(todoCtx, f, intermediarySecretNamespacedName, assertKeys)
+		if err != nil {
+			// it can be that assertSBRSecret returns nil until service configuration values can be
+			// collected.
+			t.Logf("binding secret contents are invalid: %v", sbrSecret)
+			return false
+		}
+		return true
+	}, 10*time.Second, 1*time.Second)
 	// checking intermediary secret contents, right after deployment the secrets must be in place
 	intermediarySecretNamespacedName := types.NamespacedName{Namespace: ns, Name: sbrName}
 	sbrSecret, err := assertSBRSecret(todoCtx, f, intermediarySecretNamespacedName, assertKeys)
