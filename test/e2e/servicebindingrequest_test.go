@@ -216,7 +216,7 @@ func assertSBRSecret(
 
 	for k, v := range assertKeys {
 		if _, contains := sbrSecret.Data[k]; !contains {
-			return nil, fmt.Errorf("can't find DATABASE_SECRET_USER in data")
+			return nil, fmt.Errorf("can't find %q in data", k)
 		}
 		actual := sbrSecret.Data[k]
 		expected := []byte(v)
