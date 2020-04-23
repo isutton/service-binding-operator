@@ -569,7 +569,7 @@ func serviceBindingRequestTest(
 			return false
 		}
 		return true
-	}, 10*time.Second, 1*time.Second)
+	}, 60*time.Second, 2*time.Second)
 	// checking intermediary secret contents, right after deployment the secrets must be in place
 	intermediarySecretNamespacedName := types.NamespacedName{Namespace: ns, Name: sbrName}
 	sbrSecret, err := assertSBRSecret(todoCtx, f, intermediarySecretNamespacedName, assertKeys)
