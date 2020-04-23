@@ -397,10 +397,6 @@ func MultiNamespaceServiceBindingRequestMock(
 	applicationGVR schema.GroupVersionResource,
 	matchLabels map[string]string,
 ) *v1alpha1.ServiceBindingRequest {
-	indexPathTemplate := fmt.Sprintf(
-		`{{ index . "v1alpha1" "postgresql.baiju.dev" "Database" "%s" "spec" "image" }}`,
-		backingServiceResourceRef,
-	)
 	sbr := &v1alpha1.ServiceBindingRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -408,12 +404,7 @@ func MultiNamespaceServiceBindingRequestMock(
 		},
 		Spec: v1alpha1.ServiceBindingRequestSpec{
 			MountPathPrefix: "/var/redhat",
-			CustomEnvVar: []corev1.EnvVar{
-				{
-					Name:  "IMAGE_PATH",
-					Value: indexPathTemplate,
-				},
-			},
+			CustomEnvVar:    []corev1.EnvVar{},
 			ApplicationSelector: v1alpha1.ApplicationSelector{
 				GroupVersionResource: metav1.GroupVersionResource{Group: applicationGVR.Group, Version: applicationGVR.Version, Resource: applicationGVR.Resource},
 				ResourceRef:          applicationResourceRef,
@@ -440,10 +431,6 @@ func ServiceBindingRequestMock(
 	applicationGVR schema.GroupVersionResource,
 	matchLabels map[string]string,
 ) *v1alpha1.ServiceBindingRequest {
-	imagePathTemplate := fmt.Sprintf(
-		`{{ index . "v1alpha1" "postgresql.baiju.dev" "Database" "%s" "spec" "image" }}`,
-		backingServiceResourceRef,
-	)
 	sbr := &v1alpha1.ServiceBindingRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -451,12 +438,7 @@ func ServiceBindingRequestMock(
 		},
 		Spec: v1alpha1.ServiceBindingRequestSpec{
 			MountPathPrefix: "/var/redhat",
-			CustomEnvVar: []corev1.EnvVar{
-				{
-					Name:  "IMAGE_PATH",
-					Value: imagePathTemplate,
-				},
-			},
+			CustomEnvVar:    []corev1.EnvVar{},
 			ApplicationSelector: v1alpha1.ApplicationSelector{
 				GroupVersionResource: metav1.GroupVersionResource{Group: applicationGVR.Group, Version: applicationGVR.Version, Resource: applicationGVR.Resource},
 				ResourceRef:          applicationResourceRef,
