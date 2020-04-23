@@ -194,7 +194,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 	f.AddMockedUnstructuredConfigMap("db2")
 
 	// create and munge a Database CR since there's no "Status" field in
-	// databases.postgres.baiju.dev, requiring us to add the field directly in the unstructured
+	// databases.postgresql.baiju.dev, requiring us to add the field directly in the unstructured
 	// object
 	db1 := f.AddMockedUnstructuredPostgresDatabaseCR("db1")
 	{
