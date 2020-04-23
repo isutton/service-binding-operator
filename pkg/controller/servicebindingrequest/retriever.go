@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	"github.com/imdario/mergo"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/envvars"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
@@ -30,41 +31,54 @@ type Retriever struct {
 // GetEnvVars returns the data read from related resources (see ReadBindableResourcesData and
 // ReadCRDDescriptionData).
 func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
-	envVarCtx := make(map[string]interface{})
+	svcCollectedKeys := make(map[string]interface{})
+	customEnvVarCtx := make(map[string]interface{})
 
-	for _, resource := range r.serviceCtxs {
-		// contribute values extracted from the service related resources
-		err := mergo.Merge(&envVarCtx, resource.EnvVars, mergo.WithAppendSlice, mergo.WithOverride)
+	for _, svcCtx := range r.serviceCtxs {
+		// contribute service contributed env vars
+		err := mergo.Merge(&svcCollectedKeys, svcCtx.EnvVars, mergo.WithAppendSlice, mergo.WithOverride)
 		if err != nil {
 			return nil, err
 		}
 
-		// contribute the entire CR to the context
-		gvk := resource.Object.GetObjectKind().GroupVersionKind()
+		// contribute the entire resource to the context shared with the custom env parser
+		gvk := svcCtx.Object.GetObjectKind().GroupVersionKind()
 		err = unstructured.SetNestedField(
-			envVarCtx, resource.Object.Object, gvk.Version, gvk.Group, gvk.Kind, resource.Object.GetName())
+			customEnvVarCtx, svcCtx.Object.Object, gvk.Version, gvk.Group, gvk.Kind,
+			svcCtx.Object.GetName())
 		if err != nil {
 			return nil, err
 		}
 
 		// FIXME(isuttonl): make volume keys a return value
-		r.VolumeKeys = append(r.VolumeKeys, resource.VolumeKeys...)
+		r.VolumeKeys = append(r.VolumeKeys, svcCtx.VolumeKeys...)
 	}
 
 	envVarTemplates := r.envVarTemplates
-	envParser := NewCustomEnvParser(envVarTemplates, envVarCtx)
-	envVars, err := envParser.Parse()
+	envParser := NewCustomEnvParser(envVarTemplates, customEnvVarCtx)
+	customEnvVars, err := envParser.Parse()
 	if err != nil {
+		r.logger.Error(
+			err, "Creating envVars", "Templates", envVarTemplates, "TemplateContext", customEnvVarCtx)
 		return nil, err
 	}
 
 	// convert values to a map[string][]byte
-	result := make(map[string][]byte)
-	for k, v := range envVars {
-		result[k] = []byte(v.(string))
+	envVars := make(map[string][]byte)
+	for k, v := range customEnvVars {
+		envVars[k] = []byte(v.(string))
 	}
 
-	return result, nil
+	svcEnvVars, err := envvars.Build(svcCollectedKeys, []string{})
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range svcEnvVars {
+		envVars[k] = []byte(v)
+	}
+
+	return envVars, nil
 }
 
 // ReadBindableResourcesData reads all related resources of a given sbr
