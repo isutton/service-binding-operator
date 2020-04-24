@@ -54,7 +54,7 @@ func buildServiceContexts(
 			return nil, err
 		}
 
-		var anns map[string]string
+		anns := map[string]string{}
 
 		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
 		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
@@ -62,7 +62,7 @@ func buildServiceContexts(
 		crd, err := findServiceCRD(client, gvk)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
-		} else if errors.IsNotFound(err) {
+		} else if !errors.IsNotFound(err) {
 			// attempt to search the a CRDDescription related to the obtained CRD.
 			crdDescription, err := findCRDDescription(ns, client, gvk, crd)
 			if err != nil && !errors.IsNotFound(err) {
