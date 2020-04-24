@@ -1,10 +1,12 @@
 package servicebindingrequest
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
@@ -17,7 +19,7 @@ func TestRetriever(t *testing.T) {
 	ns := "testing"
 	backingServiceNs := "backing-servicec-ns"
 	crName := "db-testing"
-	testEnvVarPrefix := "TEST_PREFIX"
+	// testEnvVarPrefix := "TEST_PREFIX"
 
 	f := mocks.NewFake(t, ns)
 	f.AddMockedUnstructuredCSV("csv")
@@ -40,73 +42,27 @@ func TestRetriever(t *testing.T) {
 
 	fakeDynClient := f.FakeDynClient()
 
-	retriever = NewRetriever(
-		fakeDynClient,
-		[]v1.EnvVar{},
-		serviceCtxs,
-		"SERVICE_BINDING",
-	)
-	require.NotNil(t, retriever)
-
-	t.Run("getCRKey", func(t *testing.T) {
-		imageName, _, err := retriever.getCRKey(cr, "spec", "imageName")
-		require.NoError(t, err)
-		require.Equal(t, "postgres", imageName)
-	})
-
-	t.Run("store", func(t *testing.T) {
-		retriever.store(&testEnvVarPrefix, cr, "test", []byte("test"))
-		require.Contains(t, retriever.data, "SERVICE_BINDING_TEST_PREFIX_TEST")
-		require.Equal(t, []byte("test"), retriever.data["SERVICE_BINDING_TEST_PREFIX_TEST"])
-	})
-}
-
-func TestRetrieverWithNestedCRKey(t *testing.T) {
-	logf.SetLogger(logf.ZapLogger(true))
-	var retriever *Retriever
-
-	ns := "testing"
-	crName := "db-testing"
-
-	f := mocks.NewFake(t, ns)
-	f.AddMockedUnstructuredCSV("csv")
-	f.AddMockedSecret("db-credentials")
-
-	cr, err := mocks.UnstructuredNestedDatabaseCRMock(ns, crName)
-	require.NoError(t, err)
-
-	serviceCtxs := ServiceContextList{
-		{
-			Object: cr,
-		},
+	toTmpl := func(obj *unstructured.Unstructured) string {
+		gvk := obj.GetObjectKind().GroupVersionKind()
+		name := obj.GetName()
+		return fmt.Sprintf(`{{ index . %q %q %q %q "metadata" "name" }}`, gvk.Version, gvk.Group, gvk.Kind, name)
 	}
 
-	fakeDynClient := f.FakeDynClient()
-
 	retriever = NewRetriever(
 		fakeDynClient,
-		[]v1.EnvVar{},
+		[]v1.EnvVar{
+			{Name: "SAME_NAMESPACE", Value: toTmpl(crInSameNamespace)},
+			{Name: "OTHER_NAMESPACE", Value: toTmpl(cr)},
+		},
 		serviceCtxs,
 		"SERVICE_BINDING",
 	)
 	require.NotNil(t, retriever)
 
-	t.Run("Second level", func(t *testing.T) {
-		imageName, _, err := retriever.getCRKey(cr, "spec", "image.name")
-		require.NoError(t, err)
-		require.Equal(t, "postgres", imageName)
-	})
-
-	t.Run("Second level error", func(t *testing.T) {
-		// FIXME: if attribute isn't available in CR we would not throw any error.
-		t.Skip()
-		_, _, err := retriever.getCRKey(cr, "spec", "image..name")
-		require.NotNil(t, err)
-	})
-
-	t.Run("Third level", func(t *testing.T) {
-		something, _, err := retriever.getCRKey(cr, "spec", "image.third.something")
-		require.NoError(t, err)
-		require.Equal(t, "somevalue", something)
-	})
+	actual, err := retriever.GetEnvVars()
+	require.NoError(t, err)
+	require.Equal(t, map[string][]byte{
+		"SAME_NAMESPACE":  []byte(crInSameNamespace.GetName()),
+		"OTHER_NAMESPACE": []byte(cr.GetName()),
+	}, actual)
 }
