@@ -125,8 +125,8 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		v1.SetStatusCondition(&sbr.Status.Conditions, v1.Condition{
 			Type:    conditions.BindingReady,
 			Status:  corev1.ConditionFalse,
-			Reason:  "EmptyBackingServiceSelectors", // FIXME(isuttonl): magic string
-			Message: err.Error(),
+			Reason:  conditions.EmptyServiceSelectorsReason,
+			Message: "The spec.backingServiceSelectors field is empty.",
 		})
 		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
 		if updateErr == nil {
