@@ -2,8 +2,8 @@ package servicebindingrequest
 
 import (
 	"github.com/imdario/mergo"
-	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -54,31 +54,33 @@ func buildServiceContexts(
 			return nil, err
 		}
 
+		var anns map[string]string
+
 		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
 		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
 		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 		crd, err := findServiceCRD(client, gvk)
-		if err != nil {
+		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
+		} else if errors.IsNotFound(err) {
+			// attempt to search the a CRDDescription related to the obtained CRD.
+			crdDescription, err := findCRDDescription(ns, client, gvk, crd)
+			if err != nil && !errors.IsNotFound(err) {
+				return nil, err
+			}
+			// start with annotations extracted from CRDDescription
+			err = mergo.Merge(&anns, crdDescriptionToAnnotations(crdDescription), mergo.WithOverride)
+			if err != nil {
+				return nil, err
+			}
+			// then override collected annotations with CR annotations
+			err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		// attempt to search the a CRDDescription related to the obtained CRD.
-		crdDescription, err := findCRDDescription(ns, client, gvk, crd)
-		if err != nil {
-			// FIXME(isuttonl): return early if err is not NotFound
-			crdDescription = &olmv1alpha1.CRDDescription{}
-		}
-
-		// start with annotations extracted from CRDDescription
-		anns := crdDescriptionToAnnotations(crdDescription)
-
-		// then override collected annotations with CR annotations
-		err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
-		if err != nil {
-			return nil, err
-		}
-
-		// and finally override collected annotations with CR annotations
+		// and finally override collected annotations with own annotations
 		err = mergo.Merge(&anns, obj.GetAnnotations(), mergo.WithOverride)
 		if err != nil {
 			return nil, err
