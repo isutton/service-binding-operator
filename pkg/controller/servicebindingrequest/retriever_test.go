@@ -23,7 +23,6 @@ func TestRetriever(t *testing.T) {
 	f.AddMockedUnstructuredCSV("csv")
 	f.AddNamespacedMockedSecret("db-credentials", backingServiceNs)
 
-	crdDescription := mocks.CRDDescriptionMock()
 	cr, err := mocks.UnstructuredDatabaseCRMock(backingServiceNs, crName)
 	require.NoError(t, err)
 
@@ -32,12 +31,10 @@ func TestRetriever(t *testing.T) {
 
 	serviceCtxs := ServiceContextList{
 		{
-			CRDDescription: &crdDescription,
-			Object:         cr,
+			Object: cr,
 		},
 		{
-			CRDDescription: &crdDescription,
-			Object:         crInSameNamespace,
+			Object: crInSameNamespace,
 		},
 	}
 
@@ -75,14 +72,12 @@ func TestRetrieverWithNestedCRKey(t *testing.T) {
 	f.AddMockedUnstructuredCSV("csv")
 	f.AddMockedSecret("db-credentials")
 
-	crdDescription := mocks.CRDDescriptionMock()
 	cr, err := mocks.UnstructuredNestedDatabaseCRMock(ns, crName)
 	require.NoError(t, err)
 
 	serviceCtxs := ServiceContextList{
 		{
-			CRDDescription: &crdDescription,
-			Object:         cr,
+			Object: cr,
 		},
 	}
 

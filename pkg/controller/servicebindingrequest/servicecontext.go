@@ -13,9 +13,6 @@ import (
 
 // ServiceContext contains information related to a service.
 type ServiceContext struct {
-	// CRDDescription is the description of the resources CRD, either built from a manifest from the
-	// cluster or composed through annotations in the CRD.
-	CRDDescription *olmv1alpha1.CRDDescription
 	// Object is the resource being used as reference.
 	Object *unstructured.Unstructured
 	// EnvVars contains the service's contributed environment variables.
@@ -120,10 +117,9 @@ func buildServiceContexts(
 		}
 
 		serviceCtx := &ServiceContext{
-			CRDDescription: crdDescription,
-			Object:         obj,
-			EnvVars:        envVars,
-			VolumeKeys:     volumeKeys,
+			Object:     obj,
+			EnvVars:    envVars,
+			VolumeKeys: volumeKeys,
 		}
 
 		serviceCtxs = append(serviceCtxs, serviceCtx)
