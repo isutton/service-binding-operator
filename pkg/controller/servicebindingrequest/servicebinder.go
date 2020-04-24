@@ -304,10 +304,10 @@ func BuildServiceBinder(
 	*ServiceBinder,
 	error,
 ) {
-	var isSBRDeleting bool
-	if options.SBR != nil && options.SBR.GetDeletionTimestamp() != nil {
-		isSBRDeleting = true
-	}
+	// var isSBRDeleting bool
+	// if options.SBR != nil && options.SBR.GetDeletionTimestamp() != nil {
+	// 	isSBRDeleting = true
+	// }
 
 	if !options.Valid() {
 		return nil, InvalidOptionsErr
@@ -380,9 +380,9 @@ func buildBinding(
 	// 	}
 	// }
 
-	if isSBRDeleting {
-		// FIXME(isuttonl): investigate this flag
-	}
+	// if isSBRDeleting {
+	// 	// FIXME(isuttonl): investigate this flag
+	// }
 
 	// gather retriever's read data
 	envVars, err := retriever.GetEnvVars()
