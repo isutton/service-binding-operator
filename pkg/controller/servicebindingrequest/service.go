@@ -12,29 +12,32 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-
-	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 )
 
 var (
 	errBackingServiceNamespace = errors.New("backing Service Namespace is unspecified")
 )
 
-func findService(client dynamic.Interface, selector v1alpha1.BackingServiceSelector) (*unstructured.Unstructured, error) {
-	// gvr is the plural guessed resource for the given selector
-	gvk := schema.GroupVersionKind{
-		Group:   selector.Group,
-		Version: selector.Version,
-		Kind:    selector.Kind,
-	}
+func findService(
+	client dynamic.Interface,
+	ns string,
+	gvk schema.GroupVersionKind,
+	resourceRef string,
+) (
+	*unstructured.Unstructured,
+	error,
+) {
 	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
 
-	if selector.Namespace == nil {
+	if len(ns) == 0 {
 		return nil, errBackingServiceNamespace
 	}
 
 	// delegate the search selector's namespaced resource client
-	return client.Resource(gvr).Namespace(*selector.Namespace).Get(selector.ResourceRef, metav1.GetOptions{})
+	return client.
+		Resource(gvr).
+		Namespace(ns).
+		Get(resourceRef, metav1.GetOptions{})
 }
 
 // CRDGVR is the plural GVR for Kubernetes CRDs.

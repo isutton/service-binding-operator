@@ -49,83 +49,100 @@ func buildServiceContexts(
 			s.Namespace = &ns
 		}
 
-		obj, err := findService(client, s)
-		if err != nil {
-			return nil, err
-		}
-
-		anns := map[string]string{}
-
-		// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
-		// means also a CRDDescription can't exist or if it does exist it is not meaningful.
 		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
-		crd, err := findServiceCRD(client, gvk)
-		if err != nil && !errors.IsNotFound(err) {
-			return nil, err
-		} else if !errors.IsNotFound(err) {
-			// attempt to search the a CRDDescription related to the obtained CRD.
-			crdDescription, err := findCRDDescription(ns, client, gvk, crd)
-			if err != nil && !errors.IsNotFound(err) {
-				return nil, err
-			}
-			// start with annotations extracted from CRDDescription
-			err = mergo.Merge(&anns, crdDescriptionToAnnotations(crdDescription), mergo.WithOverride)
-			if err != nil {
-				return nil, err
-			}
-			// then override collected annotations with CR annotations
-			err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
-			if err != nil {
-				return nil, err
-			}
-		}
 
-		// and finally override collected annotations with own annotations
-		err = mergo.Merge(&anns, obj.GetAnnotations(), mergo.WithOverride)
+		serviceCtx, err := buildServiceContext(client, *s.Namespace, gvk, s.ResourceRef)
 		if err != nil {
 			return nil, err
 		}
-
-		volumeKeys := make([]string, 0)
-		envVars := make(map[string]interface{})
-
-		for n, v := range anns {
-			h, err := annotations.BuildHandler(annotations.HandlerArgs{
-				Name:     n,
-				Value:    v,
-				Resource: obj,
-				Client:   client,
-			})
-			if err != nil {
-				if err == annotations.InvalidAnnotationPrefixErr {
-					continue
-				}
-				return nil, err
-			}
-			r, err := h.Handle()
-			if err != nil {
-				continue
-			}
-
-			err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
-			if err != nil {
-				return nil, err
-			}
-
-			// FIXME(isuttonl): rename volumeMounts to volumeKeys
-			if r.Type == annotations.BindingTypeVolumeMount {
-				volumeKeys = append(volumeKeys, r.Path)
-			}
-		}
-
-		serviceCtx := &ServiceContext{
-			Object:     obj,
-			EnvVars:    envVars,
-			VolumeKeys: volumeKeys,
-		}
-
 		serviceCtxs = append(serviceCtxs, serviceCtx)
 	}
 
 	return serviceCtxs, nil
+}
+
+func buildServiceContext(
+	client dynamic.Interface,
+	ns string,
+	gvk schema.GroupVersionKind,
+	resourceRef string,
+) (*ServiceContext, error) {
+	obj, err := findService(client, ns, gvk, resourceRef)
+	if err != nil {
+		return nil, err
+	}
+
+	anns := map[string]string{}
+
+	// TODO(isuttonl): collect configuration values contributed by resources owned by the service
+	// resource.
+
+	// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
+	// means also a CRDDescription can't exist or if it does exist it is not meaningful.
+	crd, err := findServiceCRD(client, gvk)
+	if err != nil && !errors.IsNotFound(err) {
+		return nil, err
+	} else if !errors.IsNotFound(err) {
+		// attempt to search the a CRDDescription related to the obtained CRD.
+		crdDescription, err := findCRDDescription(ns, client, gvk, crd)
+		if err != nil && !errors.IsNotFound(err) {
+			return nil, err
+		}
+		// start with annotations extracted from CRDDescription
+		err = mergo.Merge(&anns, crdDescriptionToAnnotations(crdDescription), mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
+		// then override collected annotations with CR annotations
+		err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// and finally override collected annotations with own annotations
+	err = mergo.Merge(&anns, obj.GetAnnotations(), mergo.WithOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	volumeKeys := make([]string, 0)
+	envVars := make(map[string]interface{})
+
+	for n, v := range anns {
+		h, err := annotations.BuildHandler(annotations.HandlerArgs{
+			Name:     n,
+			Value:    v,
+			Resource: obj,
+			Client:   client,
+		})
+		if err != nil {
+			if err == annotations.InvalidAnnotationPrefixErr {
+				continue
+			}
+			return nil, err
+		}
+		r, err := h.Handle()
+		if err != nil {
+			continue
+		}
+
+		err = mergo.Merge(&envVars, r.Object, mergo.WithAppendSlice, mergo.WithOverride)
+		if err != nil {
+			return nil, err
+		}
+
+		// FIXME(isuttonl): rename volumeMounts to volumeKeys
+		if r.Type == annotations.BindingTypeVolumeMount {
+			volumeKeys = append(volumeKeys, r.Path)
+		}
+	}
+
+	serviceCtx := &ServiceContext{
+		Object:     obj,
+		EnvVars:    envVars,
+		VolumeKeys: volumeKeys,
+	}
+
+	return serviceCtx, nil
 }

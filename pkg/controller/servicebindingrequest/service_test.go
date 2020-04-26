@@ -4,10 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
-	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
 
@@ -25,32 +23,17 @@ func TestFindService(t *testing.T) {
 	db := f.AddMockedDatabaseCR(resourceRef, ns)
 	f.AddMockedUnstructuredDatabaseCRD()
 
-	// NOTE(isuttonl): is there any utility to convert between schema and meta GroupVersionKind?
-	gvk := metav1.GroupVersionKind{
-		Group:   db.GetObjectKind().GroupVersionKind().Group,
-		Version: db.GetObjectKind().GroupVersionKind().Version,
-		Kind:    db.GetObjectKind().GroupVersionKind().Kind,
-	}
-
 	t.Run("missing service namespace", func(t *testing.T) {
-		s := v1alpha1.BackingServiceSelector{
-			GroupVersionKind: gvk,
-			Namespace:        nil,
-			ResourceRef:      resourceRef,
-		}
-		cr, err := findService(f.FakeDynClient(), s)
+		cr, err := findService(
+			f.FakeDynClient(), "", db.GetObjectKind().GroupVersionKind(), resourceRef)
 		require.Error(t, err)
 		require.Equal(t, err, errBackingServiceNamespace)
 		require.Nil(t, cr)
 	})
 
 	t.Run("golden path", func(t *testing.T) {
-		s := v1alpha1.BackingServiceSelector{
-			GroupVersionKind: gvk,
-			Namespace:        &ns,
-			ResourceRef:      resourceRef,
-		}
-		cr, err := findService(f.FakeDynClient(), s)
+		cr, err := findService(
+			f.FakeDynClient(), ns, db.GetObjectKind().GroupVersionKind(), resourceRef)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
 	})
@@ -59,23 +42,22 @@ func TestFindService(t *testing.T) {
 func TestPlannerWithExplicitBackingServiceNamespace(t *testing.T) {
 	ns := "planner"
 	backingServiceNamespace := "backing-service-namespace"
-	name := "service-binding-request"
 	resourceRef := "db-testing"
-	matchLabels := map[string]string{
-		"connects-to": "database",
-		"environment": "planner",
-	}
-	f := mocks.NewFake(t, ns)
-	sbr := f.AddMockedServiceBindingRequest(name, &backingServiceNamespace, resourceRef, "", deploymentsGVR, matchLabels)
-	require.NotNil(t, sbr.Spec.BackingServiceSelector.Namespace)
 
-	f.AddMockedUnstructuredCSV("cluster-service-version")
-	f.AddMockedDatabaseCR(resourceRef, backingServiceNamespace)
+	f := mocks.NewFake(t, ns)
+
 	f.AddMockedUnstructuredDatabaseCRD()
+	f.AddMockedUnstructuredCSV("cluster-service-version")
+	db := f.AddMockedDatabaseCR(resourceRef, backingServiceNamespace)
 	f.AddNamespacedMockedSecret("db-credentials", backingServiceNamespace)
 
-	t.Run("findCR", func(t *testing.T) {
-		cr, err := findService(f.FakeDynClient(), *sbr.Spec.BackingServiceSelector)
+	t.Run("findService", func(t *testing.T) {
+		cr, err := findService(
+			f.FakeDynClient(),
+			backingServiceNamespace,
+			db.GetObjectKind().GroupVersionKind(),
+			resourceRef,
+		)
 		require.NoError(t, err)
 		require.NotNil(t, cr)
 	})
