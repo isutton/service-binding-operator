@@ -74,9 +74,6 @@ func buildServiceContext(
 
 	anns := map[string]string{}
 
-	// TODO(isuttonl): collect configuration values contributed by resources owned by the service
-	// resource.
-
 	// attempt to search the CRD of given gvk and bail out right away if a CRD can't be found; this
 	// means also a CRDDescription can't exist or if it does exist it is not meaningful.
 	crd, err := findServiceCRD(client, gvk)
@@ -128,7 +125,6 @@ func buildServiceContext(
 			return nil, err
 		}
 
-		// FIXME(isuttonl): rename volumeMounts to volumeKeys
 		if r.Type == annotations.BindingTypeVolumeMount {
 			volumeKeys = append(volumeKeys, r.Path)
 		}
