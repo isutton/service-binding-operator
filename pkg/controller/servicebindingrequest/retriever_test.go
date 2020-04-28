@@ -53,6 +53,7 @@ func TestRetriever(t *testing.T) {
 		[]v1.EnvVar{
 			{Name: "SAME_NAMESPACE", Value: toTmpl(crInSameNamespace)},
 			{Name: "OTHER_NAMESPACE", Value: toTmpl(cr)},
+			{Name: "DIRECT_ACCESS", Value: `{{ .v1alpha1.postgresql_baiju_dev.Database.db_testing.metadata.name }}`},
 		},
 		serviceCtxs,
 		"SERVICE_BINDING",
@@ -64,5 +65,6 @@ func TestRetriever(t *testing.T) {
 	require.Equal(t, map[string][]byte{
 		"SAME_NAMESPACE":  []byte(crInSameNamespace.GetName()),
 		"OTHER_NAMESPACE": []byte(cr.GetName()),
+		"DIRECT_ACCESS":   []byte(cr.GetName()),
 	}, actual)
 }

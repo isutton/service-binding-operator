@@ -1,8 +1,11 @@
 package servicebindingrequest
 
 import (
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
 	"github.com/imdario/mergo"
@@ -22,6 +25,20 @@ type Retriever struct {
 	serviceCtxs     ServiceContextList           // list of service contexts associated with a SBR
 }
 
+// createServiceIndexPath returns a string slice with fields representing a path to a resource in the
+// environment variable context. This function cleans fields that might contain invalid characters to
+// be used in Go template; for example, a Group might contain the "." character, which makes it
+// harder to refer using Go template direct accessors and is substituted by an underbar "_".
+func createServiceIndexPath(name string, gvk schema.GroupVersionKind) []string {
+	return []string{
+		gvk.Version,
+		strings.ReplaceAll(gvk.Group, ".", "_"),
+		gvk.Kind,
+		strings.ReplaceAll(name, "-", "_"),
+	}
+
+}
+
 // GetEnvVars returns the data read from related resources (see ReadBindableResourcesData and
 // ReadCRDDescriptionData).
 func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
@@ -37,9 +54,28 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 
 		// contribute the entire resource to the context shared with the custom env parser
 		gvk := svcCtx.Object.GetObjectKind().GroupVersionKind()
+
+		// add an entry in the custom environment variable context, allowing the user to use the
+		// following expression:
+		//
+		// `{{ index "v1alpha1" "postgresql.baiju.dev" "Database", "db-testing", "status", "connectionUrl" }}`
 		err = unstructured.SetNestedField(
 			customEnvVarCtx, svcCtx.Object.Object, gvk.Version, gvk.Group, gvk.Kind,
 			svcCtx.Object.GetName())
+		if err != nil {
+			return nil, err
+		}
+
+		// add an entry in the custom environment variable context with modified key names (group
+		// names have the "." separator changed to underbar and "-" in the resource name is changed
+		// to underbar "_" as well).
+		//
+		// `{{ .v1alpha1.postgresql_baiju_dev.Database.db_testing.status.connectionUrl }}`
+		err = unstructured.SetNestedField(
+			customEnvVarCtx,
+			svcCtx.Object.Object,
+			createServiceIndexPath(svcCtx.Object.GetName(), svcCtx.Object.GroupVersionKind())...,
+		)
 		if err != nil {
 			return nil, err
 		}
