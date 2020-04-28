@@ -86,7 +86,8 @@ func buildServiceContext(
 			return nil, err
 		}
 		// start with annotations extracted from CRDDescription
-		err = mergo.Merge(&anns, crdDescriptionToAnnotations(crdDescription), mergo.WithOverride)
+		err = mergo.Merge(
+			&anns, convertCRDDescriptionToAnnotations(crdDescription), mergo.WithOverride)
 		if err != nil {
 			return nil, err
 		}

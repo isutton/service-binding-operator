@@ -84,7 +84,7 @@ func loadDescriptor(anns map[string]string, path string, descriptor string, root
 
 }
 
-func crdDescriptionToAnnotations(crdDescription *olmv1alpha1.CRDDescription) map[string]string {
+func convertCRDDescriptionToAnnotations(crdDescription *olmv1alpha1.CRDDescription) map[string]string {
 	anns := make(map[string]string)
 	for _, sd := range crdDescription.StatusDescriptors {
 		for _, xd := range sd.XDescriptors {
