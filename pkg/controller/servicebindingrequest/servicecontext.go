@@ -108,7 +108,7 @@ func buildServiceContext(
 	envVars := make(map[string]interface{})
 
 	for n, v := range anns {
-		args := annotations.HandlerArgs{Client: client, Name: n, Resource: obj, Value: v}
+		args := annotations.HandlerArgs{Client: client, Name: n, Object: obj, Value: v}
 		h, err := annotations.BuildHandler(args)
 		if err != nil {
 			if err == annotations.InvalidAnnotationPrefixErr {

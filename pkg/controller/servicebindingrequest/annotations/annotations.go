@@ -40,8 +40,8 @@ type Handler interface {
 // HandlerArgs are arguments that can be used by action constructors to perform
 // its task.
 type HandlerArgs struct {
-	// Resource is the owner resource unstructured representation.
-	Resource *unstructured.Unstructured
+	// Object is the owner resource unstructured representation.
+	Object *unstructured.Unstructured
 	// Name is the annotation key, with prefix included.
 	Name string
 	// Value is the annotation value.
@@ -61,11 +61,11 @@ func BuildHandler(args HandlerArgs) (Handler, error) {
 
 	switch {
 	case IsAttribute(val):
-		return NewAttributeHandler(bindingInfo, *args.Resource), nil
+		return NewAttributeHandler(bindingInfo, *args.Object), nil
 	case IsSecret(val):
-		return NewSecretHandler(args.Client, bindingInfo, *args.Resource)
+		return NewSecretHandler(args.Client, bindingInfo, *args.Object)
 	case IsConfigMap(val):
-		return NewConfigMapHandler(args.Client, bindingInfo, *args.Resource)
+		return NewConfigMapHandler(args.Client, bindingInfo, *args.Object)
 	default:
 		panic("not implemented")
 	}

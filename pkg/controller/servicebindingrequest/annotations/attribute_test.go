@@ -17,7 +17,7 @@ func TestAttributeHandler(t *testing.T) {
 		return func(t *testing.T) {
 			bindingInfo, err := NewBindingInfo(args.Name, args.Value)
 			require.NoError(t, err)
-			handler := NewAttributeHandler(bindingInfo, *args.Resource)
+			handler := NewAttributeHandler(bindingInfo, *args.Object)
 			got, err := handler.Handle()
 			require.NoError(t, err)
 			require.NotNil(t, got)
@@ -34,7 +34,7 @@ func TestAttributeHandler(t *testing.T) {
 		HandlerArgs: HandlerArgs{
 			Name:  "servicebindingoperator.redhat.io/status.dbConnectionIP",
 			Value: "binding:env:attribute",
-			Resource: &unstructured.Unstructured{
+			Object: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"status": map[string]interface{}{
 						"dbConnectionIP": "127.0.0.1",
@@ -51,7 +51,7 @@ func TestAttributeHandler(t *testing.T) {
 		HandlerArgs: HandlerArgs{
 			Name:  "servicebindingoperator.redhat.io/alias-status.dbConnectionIP",
 			Value: "binding:env:attribute",
-			Resource: &unstructured.Unstructured{
+			Object: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"status": map[string]interface{}{
 						"dbConnectionIP": "127.0.0.1",
@@ -70,7 +70,7 @@ func TestAttributeHandler(t *testing.T) {
 		HandlerArgs: HandlerArgs{
 			Name:  "servicebindingoperator.redhat.io/status.dbConnectionIPs",
 			Value: "binding:env:attribute",
-			Resource: &unstructured.Unstructured{
+			Object: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"status": map[string]interface{}{
 						"dbConnectionIPs": []string{"127.0.0.1", "1.1.1.1"},
@@ -92,7 +92,7 @@ func TestAttributeHandler(t *testing.T) {
 		HandlerArgs: HandlerArgs{
 			Name:  "servicebindingoperator.redhat.io/status.connection",
 			Value: "binding:env:attribute",
-			Resource: &unstructured.Unstructured{
+			Object: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"status": map[string]interface{}{
 						"connection": map[string]interface{}{
@@ -116,7 +116,7 @@ func TestAttributeHandler(t *testing.T) {
 		HandlerArgs: HandlerArgs{
 			Name:  "servicebindingoperator.redhat.io/status.connection.host",
 			Value: "binding:env:attribute",
-			Resource: &unstructured.Unstructured{
+			Object: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"status": map[string]interface{}{
 						"connection": map[string]interface{}{
