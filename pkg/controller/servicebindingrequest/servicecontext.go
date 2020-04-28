@@ -18,7 +18,8 @@ type ServiceContext struct {
 	// EnvVars contains the service's contributed environment variables.
 	EnvVars map[string]interface{}
 	// VolumeKeys contains the keys that should be mounted as volume from the binding secret.
-	VolumeKeys   []string
+	VolumeKeys []string
+	// EnvVarPrefix indicates the prefix to use in environment variables.
 	EnvVarPrefix *string
 }
 
