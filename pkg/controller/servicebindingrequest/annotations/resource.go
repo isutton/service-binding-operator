@@ -37,7 +37,7 @@ type ResourceHandler struct {
 // discoverRelatedResourceName returns the resource name referenced by the handler. Can return an
 // error in the case the expected information doesn't exist in the handler's resource object.
 func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
-	resourceNameValue, ok, err := nested.GetValueFromMap(
+	resourceNameValue, ok, err := unstructured.NestedFieldCopy(
 		h.resource.Object,
 		strings.Split(h.relatedNamePath, ".")...,
 	)
