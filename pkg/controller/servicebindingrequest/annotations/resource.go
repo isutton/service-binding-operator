@@ -30,7 +30,8 @@ type ResourceHandler struct {
 	outputPath string
 	// resource is the unstructured object to extract data using inputPath.
 	resource unstructured.Unstructured
-
+	// valueDecoder is a function used to decode values from the resource being handled; for example,
+	// to decode Base64 keys the decodeBase64String can be used.
 	valueDecoder func(interface{}) (string, error)
 }
 
