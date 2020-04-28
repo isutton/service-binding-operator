@@ -25,7 +25,6 @@ func NewConfigMapHandler(
 		bindingInfo,
 		resource,
 		schema.GroupVersionResource{
-			Group:    "",
 			Version:  "v1",
 			Resource: "configmaps",
 		},
