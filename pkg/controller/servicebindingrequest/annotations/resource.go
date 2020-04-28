@@ -119,6 +119,15 @@ func (h *ResourceHandler) Handle() (Result, error) {
 	}, nil
 }
 
+// stringValueDecoder asserts the given value 'v' and returns its string value.
+func stringValueDecoder(v interface{}) (string, error) {
+	s, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("value is not a string")
+	}
+	return s, nil
+}
+
 // NewSecretHandler constructs a SecretHandler.
 func NewResourceHandler(
 	client dynamic.Interface,
@@ -162,12 +171,6 @@ func NewResourceHandler(
 		outputPath:                  outputPath,
 		resource:                    resource,
 		relatedGroupVersionResource: relatedGroupVersionResource,
-		valueDecoder: func(v interface{}) (string, error) {
-			s, ok := v.(string)
-			if !ok {
-				return "", fmt.Errorf("value is not a string")
-			}
-			return s, nil
-		},
+		valueDecoder:                stringValueDecoder,
 	}, nil
 }
