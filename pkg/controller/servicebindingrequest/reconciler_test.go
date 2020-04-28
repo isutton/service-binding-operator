@@ -16,6 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
 
@@ -41,30 +43,6 @@ func reconcileRequest() reconcile.Request {
 			Name:      reconcilerName,
 		},
 	}
-}
-
-func TestReconcilerReconcileError(t *testing.T) {
-	backingServiceResourceRef := "test-using-secret"
-	matchLabels := map[string]string{
-		"connects-to": "database",
-		"environment": "reconciler",
-	}
-	f := mocks.NewFake(t, reconcilerNs)
-	f.AddMockedUnstructuredDatabaseCRD()
-	f.AddMockedUnstructuredServiceBindingRequest(reconcilerName, backingServiceResourceRef, "", deploymentsGVR, matchLabels)
-	f.AddMockedUnstructuredPostgresDatabaseCR("test-using-secret")
-
-	fakeClient := f.FakeClient()
-	fakeDynClient := f.FakeDynClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
-
-	res, err := reconciler.Reconcile(reconcileRequest())
-
-	// currently this test passes because annotations present in the Databases CRD being currently
-	// used doesn't have a 'status' field in its definition; once it does and this code is updated (
-	// since the Postgres CRD is being imported to be used in tests) this test will fail.
-	require.Error(t, err)
-	require.True(t, res.Requeue)
 }
 
 // TestApplicationSelectorByName tests discovery of application by name
@@ -235,9 +213,16 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	sbrOutput, err := reconciler.getServiceBindingRequest(namespacedName)
 	require.NoError(t, err)
 
-	require.Equal(t, conditions.BindingReady, sbrOutput.Status.Conditions[0].Type)
-	require.Equal(t, corev1.ConditionTrue, sbrOutput.Status.Conditions[0].Status)
-	require.Equal(t, 0, len(sbrOutput.Status.Applications))
+	require.True(t,
+		conditionsv1.IsStatusConditionPresentAndEqual(
+			sbrOutput.Status.Conditions,
+			conditions.BindingReady,
+			corev1.ConditionTrue,
+		),
+		"Ready condition should exist and true; existing conditions: %+v",
+		sbrOutput.Status.Conditions,
+	)
+	require.Len(t, sbrOutput.Status.Applications, 0)
 
 	// Reconcile with deployment
 	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)

@@ -94,6 +94,9 @@ help: ## Credit: https://gist.github.com/prwhite/8168133#gistcomment-2749866
 # Global Variables
 #-----------------------------------------------------------------------------
 
+# NOTE(isuttonl): this seems to be fragile, specially with Go modules. A more robust strategy is to
+# use the module name from go.mod instead.
+#
 # By default the project should be build under GOPATH/src/github.com/<orgname>/<reponame>
 GO_PACKAGE_ORG_NAME ?= $(shell basename $$(dirname $$PWD))
 GO_PACKAGE_REPO_NAME ?= $(shell basename $$PWD)
@@ -198,6 +201,7 @@ get-test-namespace: out/test-namespace
 .PHONY: deploy-e2e-crds
 deploy-e2e-crds:
 	$(Q)kubectl --namespace $(TEST_NAMESPACE) apply -f ./test/third-party-crds/postgresql_v1alpha1_database_crd.yaml
+	$(Q)kubectl --namespace $(TEST_NAMESPACE) apply -f ./test/third-party-crds/etcd_v1beta2_etcdcluster_crd.yaml
 
 # E2E test
 .PHONY: e2e-setup

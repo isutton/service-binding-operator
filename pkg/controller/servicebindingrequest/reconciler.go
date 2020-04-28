@@ -1,6 +1,7 @@
 package servicebindingrequest
 
 import (
+	"context"
 	"errors"
 
 	v1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -57,42 +58,24 @@ func (r *Reconciler) getServiceBindingRequest(
 	return sbr, nil
 }
 
-// unbind removes the relationship between the given sbr and the manifests the operator has
-// previously modified. This process also deletes any manifests created to support the binding
-// functionality, such as ConfigMaps and Secrets.
-func (r *Reconciler) unbind(logger *log.Log, bm *ServiceBinder) (reconcile.Result, error) {
-	logger = logger.WithName("unbind")
+// extractServiceSelectors returns a list of all BackingServiceSelector items from a
+// ServiceBindingRequest.
+//
+// NOTE(isuttonl): remove this method when spec.backingServiceSelector is deprecated
+func extractServiceSelectors(
+	sbr *v1alpha1.ServiceBindingRequest,
+) []v1alpha1.BackingServiceSelector {
+	selector := sbr.Spec.BackingServiceSelector
+	inSelectors := sbr.Spec.BackingServiceSelectors
+	var selectors []v1alpha1.BackingServiceSelector
 
-	// when finalizer is not found anymore, it can be safely removed
-	if !containsStringSlice(bm.SBR.GetFinalizers(), Finalizer) {
-		logger.Info("Resource can be safely deleted!")
-		return Done()
+	if selector != nil {
+		selectors = append(selectors, *selector)
 	}
-
-	logger.Info("Executing unbinding steps...")
-	if res, err := bm.Unbind(); err != nil {
-		logger.Error(err, "On unbinding application.")
-		return res, err
+	if inSelectors != nil {
+		selectors = append(selectors, *inSelectors...)
 	}
-
-	logger.Debug("Deletion done!")
-	return Done()
-}
-
-// bind steps to bind backing service and applications together. It receive the elements collected
-// in the common parts of the reconciler, and execute the final binding steps.
-func (r *Reconciler) bind(
-	logger *log.Log,
-	bm *ServiceBinder,
-	sbrStatus *v1alpha1.ServiceBindingRequestStatus,
-) (
-	reconcile.Result,
-	error,
-) {
-	logger = logger.WithName("bind")
-
-	logger.Info("Binding applications with intermediary secret...")
-	return bm.Bind()
+	return selectors
 }
 
 // Reconcile a ServiceBindingRequest by the following steps:
@@ -135,49 +118,62 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	logger = logger.WithValues("ServiceBindingRequest.Name", sbr.Name)
 	logger.Debug("Found service binding request to inspect")
 
-	// splitting instance from it's status
-	sbrStatus := &sbr.Status
+	ctx := context.Background()
+
+	selectors := extractServiceSelectors(sbr)
+	if len(selectors) == 0 {
+		v1.SetStatusCondition(&sbr.Status.Conditions, v1.Condition{
+			Type:    conditions.BindingReady,
+			Status:  corev1.ConditionFalse,
+			Reason:  conditions.EmptyServiceSelectorsReason,
+			Message: "The spec.backingServiceSelectors field is empty.",
+		})
+		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
+		if updateErr == nil {
+			return Done()
+		}
+		return NoRequeue(EmptyBackingServiceSelectorsErr)
+	}
+
+	serviceCtxs, err := buildServiceContexts(r.dynClient, sbr.GetNamespace(), selectors)
+	if err != nil {
+		return RequeueError(err)
+	}
+
+	binding, err := buildBinding(
+		r.dynClient,
+		sbr.Spec.CustomEnvVar,
+		serviceCtxs,
+		sbr.Spec.EnvVarPrefix,
+	)
+	if err != nil {
+		return RequeueError(err)
+	}
 
 	options := &ServiceBinderOptions{
 		Client:                 r.client,
 		DynClient:              r.dynClient,
 		DetectBindingResources: sbr.Spec.DetectBindingResources,
-		EnvVarPrefix:           sbr.Spec.EnvVarPrefix,
 		SBR:                    sbr,
 		Logger:                 logger,
+		Objects:                serviceCtxs.GetObjects(),
+		Binding:                binding,
 	}
 
-	bm, err := BuildServiceBinder(options)
+	sb, err := BuildServiceBinder(ctx, options)
 	if err != nil {
-		logger.Error(err, "Creating binding context")
-		if err == EmptyBackingServiceSelectorsErr || err == EmptyApplicationSelectorErr {
-			// TODO: find or create an error type containing suitable information to be propagated
-			var reason string
-			if errors.Is(err, EmptyBackingServiceSelectorsErr) {
-				reason = "EmptyBackingServiceSelectors"
-			} else {
-				reason = "EmptyApplicationSelector"
-			}
-
-			v1.SetStatusCondition(&sbr.Status.Conditions, v1.Condition{
-				Type:    conditions.BindingReady,
-				Status:  corev1.ConditionFalse,
-				Reason:  reason,
-				Message: err.Error(),
-			})
-			_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
-			if updateErr == nil {
-				return Done()
-			}
-		}
-		return RequeueError(err)
+		// BuildServiceBinder can return only InvalidOptionsErr, and it is a programmer's error so
+		// just bail out without re-queueing nor updating conditions.
+		logger.Error(err, "Building ServiceBinder")
+		return NoRequeue(err)
 	}
 
 	if sbr.GetDeletionTimestamp() != nil {
-		logger.Info("Resource is marked for deletion...")
-		return r.unbind(logger, bm)
+		logger := logger.WithName("unbind")
+		logger.Info("Executing unbinding steps...")
+		return sb.Unbind()
 	}
 
-	logger.Info("Starting the bind of application(s) with backing service...")
-	return r.bind(logger, bm, sbrStatus)
+	logger.Info("Binding applications with intermediary secret...")
+	return sb.Bind()
 }

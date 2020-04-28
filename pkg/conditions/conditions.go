@@ -8,3 +8,5 @@ const (
 	// BindingReady indicates that the binding succeeded
 	BindingReady conditionsv1.ConditionType = "Ready"
 )
+
+const EmptyServiceSelectorsReason = "EmptyServiceSelectors"

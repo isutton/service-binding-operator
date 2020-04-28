@@ -1,15 +1,21 @@
-package servicebindingrequest
+package annotations
 
 import (
-	"github.com/stretchr/testify/require"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
+
+func prefix(s string) string {
+	return fmt.Sprintf("%s%s", ServiceBindingOperatorAnnotationPrefix, s)
+}
 
 // TestNewBindingInfo exercises annotation binding information parsing.
 func TestNewBindingInfo(t *testing.T) {
 	type args struct {
-		s string
-		d string
+		name  string
+		value string
 	}
 	tests := []struct {
 		name    string
@@ -18,21 +24,23 @@ func TestNewBindingInfo(t *testing.T) {
 		want    *BindingInfo
 	}{
 		{
-			args: args{s: "status.configMapRef-password", d: "binding"},
+			args: args{name: prefix("status.configMapRef-password"), value: "binding"},
 			want: &BindingInfo{
 				FieldPath:  "status.configMapRef",
 				Descriptor: "binding:password",
 				Path:       "password",
+				Value:      "binding",
 			},
 			name:    "{fieldPath}-{path} annotation",
 			wantErr: false,
 		},
 		{
-			args: args{s: "status.connectionString", d: "binding"},
+			args: args{name: prefix("status.connectionString"), value: "binding"},
 			want: &BindingInfo{
 				Descriptor: "binding:status.connectionString",
 				FieldPath:  "status.connectionString",
 				Path:       "status.connectionString",
+				Value:      "binding",
 			},
 			name:    "{path} annotation",
 			wantErr: false,
@@ -40,7 +48,7 @@ func TestNewBindingInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b, err := NewBindingInfo(tt.args.s, tt.args.d)
+			b, err := NewBindingInfo(tt.args.name, tt.args.value)
 			if err != nil && !tt.wantErr {
 				t.Errorf("NewBindingInfo() error = %v, wantErr %v", err, tt.wantErr)
 				return

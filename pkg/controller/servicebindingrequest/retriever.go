@@ -1,292 +1,156 @@
 package servicebindingrequest
 
 import (
-	"encoding/base64"
-	"fmt"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
+	"github.com/imdario/mergo"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/envvars"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
 
 // Retriever reads all data referred in plan instance, and store in a secret.
 type Retriever struct {
-	logger        *log.Log                     // logger instance
-	data          map[string][]byte            // data retrieved
-	Objects       []*unstructured.Unstructured // list of objects employed
-	client        dynamic.Interface            // Kubernetes API client
-	plan          *Plan                        // plan instance
-	VolumeKeys    []string                     // list of keys found
-	bindingPrefix string                       // prefix for variable names
-	cache         map[string]interface{}       // store visited paths
+	logger          *log.Log                     // logger instance
+	data            map[string][]byte            // data retrieved
+	Objects         []*unstructured.Unstructured // list of objects employed
+	client          dynamic.Interface            // Kubernetes API client
+	VolumeKeys      []string                     // list of keys found
+	bindingPrefix   string                       // prefix for variable names
+	envVarTemplates []corev1.EnvVar              // list of environment variable names and templates
+	serviceCtxs     ServiceContextList           // list of service contexts associated with a SBR
 }
 
-const (
-	basePrefix              = "binding:env:object"
-	secretPrefix            = basePrefix + ":secret"
-	configMapPrefix         = basePrefix + ":configmap"
-	attributePrefix         = "binding:env:attribute"
-	volumeMountSecretPrefix = "binding:volumemount:secret"
-)
+// createServiceIndexPath returns a string slice with fields representing a path to a resource in the
+// environment variable context. This function cleans fields that might contain invalid characters to
+// be used in Go template; for example, a Group might contain the "." character, which makes it
+// harder to refer using Go template direct accessors and is substituted by an underbar "_".
+func createServiceIndexPath(name string, gvk schema.GroupVersionKind) []string {
+	return []string{
+		gvk.Version,
+		strings.ReplaceAll(gvk.Group, ".", "_"),
+		gvk.Kind,
+		strings.ReplaceAll(name, "-", "_"),
+	}
 
-// getNestedValue retrieve value from dotted key path
-func (r *Retriever) getNestedValue(key string, sectionMap interface{}) (string, interface{}, error) {
-	if !strings.Contains(key, ".") {
-		value, exists := sectionMap.(map[string]interface{})[key]
-		if !exists {
-			return "", sectionMap, nil
-		}
-		return fmt.Sprintf("%v", value), sectionMap, nil
-	}
-	attrs := strings.SplitN(key, ".", 2)
-	newSectionMap, exists := sectionMap.(map[string]interface{})[attrs[0]]
-	if !exists {
-		return "", newSectionMap, nil
-	}
-	return r.getNestedValue(attrs[1], newSectionMap.(map[string]interface{}))
 }
 
-// getCRKey retrieve key in section from CR object, part of the "plan" instance.
-func (r *Retriever) getCRKey(u *unstructured.Unstructured, section string, key string) (string, interface{}, error) {
-	obj := u.Object
-	objName := u.GetName()
-	log := r.logger.WithValues("CR.Name", objName, "CR.section", section, "CR.key", key)
-	log.Debug("Reading CR attributes...")
+// GetEnvVars returns the data read from related resources (see ReadBindableResourcesData and
+// ReadCRDDescriptionData).
+func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
+	svcCollectedKeys := make(map[string]interface{})
+	customEnvVarCtx := make(map[string]interface{})
 
-	sectionMap, exists := obj[section]
-	if !exists {
-		return "", sectionMap, fmt.Errorf("Can't find '%s' section in CR named '%s'", section, objName)
-	}
-
-	log.WithValues("SectionMap", sectionMap).Debug("Getting values from sectionmap")
-	v, _, err := r.getNestedValue(key, sectionMap)
-	for k, v := range sectionMap.(map[string]interface{}) {
-		if _, ok := r.cache[section]; !ok {
-			r.cache[section] = make(map[string]interface{})
-		}
-		r.cache[section].(map[string]interface{})[k] = v
-	}
-	return v, sectionMap, err
-}
-
-// read attributes from CR, where place means which top level key name contains the "path" actual
-// value, and parsing x-descriptors in order to either directly read CR data, or read items from
-// a secret.
-func (r *Retriever) read(envVarPrefix *string, cr *unstructured.Unstructured, place, path string, xDescriptors []string) error {
-	log := r.logger.WithValues(
-		"CR.Section", place,
-		"CRDDescription.Path", path,
-		"CRDDescription.XDescriptors", xDescriptors,
-	)
-	log.Debug("Reading CRDDescription attributes...")
-
-	// holds the secret name and items
-	secrets := make(map[string][]string)
-
-	// holds the configMap name and items
-	configMaps := make(map[string][]string)
-	pathValue, _, err := r.getCRKey(cr, place, path)
-	if err != nil {
-		return err
-	}
-	for _, xDescriptor := range xDescriptors {
-		log = log.WithValues("CRDDescription.xDescriptor", xDescriptor, "cache", r.cache)
-		log.Debug("Inspecting xDescriptor...")
-
-		if _, ok := r.cache[place].(map[string]interface{}); !ok {
-			r.cache[place] = make(map[string]interface{})
-		}
-		if strings.HasPrefix(xDescriptor, secretPrefix) {
-			secrets[pathValue] = append(secrets[pathValue], r.extractSecretItemName(xDescriptor))
-			if _, ok := r.cache[place].(map[string]interface{})[r.extractSecretItemName(xDescriptor)]; !ok {
-				r.markVisitedPaths(r.extractSecretItemName(xDescriptor), pathValue, place)
-				r.cache[place].(map[string]interface{})[r.extractSecretItemName(xDescriptor)] = make(map[string]interface{})
-			}
-		} else if strings.HasPrefix(xDescriptor, configMapPrefix) {
-			configMaps[pathValue] = append(configMaps[pathValue], r.extractConfigMapItemName(xDescriptor))
-			r.markVisitedPaths(r.extractConfigMapItemName(xDescriptor), pathValue, place)
-		} else if strings.HasPrefix(xDescriptor, volumeMountSecretPrefix) {
-			secrets[pathValue] = append(secrets[pathValue], r.extractSecretItemName(xDescriptor))
-			r.markVisitedPaths(r.extractSecretItemName(xDescriptor), pathValue, place)
-			r.VolumeKeys = append(r.VolumeKeys, pathValue)
-		} else if strings.HasPrefix(xDescriptor, attributePrefix) {
-			r.store(envVarPrefix, cr, path, []byte(pathValue))
-		} else {
-			log.Debug("Defaulting....")
-		}
-	}
-
-	for name, items := range secrets {
-		// loading secret items all-at-once
-		err := r.readSecret(envVarPrefix, cr, name, items, place, path)
+	for _, svcCtx := range r.serviceCtxs {
+		// contribute service contributed env vars
+		err := mergo.Merge(&svcCollectedKeys, svcCtx.EnvVars, mergo.WithAppendSlice, mergo.WithOverride)
 		if err != nil {
-			return err
+			return nil, err
 		}
-	}
-	for name, items := range configMaps {
-		// add the function readConfigMap
-		err := r.readConfigMap(envVarPrefix, cr, name, items, place, path)
+
+		// contribute the entire resource to the context shared with the custom env parser
+		gvk := svcCtx.Object.GetObjectKind().GroupVersionKind()
+
+		// add an entry in the custom environment variable context, allowing the user to use the
+		// following expression:
+		//
+		// `{{ index "v1alpha1" "postgresql.baiju.dev" "Database", "db-testing", "status", "connectionUrl" }}`
+		err = unstructured.SetNestedField(
+			customEnvVarCtx, svcCtx.Object.Object, gvk.Version, gvk.Group, gvk.Kind,
+			svcCtx.Object.GetName())
 		if err != nil {
-			return err
+			return nil, err
 		}
-	}
-	return nil
-}
 
-// extractSecretItemName based in x-descriptor entry, removing prefix in order to keep only the
-// secret item name.
-func (r *Retriever) extractSecretItemName(xDescriptor string) string {
-	return strings.ReplaceAll(xDescriptor, fmt.Sprintf("%s:", secretPrefix), "")
-}
-
-// extractConfigMapItemName based in x-descriptor entry, removing prefix in order to keep only the
-// configMap item name.
-func (r *Retriever) extractConfigMapItemName(xDescriptor string) string {
-	return strings.ReplaceAll(xDescriptor, fmt.Sprintf("%s:", configMapPrefix), "")
-}
-
-// markVisitedPaths updates all visited paths in cache, This initializes the cache map
-func (r *Retriever) markVisitedPaths(name, keyPath, fromPath string) {
-	if _, ok := r.cache[fromPath]; !ok {
-		r.cache[fromPath] = make(map[string]interface{})
-	}
-	if _, ok := r.cache[fromPath].(map[string]interface{})[name]; !ok {
-		r.cache[fromPath].(map[string]interface{})[name] = make(map[string]interface{})
-	}
-	if _, ok := r.cache[fromPath].(map[string]interface{})[name].(map[string]interface{}); !ok {
-		r.cache[fromPath].(map[string]interface{})[name] = make(map[string]interface{})
-	}
-	if _, ok := r.cache[fromPath].(map[string]interface{})[name].(map[string]interface{})[keyPath]; !ok {
-		r.cache[fromPath].(map[string]interface{})[name].(map[string]interface{})[keyPath] = make(map[string]interface{})
-	}
-}
-
-// readSecret based in secret name and list of items, read a secret from the same namespace informed
-// in plan instance.
-func (r *Retriever) readSecret(envVarPrefix *string, cr *unstructured.Unstructured, name string, items []string, fromPath string, path string) error {
-	log := r.logger.WithValues("Secret.Name", name, "Secret.Items", items)
-	log.Debug("Reading secret items...")
-
-	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
-	secret, err := r.client.Resource(gvr).Namespace(cr.GetNamespace()).Get(name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	data, exists, err := unstructured.NestedMap(secret.Object, []string{"data"}...)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("could not find 'data' in secret")
-	}
-
-	for k, v := range data {
-		value := v.(string)
-		data, err := base64.StdEncoding.DecodeString(value)
-		if err != nil {
-			return err
-		}
-		log = log.WithValues("Secret.Key.Name", k, "Secret.Key.Length", len(data))
-		log.Debug("Inspecting secret key...")
-		r.markVisitedPaths(path, k, fromPath)
-		// update cache after reading configmap/secret in cache
-		r.cache[fromPath].(map[string]interface{})[path].(map[string]interface{})[k] = string(data)
-		// making sure key name has a secret reference
-		if envVarPrefix != nil && *envVarPrefix == "" {
-			r.store(envVarPrefix, cr, k, data)
-
-		} else {
-			r.store(envVarPrefix, cr, fmt.Sprintf("secret_%s", k), data)
-
-		}
-	}
-
-	r.Objects = append(r.Objects, secret)
-	return nil
-}
-
-// readConfigMap based in configMap name and list of items, read a configMap from the same namespace informed
-// in plan instance.
-func (r *Retriever) readConfigMap(envVarPrefix *string, cr *unstructured.Unstructured, name string, items []string, fromPath string, path string) error {
-	log := r.logger.WithValues("ConfigMap.Name", name, "ConfigMap.Items", items)
-	log.Debug("Reading ConfigMap items...")
-
-	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
-	u, err := r.client.Resource(gvr).Namespace(cr.GetNamespace()).Get(name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	data, exists, err := unstructured.NestedMap(u.Object, []string{"data"}...)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("could not find 'data' in secret")
-	}
-
-	log.Debug("Inspecting configMap data...")
-	for k, v := range data {
-		value := v.(string)
-		log.Debug("Inspecting configMap key...",
-			"configMap.Key.Name", k,
-			"configMap.Key.Length", len(value),
+		// add an entry in the custom environment variable context with modified key names (group
+		// names have the "." separator changed to underbar and "-" in the resource name is changed
+		// to underbar "_" as well).
+		//
+		// `{{ .v1alpha1.postgresql_baiju_dev.Database.db_testing.status.connectionUrl }}`
+		err = unstructured.SetNestedField(
+			customEnvVarCtx,
+			svcCtx.Object.Object,
+			createServiceIndexPath(svcCtx.Object.GetName(), svcCtx.Object.GroupVersionKind())...,
 		)
-		r.markVisitedPaths(path, k, fromPath)
-		// update cache after reading configmap/secret in cache
-		r.cache[fromPath].(map[string]interface{})[path].(map[string]interface{})[k] = value
-		// making sure key name has a configMap reference
-		if envVarPrefix != nil && *envVarPrefix == "" {
-			r.store(envVarPrefix, cr, k, []byte(value))
-		} else {
-			r.store(envVarPrefix, cr, fmt.Sprintf("configMap_%s", k), []byte(value))
+		if err != nil {
+			return nil, err
 		}
+
+		// FIXME(isuttonl): make volume keys a return value
+		r.VolumeKeys = append(r.VolumeKeys, svcCtx.VolumeKeys...)
 	}
 
-	r.Objects = append(r.Objects, u)
-	return nil
+	envVarTemplates := r.envVarTemplates
+	envParser := NewCustomEnvParser(envVarTemplates, customEnvVarCtx)
+	customEnvVars, err := envParser.Parse()
+	if err != nil {
+		r.logger.Error(
+			err, "Creating envVars", "Templates", envVarTemplates, "TemplateContext", customEnvVarCtx)
+		return nil, err
+	}
+
+	// convert values to a map[string][]byte
+	envVars := make(map[string][]byte)
+	for k, v := range customEnvVars {
+		envVars[k] = []byte(v.(string))
+	}
+
+	svcEnvVars, err := envvars.Build(svcCollectedKeys, []string{})
+	if err != nil {
+		return nil, err
+	}
+
+	for k, v := range svcEnvVars {
+		envVars[k] = []byte(v)
+	}
+
+	return envVars, nil
 }
 
-// store key and value, formatting key to look like an environment variable.
-func (r *Retriever) store(envVarPrefix *string, u *unstructured.Unstructured, key string, value []byte) {
-	key = strings.ReplaceAll(key, ":", "_")
-	key = strings.ReplaceAll(key, ".", "_")
-	if envVarPrefix == nil {
-		if r.bindingPrefix == "" {
-			key = fmt.Sprintf("%s_%s", u.GetKind(), key)
-		} else {
-			key = fmt.Sprintf("%s_%s_%s", r.bindingPrefix, u.GetKind(), key)
-		}
-	} else if *envVarPrefix == "" {
-		if r.bindingPrefix != "" {
-			key = fmt.Sprintf("%s_%s", r.bindingPrefix, key)
-		}
-	} else {
-		if r.bindingPrefix != "" {
-			key = fmt.Sprintf("%s_%s_%s", r.bindingPrefix, *envVarPrefix, key)
-		} else {
-			key = fmt.Sprintf("%s_%s", *envVarPrefix, key)
-		}
-	}
-	key = strings.ToUpper(key)
-	r.data[key] = value
-}
+// ReadBindableResourcesData reads all related resources of a given sbr
+// func (r *Retriever) ReadBindableResourcesData(
+// 	sbr *v1alpha1.ServiceBindingRequest,
+// 	crs []*unstructured.Unstructured,
+// ) error {
+// 	r.logger.Info("Detecting extra resources for binding...")
+// 	for _, cr := range crs {
+// 		b := NewDetectBindableResources(sbr, cr, []schema.GroupVersionResource{
+// 			{Group: "", Version: "v1", Resource: "configmaps"},
+// 			{Group: "", Version: "v1", Resource: "services"},
+// 			{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
+// 		}, r.client)
+
+// 		vals, err := b.GetBindableVariables()
+// 		if err != nil {
+// 			return err
+// 		}
+// 		for k, v := range vals {
+// 			// r.store("", cr, k, []byte(fmt.Sprintf("%v", v)))
+// 		}
+// 	}
+
+// 	return nil
+// }
 
 // NewRetriever instantiate a new retriever instance.
-func NewRetriever(client dynamic.Interface, plan *Plan, bindingPrefix string) *Retriever {
+func NewRetriever(
+	client dynamic.Interface,
+	envVars []corev1.EnvVar,
+	serviceContexts ServiceContextList,
+	bindingPrefix string,
+) *Retriever {
 	return &Retriever{
-		logger:        log.NewLog("retriever"),
-		data:          make(map[string][]byte),
-		Objects:       []*unstructured.Unstructured{},
-		client:        client,
-		plan:          plan,
-		VolumeKeys:    []string{},
-		bindingPrefix: bindingPrefix,
-		cache:         make(map[string]interface{}),
+		logger:          log.NewLog("retriever"),
+		data:            make(map[string][]byte),
+		Objects:         []*unstructured.Unstructured{},
+		client:          client,
+		VolumeKeys:      []string{},
+		bindingPrefix:   bindingPrefix,
+		envVarTemplates: envVars,
+		serviceCtxs:     serviceContexts,
 	}
 }

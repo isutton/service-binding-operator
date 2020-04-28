@@ -50,8 +50,8 @@ var (
 	// Intermediate secret should have following data
 	// for postgres operator
 	postgresSecretAssertion = map[string]string{
-		"DATABASE_SECRET_USER":     "user",
-		"DATABASE_SECRET_PASSWORD": "password",
+		"STATUS_DBCREDENTIALS_USER":     "user",
+		"STATUS_DBCREDENTIALS_PASSWORD": "password",
 	}
 
 	// Intermediate secret should have following data
@@ -216,7 +216,7 @@ func assertSBRSecret(
 
 	for k, v := range assertKeys {
 		if _, contains := sbrSecret.Data[k]; !contains {
-			return nil, fmt.Errorf("can't find DATABASE_SECRET_USER in data")
+			return nil, fmt.Errorf("can't find %q in data", k)
 		}
 		actual := sbrSecret.Data[k]
 		expected := []byte(v)
@@ -300,9 +300,18 @@ func CreateDB(
 	require.NoError(t, f.Client.Create(ctx, db, cleanupOpts))
 
 	t.Logf("Updating Database '%#v' status, adding 'DBCredentials'", namespacedName)
-	require.NoError(t, f.Client.Get(ctx, namespacedName, db))
-	db.Status.DBCredentials = secretName
-	require.NoError(t, f.Client.Status().Update(ctx, db))
+	require.Eventually(t, func() bool {
+		if err := f.Client.Get(ctx, namespacedName, db); err != nil {
+			t.Logf("get error: %s", err)
+			return false
+		}
+		db.Status.DBCredentials = secretName
+		if err := f.Client.Status().Update(ctx, db); err != nil {
+			t.Logf("update error: %s", err)
+			return false
+		}
+		return true
+	}, 10*time.Second, 1*time.Second)
 
 	t.Log("Creating Database credentials secret mock object...")
 	dbSecret := mocks.SecretMock(ns, secretName)
@@ -549,6 +558,18 @@ func serviceBindingRequestTest(
 	t.Log("Inspecting SBR status...")
 	inspectSBRStatus(todoCtx, t, f, sbrNamespacedName)
 
+	require.Eventually(t, func() bool {
+		// checking intermediary secret contents, right after deployment the secrets must be in place
+		intermediarySecretNamespacedName := types.NamespacedName{Namespace: ns, Name: sbrName}
+		sbrSecret, err := assertSBRSecret(todoCtx, f, intermediarySecretNamespacedName, assertKeys)
+		if err != nil {
+			// it can be that assertSBRSecret returns nil until service configuration values can be
+			// collected.
+			t.Logf("binding secret contents are invalid: %v", sbrSecret)
+			return false
+		}
+		return true
+	}, 60*time.Second, 2*time.Second)
 	// checking intermediary secret contents, right after deployment the secrets must be in place
 	intermediarySecretNamespacedName := types.NamespacedName{Namespace: ns, Name: sbrName}
 	sbrSecret, err := assertSBRSecret(todoCtx, f, intermediarySecretNamespacedName, assertKeys)
