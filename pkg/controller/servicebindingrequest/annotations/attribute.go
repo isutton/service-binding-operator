@@ -50,8 +50,8 @@ func NewAttributeHandler(
 	resource unstructured.Unstructured,
 ) *AttributeHandler {
 	return &AttributeHandler{
-		inputPath:  bindingInfo.Path,
-		outputPath: bindingInfo.FieldPath,
+		inputPath:  bindingInfo.SourcePath,
+		outputPath: bindingInfo.ResourceReferencePath,
 		resource:   resource,
 	}
 }
