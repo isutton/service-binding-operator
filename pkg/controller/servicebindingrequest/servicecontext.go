@@ -115,7 +115,7 @@ func buildServiceContext(
 		args := annotations.HandlerArgs{Client: client, Name: n, Object: obj, Value: v}
 		h, err := annotations.BuildHandler(args)
 		if err != nil {
-			if err == annotations.InvalidAnnotationPrefixErr {
+			if err == annotations.ErrInvalidAnnotationPrefix {
 				continue
 			}
 			return nil, err

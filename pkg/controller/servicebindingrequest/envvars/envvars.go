@@ -8,8 +8,8 @@ import (
 	"github.com/imdario/mergo"
 )
 
-// UnsupportedTypeErr is returned when an unsupported type is encountered.
-var UnsupportedTypeErr = errors.New("unsupported type")
+// ErrUnsupportedType is returned when an unsupported type is encountered.
+var ErrUnsupportedType = errors.New("unsupported type")
 
 // Build returns an environment variable dictionary with an entry for each
 // leaf containing a scalar value.
@@ -68,7 +68,7 @@ func Build(obj interface{}, path []string) (map[string]string, error) {
 	case float64:
 		return buildString(strconv.FormatFloat(val, 'f', -1, 64), path), nil
 	default:
-		return nil, UnsupportedTypeErr
+		return nil, ErrUnsupportedType
 	}
 }
 

@@ -17,6 +17,8 @@ import (
 
 var (
 	errBackingServiceNamespace = errors.New("backing Service Namespace is unspecified")
+	// ErrEmptyBackingServiceSelectors occur when no service selector is mentioned
+	ErrEmptyBackingServiceSelectors = errors.New("backing service selectors are empty")
 )
 
 func findService(
@@ -56,8 +58,6 @@ func findServiceCRD(client dynamic.Interface, gvk schema.GroupVersionKind) (*uns
 	// delegate the search to the CustomResourceDefinition resource client
 	return client.Resource(CRDGVR).Get(crdName, metav1.GetOptions{})
 }
-
-var EmptyBackingServiceSelectorsErr = errors.New("backing service selectors are empty")
 
 func loadDescriptor(anns map[string]string, path string, descriptor string, root string) {
 	if !strings.HasPrefix(descriptor, "binding:") {

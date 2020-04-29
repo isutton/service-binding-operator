@@ -23,14 +23,14 @@ type BindingInfo struct {
 	Value string
 }
 
-var InvalidAnnotationPrefixErr = errors.New("invalid annotation prefix")
-var InvalidAnnotationNameErr = errors.New("invalid annotation name")
+var ErrInvalidAnnotationPrefix = errors.New("invalid annotation prefix")
+var ErrInvalidAnnotationName = errors.New("invalid annotation name")
 
 // NewBindingInfo parses the encoded in the annotation name, returning its parts.
 func NewBindingInfo(name string, value string) (*BindingInfo, error) {
 	// do not process unknown annotations
 	if !strings.HasPrefix(name, ServiceBindingOperatorAnnotationPrefix) {
-		return nil, InvalidAnnotationPrefixErr
+		return nil, ErrInvalidAnnotationPrefix
 	}
 
 	cleanName := strings.TrimPrefix(name, ServiceBindingOperatorAnnotationPrefix)
@@ -56,5 +56,5 @@ func NewBindingInfo(name string, value string) (*BindingInfo, error) {
 		}, nil
 	}
 
-	return nil, InvalidAnnotationNameErr
+	return nil, ErrInvalidAnnotationName
 }
