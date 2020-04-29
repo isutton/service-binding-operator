@@ -26,10 +26,10 @@ func TestNewBindingInfo(t *testing.T) {
 		{
 			args: args{name: prefix("status.configMapRef-password"), value: "binding"},
 			want: &BindingInfo{
-				FieldPath:  "status.configMapRef",
-				Descriptor: "binding:password",
-				Path:       "password",
-				Value:      "binding",
+				ResourceReferencePath: "status.configMapRef",
+				Descriptor:            "binding:password",
+				SourcePath:            "password",
+				Value:                 "binding",
 			},
 			name:    "{fieldPath}-{path} annotation",
 			wantErr: false,
@@ -37,10 +37,10 @@ func TestNewBindingInfo(t *testing.T) {
 		{
 			args: args{name: prefix("status.connectionString"), value: "binding"},
 			want: &BindingInfo{
-				Descriptor: "binding:status.connectionString",
-				FieldPath:  "status.connectionString",
-				Path:       "status.connectionString",
-				Value:      "binding",
+				Descriptor:            "binding:status.connectionString",
+				ResourceReferencePath: "status.connectionString",
+				SourcePath:            "status.connectionString",
+				Value:                 "binding",
 			},
 			name:    "{path} annotation",
 			wantErr: false,

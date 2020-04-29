@@ -19,27 +19,25 @@ type ResourceHandler struct {
 	bindingInfo *BindingInfo
 	// client is the client used to retrieve a related secret.
 	client dynamic.Interface
-	// valuePath is the path that should be extracted from the secret.
-	valuePath []string
-	// relatedNamePath is the path the related resource name can be found in the resource.
-	relatedNamePath string
 	// relatedGroupVersionResource is the related resource GVR, used to retrieve the related resource
 	// using the client.
 	relatedGroupVersionResource schema.GroupVersionResource
-	// outputPath is the path the extracted value will be placed under.
-	outputPath string
 	// resource is the unstructured object to extract data using inputPath.
 	resource unstructured.Unstructured
-
+	// valueDecoder is a function used to decode values from the resource being handled; for example,
+	// to decode Base64 keys the decodeBase64String can be used.
 	valueDecoder func(interface{}) (string, error)
+	// inputPathRoot indicates the root where input paths will be applied to extract a value from the
+	// resource.
+	inputPathRoot *string
 }
 
 // discoverRelatedResourceName returns the resource name referenced by the handler. Can return an
 // error in the case the expected information doesn't exist in the handler's resource object.
 func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
-	resourceNameValue, ok, err := nested.GetValueFromMap(
+	resourceNameValue, ok, err := unstructured.NestedFieldCopy(
 		h.resource.Object,
-		strings.Split(h.relatedNamePath, ".")...,
+		strings.Split(h.bindingInfo.ResourceReferencePath, ".")...,
 	)
 	if !ok {
 		return "", ResourceNameFieldNotFoundErr
@@ -49,7 +47,7 @@ func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
 	}
 	name, ok := resourceNameValue.(string)
 	if !ok {
-		return "", InvalidArgumentErr(h.relatedNamePath)
+		return "", InvalidArgumentErr(h.bindingInfo.ResourceReferencePath)
 	}
 	return name, nil
 }
@@ -69,6 +67,38 @@ func discoverBindingType(val string) (bindingType, error) {
 	return t, nil
 }
 
+// getOutputPath infers the output path based on the given bindingInfo value.
+//
+// In the case the resource reference and source path are the same, the resource reference path is
+// returned; otherwise the output path is the source path prefixed by the resource reference path.
+func getOutputPath(bindingInfo *BindingInfo) string {
+	outputPath := bindingInfo.ResourceReferencePath
+	if bindingInfo.ResourceReferencePath != bindingInfo.SourcePath {
+		outputPath = bindingInfo.ResourceReferencePath + "." + bindingInfo.SourcePath
+	}
+	return outputPath
+}
+
+// getInputPathFields infers the input path fields based on the given bindingInfo value.
+//
+// In the case the resource reference path and source path are the same and no input path prefix has
+// been given, an empty slice is returned.
+//
+// In the case inputPathPrefix is present, it is prepended to the resulting slice.
+//
+// In the case the resource reference and source paths are different, the source path is appended to
+// the resulting slice.
+func getInputPathFields(bindingInfo *BindingInfo, inputPathPrefix *string) []string {
+	inputPathFields := []string{}
+	if bindingInfo.ResourceReferencePath != bindingInfo.SourcePath {
+		inputPathFields = append(inputPathFields, bindingInfo.SourcePath)
+	}
+	if inputPathPrefix != nil && len(*inputPathPrefix) > 0 {
+		inputPathFields = append([]string{*inputPathPrefix}, inputPathFields...)
+	}
+	return inputPathFields
+}
+
 // Handle returns the value for an external resource strategy.
 func (h *ResourceHandler) Handle() (Result, error) {
 	name, err := h.discoverRelatedResourceName()
@@ -77,14 +107,19 @@ func (h *ResourceHandler) Handle() (Result, error) {
 	}
 
 	ns := h.resource.GetNamespace()
-	resource, err := h.client.Resource(h.relatedGroupVersionResource).Namespace(ns).Get(name, metav1.GetOptions{})
+	resource, err := h.
+		client.
+		Resource(h.relatedGroupVersionResource).
+		Namespace(ns).
+		Get(name, metav1.GetOptions{})
 	if err != nil {
 		return Result{}, fmt.Errorf("error handling annotation: %w", err)
 	}
 
-	val, ok, err := nested.GetValueFromMap(resource.Object, h.valuePath...)
+	inputPathFields := getInputPathFields(h.bindingInfo, h.inputPathRoot)
+	val, ok, err := unstructured.NestedFieldCopy(resource.Object, inputPathFields...)
 	if !ok {
-		return Result{}, InvalidArgumentErr(strings.Join(h.valuePath, ", "))
+		return Result{}, InvalidArgumentErr(strings.Join(inputPathFields, ", "))
 	}
 	if err != nil {
 		return Result{}, err
@@ -112,11 +147,22 @@ func (h *ResourceHandler) Handle() (Result, error) {
 		return Result{}, err
 	}
 
+	outputPath := getOutputPath(h.bindingInfo)
+
 	return Result{
-		Object: nested.ComposeValue(val, nested.NewPath(h.outputPath)),
+		Object: nested.ComposeValue(val, nested.NewPath(outputPath)),
 		Type:   typ,
-		Path:   h.outputPath,
+		Path:   outputPath,
 	}, nil
+}
+
+// stringValueDecoder asserts the given value 'v' and returns its string value.
+func stringValueDecoder(v interface{}) (string, error) {
+	s, ok := v.(string)
+	if !ok {
+		return "", fmt.Errorf("value is not a string")
+	}
+	return s, nil
 }
 
 // NewSecretHandler constructs a SecretHandler.
@@ -125,7 +171,7 @@ func NewResourceHandler(
 	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
 	relatedGroupVersionResource schema.GroupVersionResource,
-	valuePathPrefix *string,
+	inputPathPrefix *string,
 ) (*ResourceHandler, error) {
 	if client == nil {
 		return nil, InvalidArgumentErr("client")
@@ -135,39 +181,20 @@ func NewResourceHandler(
 		return nil, InvalidArgumentErr("bindingInfo")
 	}
 
-	if len(bindingInfo.Path) == 0 {
+	if len(bindingInfo.SourcePath) == 0 {
 		return nil, InvalidArgumentErr("bindingInfo.Path")
 	}
 
-	relatedNamePath := bindingInfo.FieldPath
-	outputPath := relatedNamePath
-
-	valuePath := []string{}
-
-	if len(bindingInfo.Path) > 0 && bindingInfo.FieldPath != bindingInfo.Path {
-		valuePath = append(valuePath, bindingInfo.Path)
-		outputPath = outputPath + "." + bindingInfo.Path
-		if valuePathPrefix != nil && len(*valuePathPrefix) > 0 {
-			valuePath = append([]string{*valuePathPrefix}, valuePath...)
-		}
-	} else if valuePathPrefix != nil && len(*valuePathPrefix) > 0 {
-		valuePath = []string{*valuePathPrefix}
+	if len(bindingInfo.ResourceReferencePath) == 0 {
+		return nil, InvalidArgumentErr("bindingInfo.ResourceReferencePath")
 	}
 
 	return &ResourceHandler{
 		bindingInfo:                 bindingInfo,
 		client:                      client,
-		valuePath:                   valuePath,
-		relatedNamePath:             relatedNamePath,
-		outputPath:                  outputPath,
-		resource:                    resource,
+		inputPathRoot:               inputPathPrefix,
 		relatedGroupVersionResource: relatedGroupVersionResource,
-		valueDecoder: func(v interface{}) (string, error) {
-			s, ok := v.(string)
-			if !ok {
-				return "", fmt.Errorf("value is not a string")
-			}
-			return s, nil
-		},
+		resource:                    resource,
+		valueDecoder:                stringValueDecoder,
 	}, nil
 }

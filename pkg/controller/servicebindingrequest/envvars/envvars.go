@@ -13,6 +13,44 @@ var UnsupportedTypeErr = errors.New("unsupported type")
 
 // Build returns an environment variable dictionary with an entry for each
 // leaf containing a scalar value.
+//
+// path indicates the node that should be treated as root, and informing an empty slice
+//
+// Example:
+//
+// 	src := map[string]interface{}{
+// 		"status": map[string]interface{}{
+//			"listeners": []map[string]interface{}{
+//				{
+//					"type": "secure",
+//					"addresses": []map[string]interface{}{
+//						{
+//							"host": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+//							"port": "9093",
+//						},
+//					},
+//				},
+//			},
+//		},
+//	}
+//	actual, _ := Build(src, []string{})
+//
+// actual should contain the following values:
+//
+// 	"STATUS_LISTENERS_0_TYPE":             "secure",
+// 	"STATUS_LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+// 	"STATUS_LISTENERS_0_ADDRESSES_0_PORT": "9093",
+//
+// Now, consider the following example:
+//
+//	actual, _ = Build(src, []string{"status"})
+//
+// actual should contain the following values instead:
+//
+// 	"LISTENERS_0_TYPE":             "secure",
+// 	"LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+// 	"LISTENERS_0_ADDRESSES_0_PORT": "9093",
+//
 func Build(obj interface{}, path []string) (map[string]string, error) {
 	// perform the appropriate action depending on its type; maybe at some point
 	// reflection might be required.

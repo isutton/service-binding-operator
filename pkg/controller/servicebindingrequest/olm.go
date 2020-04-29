@@ -257,12 +257,12 @@ func buildDescriptorsFromAnnotations(in map[string]string) (
 			continue
 		}
 
-		descriptors, exists := acc[bindingInfo.FieldPath]
+		descriptors, exists := acc[bindingInfo.ResourceReferencePath]
 		if !exists {
 			descriptors = make([]string, 0)
 		}
 		descriptors = append(descriptors, bindingInfo.Descriptor)
-		acc[bindingInfo.FieldPath] = descriptors
+		acc[bindingInfo.ResourceReferencePath] = descriptors
 	}
 
 	// create the status and/or spec descriptors based on the
