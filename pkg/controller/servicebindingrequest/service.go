@@ -16,7 +16,12 @@ import (
 )
 
 var (
-	errBackingServiceNamespace = errors.New("backing Service Namespace is unspecified")
+	// UnspecifiedBackingServiceNamespaceErr is returned when the namespace of a service is
+	// unspecified.
+	UnspecifiedBackingServiceNamespaceErr = errors.New("backing service namespace is unspecified")
+	// EmptyBackingServiceSelectorsErr is returned when no backing service selectors have been
+	// informed in the Service Binding Request.
+	EmptyBackingServiceSelectorsErr = errors.New("backing service selectors are empty")
 )
 
 func findService(
@@ -31,7 +36,7 @@ func findService(
 	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
 
 	if len(ns) == 0 {
-		return nil, errBackingServiceNamespace
+		return nil, UnspecifiedBackingServiceNamespaceErr
 	}
 
 	// delegate the search selector's namespaced resource client
@@ -56,8 +61,6 @@ func findServiceCRD(client dynamic.Interface, gvk schema.GroupVersionKind) (*uns
 	// delegate the search to the CustomResourceDefinition resource client
 	return client.Resource(CRDGVR).Get(crdName, metav1.GetOptions{})
 }
-
-var EmptyBackingServiceSelectorsErr = errors.New("backing service selectors are empty")
 
 func loadDescriptor(anns map[string]string, path string, descriptor string, root string) {
 	if !strings.HasPrefix(descriptor, "binding:") {
