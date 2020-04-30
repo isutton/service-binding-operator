@@ -16,8 +16,11 @@ import (
 )
 
 var (
-	errBackingServiceNamespace = errors.New("backing Service Namespace is unspecified")
-	// ErrEmptyBackingServiceSelectors occur when no service selector is mentioned
+	// ErrUnspecifiedBackingServiceNamespace is returned when the namespace of a service is
+	// unspecified.
+	ErrUnspecifiedBackingServiceNamespace = errors.New("backing service namespace is unspecified")
+	// EmptyBackingServiceSelectorsErr is returned when no backing service selectors have been
+	// informed in the Service Binding Request.
 	ErrEmptyBackingServiceSelectors = errors.New("backing service selectors are empty")
 )
 
@@ -33,7 +36,7 @@ func findService(
 	gvr, _ := meta.UnsafeGuessKindToResource(gvk)
 
 	if len(ns) == 0 {
-		return nil, errBackingServiceNamespace
+		return nil, ErrUnspecifiedBackingServiceNamespace
 	}
 
 	// delegate the search selector's namespaced resource client
