@@ -455,6 +455,42 @@ func ServiceBindingRequestMock(
 	return sbr
 }
 
+// ServiceBindingRequestEnvVarPrefixMock return a binding-request mock of informed name and match labels and with global envVar prefix.
+func ServiceBindingRequestEnvVarPrefixMock(
+	ns string,
+	name string,
+	backingServiceNamespace *string,
+	backingServiceResourceRef string,
+	applicationResourceRef string,
+	applicationGVR schema.GroupVersionResource,
+	matchLabels map[string]string,
+	envVarPrefix string,
+) *v1alpha1.ServiceBindingRequest {
+	sbr := &v1alpha1.ServiceBindingRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ns,
+			Name:      name,
+		},
+		Spec: v1alpha1.ServiceBindingRequestSpec{
+			MountPathPrefix: "/var/redhat",
+			CustomEnvVar:    []corev1.EnvVar{},
+			ApplicationSelector: v1alpha1.ApplicationSelector{
+				GroupVersionResource: metav1.GroupVersionResource{Group: applicationGVR.Group, Version: applicationGVR.Version, Resource: applicationGVR.Resource},
+				ResourceRef:          applicationResourceRef,
+				LabelSelector:        &metav1.LabelSelector{MatchLabels: matchLabels},
+			},
+			DetectBindingResources: false,
+			EnvVarPrefix:           envVarPrefix,
+			BackingServiceSelector: &v1alpha1.BackingServiceSelector{
+				GroupVersionKind: metav1.GroupVersionKind{Group: CRDName, Version: CRDVersion, Kind: CRDKind},
+				ResourceRef:      backingServiceResourceRef,
+				Namespace:        backingServiceNamespace,
+			},
+		},
+	}
+	return sbr
+}
+
 // UnstructuredServiceBindingRequestMock returns a unstructured version of SBR.
 func UnstructuredServiceBindingRequestMock(
 	ns string,
@@ -465,6 +501,20 @@ func UnstructuredServiceBindingRequestMock(
 	matchLabels map[string]string,
 ) (*unstructured.Unstructured, error) {
 	sbr := ServiceBindingRequestMock(ns, name, nil, backingServiceResourceRef, applicationResourceRef, applicationGVR, matchLabels)
+	return converter.ToUnstructuredAsGVK(&sbr, v1alpha1.SchemeGroupVersion.WithKind(OperatorKind))
+}
+
+// UnstructuredServiceBindingRequesttEnvVarPrefixMock returns a unstructured version of SBR.
+func UnstructuredServiceBindingRequestEnvVarPrefixMock(
+	ns string,
+	name string,
+	backingServiceResourceRef string,
+	applicationResourceRef string,
+	applicationGVR schema.GroupVersionResource,
+	matchLabels map[string]string,
+	envVarPrefix string,
+) (*unstructured.Unstructured, error) {
+	sbr := ServiceBindingRequestEnvVarPrefixMock(ns, name, nil, backingServiceResourceRef, applicationResourceRef, applicationGVR, matchLabels, envVarPrefix)
 	return converter.ToUnstructuredAsGVK(&sbr, v1alpha1.SchemeGroupVersion.WithKind(OperatorKind))
 }
 

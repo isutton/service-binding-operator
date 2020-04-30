@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var envVarPrefix = "GLOBALPREFIX"
+
 func TestBuildServiceContexts(t *testing.T) {
 	ns := "planner"
 	name := "service-binding-request"
@@ -18,7 +20,11 @@ func TestBuildServiceContexts(t *testing.T) {
 	}
 	f := mocks.NewFake(t, ns)
 	sbr := f.AddMockedServiceBindingRequest(name, nil, resourceRef, "", deploymentsGVR, matchLabels)
+	sbrEnvVarPrefix := f.AddMockedServiceBindingRequestEnvVarPrefix(name+"envvarprefix", nil, resourceRef, "", deploymentsGVR, matchLabels, envVarPrefix)
 	sbr.Spec.BackingServiceSelectors = &[]v1alpha1.BackingServiceSelector{
+		*sbr.Spec.BackingServiceSelector,
+	}
+	sbrEnvVarPrefix.Spec.BackingServiceSelectors = &[]v1alpha1.BackingServiceSelector{
 		*sbr.Spec.BackingServiceSelector,
 	}
 	f.AddMockedUnstructuredCSV("cluster-service-version")
@@ -44,5 +50,13 @@ func TestBuildServiceContexts(t *testing.T) {
 			f.FakeDynClient(), ns, extractServiceSelectors(sbr), nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, serviceCtxs)
+	})
+
+	t.Run("services with global envVarPrefix", func(t *testing.T) {
+		serviceCtxs, err := buildServiceContexts(
+			f.FakeDynClient(), ns, extractServiceSelectors(sbrEnvVarPrefix), &envVarPrefix)
+		require.NoError(t, err)
+		require.NotEmpty(t, serviceCtxs)
+
 	})
 }

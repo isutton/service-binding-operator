@@ -47,6 +47,22 @@ func (f *Fake) AddMockedServiceBindingRequest(
 	return sbr
 }
 
+// AddMockedServiceBindingRequestEnvVarPrefix add mocked object from ServiceBindingRequestEnvVarPrefixMock.
+func (f *Fake) AddMockedServiceBindingRequestEnvVarPrefix(
+	name string,
+	backingServiceNamespace *string,
+	backingServiceResourceRef string,
+	applicationResourceRef string,
+	applicationGVR schema.GroupVersionResource,
+	matchLabels map[string]string,
+	envVarPrefix string,
+) *v1alpha1.ServiceBindingRequest {
+	f.S.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.ServiceBindingRequest{})
+	sbr := ServiceBindingRequestEnvVarPrefixMock(f.ns, name, backingServiceNamespace, backingServiceResourceRef, applicationResourceRef, applicationGVR, matchLabels, envVarPrefix)
+	f.objs = append(f.objs, sbr)
+	return sbr
+}
+
 // AddMockedServiceBindingRequestWithUnannotated add mocked object from ServiceBindingRequestMock with DetectBindingResources.
 func (f *Fake) AddMockedServiceBindingRequestWithUnannotated(
 	name string,
