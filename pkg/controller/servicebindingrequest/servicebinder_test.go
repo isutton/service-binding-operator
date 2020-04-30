@@ -298,6 +298,44 @@ func TestServiceBinder_Bind(t *testing.T) {
 	}
 	f.AddMockResource(sbrSingleServiceWithCustomEnvVar)
 
+	//create SBR with a global envVarPrefix
+	sbrSingleServiceWithEnvVarPrefix := &v1alpha1.ServiceBindingRequest{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps.openshift.io/v1alpha1",
+			Kind:       "ServiceBindingRequest",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "single-sbr-with-envvarprefix",
+		},
+		Spec: v1alpha1.ServiceBindingRequestSpec{
+			ApplicationSelector: v1alpha1.ApplicationSelector{
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: matchLabels,
+				},
+				GroupVersionResource: metav1.GroupVersionResource{
+					Group:    d.GetObjectKind().GroupVersionKind().Group,
+					Version:  d.GetObjectKind().GroupVersionKind().Version,
+					Resource: "deployments",
+				},
+				ResourceRef: d.GetName(),
+			},
+			BackingServiceSelectors: &[]v1alpha1.BackingServiceSelector{
+				{
+					GroupVersionKind: metav1.GroupVersionKind{
+						Group:   db1.GetObjectKind().GroupVersionKind().Group,
+						Version: db1.GetObjectKind().GroupVersionKind().Version,
+						Kind:    db1.GetObjectKind().GroupVersionKind().Kind,
+					},
+					ResourceRef: db1.GetName(),
+				},
+			},
+			EnvVarPrefix: "GLOBALPREFIX",
+		},
+
+		Status: v1alpha1.ServiceBindingRequestStatus{},
+	}
+	f.AddMockResource(sbrSingleServiceWithEnvVarPrefix)
+
 	// create the ServiceBindingRequest
 	sbrMultipleServices := &v1alpha1.ServiceBindingRequest{
 		TypeMeta: metav1.TypeMeta{
@@ -490,6 +528,46 @@ func TestServiceBinder_Bind(t *testing.T) {
 			{
 				Type:   conditions.BindingReady,
 				Status: corev1.ConditionTrue,
+			},
+		},
+	}))
+
+	t.Run("bind with envVarPrefix", assertBind(args{
+		options: &ServiceBinderOptions{
+			Logger:                 logger,
+			DynClient:              f.FakeDynClient(),
+			SBR:                    sbrSingleServiceWithEnvVarPrefix,
+			DetectBindingResources: false,
+			Client:                 f.FakeClient(),
+			Binding: &Binding{
+				EnvVars:    map[string][]byte{},
+				VolumeKeys: []string{},
+			},
+		},
+		wantConditions: []wantedCondition{
+			{
+				Type:   conditions.BindingReady,
+				Status: corev1.ConditionTrue,
+			},
+		},
+		wantActions: []wantedAction{
+			{
+				resource: "servicebindingrequests",
+				verb:     "update",
+				name:     sbrSingleServiceWithEnvVarPrefix.GetName(),
+			},
+			{
+				resource: "secrets",
+				verb:     "update",
+				name:     sbrSingleServiceWithEnvVarPrefix.GetName(),
+				objAssertions: []objAssertionFunc{
+					base64StringEqual("db1", "data", "GLOBALPRFIX_CONFIGMAP_CONNECTIONIP"),
+				},
+			},
+			{
+				resource: "databases",
+				verb:     "update",
+				name:     db1.GetName(),
 			},
 		},
 	}))
