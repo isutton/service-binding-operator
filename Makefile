@@ -94,9 +94,6 @@ help: ## Credit: https://gist.github.com/prwhite/8168133#gistcomment-2749866
 # Global Variables
 #-----------------------------------------------------------------------------
 
-# NOTE(isuttonl): this seems to be fragile, specially with Go modules. A more robust strategy is to
-# use the module name from go.mod instead.
-#
 # By default the project should be build under GOPATH/src/github.com/<orgname>/<reponame>
 GO_PACKAGE_ORG_NAME ?= $(shell basename $$(dirname $$PWD))
 GO_PACKAGE_REPO_NAME ?= $(shell basename $$PWD)
