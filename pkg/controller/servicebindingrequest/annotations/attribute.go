@@ -9,27 +9,19 @@ const AttributeValue = "binding:env:attribute"
 
 // AttributeHandler handles "binding:env:attribute" annotations.
 type AttributeHandler struct {
-	// inputPath is the path that should be extracted from the resource.
+	// inputPath is the path that should be extracted from the resource. Required.
 	inputPath string
 	// outputPath is the path the extracted data should be placed under in the
-	// resulting unstructured object in Handler.
+	// resulting unstructured object in Handler. Required.
 	outputPath string
-	// resource is the unstructured object to extract data using inputPath.
+	// resource is the unstructured object to extract data using inputPath. Required.
 	resource unstructured.Unstructured
-}
-
-// OutputPath returns the path the extracted data should be placed under.
-func (a *AttributeHandler) OutputPath() string {
-	if len(a.outputPath) > 0 {
-		return a.outputPath
-	}
-	return a.inputPath
 }
 
 // Handle returns a unstructured object according to the "binding:env:attribute"
 // annotation strategy.
 func (h *AttributeHandler) Handle() (Result, error) {
-	val, _, err := nested.GetValue(h.resource.Object, h.inputPath, h.OutputPath())
+	val, _, err := nested.GetValue(h.resource.Object, h.inputPath, h.outputPath)
 	if err != nil {
 		return Result{}, err
 	}
@@ -49,9 +41,13 @@ func NewAttributeHandler(
 	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
 ) *AttributeHandler {
+	outputPath := bindingInfo.SourcePath
+	if len(bindingInfo.ResourceReferencePath) > 0 {
+		outputPath = bindingInfo.ResourceReferencePath
+	}
 	return &AttributeHandler{
 		inputPath:  bindingInfo.SourcePath,
-		outputPath: bindingInfo.ResourceReferencePath,
+		outputPath: outputPath,
 		resource:   resource,
 	}
 }
