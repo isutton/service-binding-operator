@@ -22,6 +22,9 @@ type ResourceHandler struct {
 	// relatedGroupVersionResource is the related resource GVR, used to retrieve the related resource
 	// using the client.
 	relatedGroupVersionResource schema.GroupVersionResource
+	// relatedResourceName is the name of the related resource that is referenced by the handler
+	// annotation key/value pair.
+	relatedResourceName string
 	// resource is the unstructured object to extract data using inputPath.
 	resource unstructured.Unstructured
 	// valueDecoder is a function used to decode values from the resource being handled; for example,
@@ -34,10 +37,10 @@ type ResourceHandler struct {
 
 // discoverRelatedResourceName returns the resource name referenced by the handler. Can return an
 // error in the case the expected information doesn't exist in the handler's resource object.
-func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
+func discoverRelatedResourceName(obj map[string]interface{}, bindingInfo *BindingInfo) (string, error) {
 	resourceNameValue, ok, err := unstructured.NestedFieldCopy(
-		h.resource.Object,
-		strings.Split(h.bindingInfo.ResourceReferencePath, ".")...,
+		obj,
+		strings.Split(bindingInfo.ResourceReferencePath, ".")...,
 	)
 	if !ok {
 		return "", ResourceNameFieldNotFoundErr
@@ -47,7 +50,7 @@ func (h *ResourceHandler) discoverRelatedResourceName() (string, error) {
 	}
 	name, ok := resourceNameValue.(string)
 	if !ok {
-		return "", InvalidArgumentErr(h.bindingInfo.ResourceReferencePath)
+		return "", InvalidArgumentErr(bindingInfo.ResourceReferencePath)
 	}
 	return name, nil
 }
@@ -101,17 +104,12 @@ func getInputPathFields(bindingInfo *BindingInfo, inputPathPrefix *string) []str
 
 // Handle returns the value for an external resource strategy.
 func (h *ResourceHandler) Handle() (Result, error) {
-	name, err := h.discoverRelatedResourceName()
-	if err != nil {
-		return Result{}, err
-	}
-
 	ns := h.resource.GetNamespace()
 	resource, err := h.
 		client.
 		Resource(h.relatedGroupVersionResource).
 		Namespace(ns).
-		Get(name, metav1.GetOptions{})
+		Get(h.relatedResourceName, metav1.GetOptions{})
 	if err != nil {
 		return Result{}, fmt.Errorf("error handling annotation: %w", err)
 	}
@@ -189,11 +187,17 @@ func NewResourceHandler(
 		return nil, InvalidArgumentErr("bindingInfo.ResourceReferencePath")
 	}
 
+	relatedResourceName, err := discoverRelatedResourceName(resource.Object, bindingInfo)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ResourceHandler{
 		bindingInfo:                 bindingInfo,
 		client:                      client,
 		inputPathRoot:               inputPathPrefix,
 		relatedGroupVersionResource: relatedGroupVersionResource,
+		relatedResourceName:         relatedResourceName,
 		resource:                    resource,
 		valueDecoder:                stringValueDecoder,
 	}, nil
