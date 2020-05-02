@@ -22,6 +22,9 @@ var supportedBindingTypes = map[bindingType]bool{
 }
 
 // dataPath is the path ConfigMap and Secret resources use to scope their data.
+//
+// note: it is currently used to provide a pointer to the "data" string, which is the location
+// ConfigMap and Secret resources keep user data.
 var dataPath = "data"
 
 // Result contains meta-information regarding the result of Handle().
