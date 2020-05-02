@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var (
+const (
 	// ServiceBindingOperatorAnnotationPrefix is the prefix of Service Binding Operator related annotations.
 	ServiceBindingOperatorAnnotationPrefix = "servicebindingoperator.redhat.io/"
 )
