@@ -27,11 +27,16 @@ var supportedBindingTypes = map[bindingType]bool{
 // ConfigMap and Secret resources keep user data.
 var dataPath = "data"
 
-// Result contains meta-information regarding the result of Handle().
+// Result contains data that has been collected by an annotation handler.
 type Result struct {
+	// Object is the data that has been collected by the Handler; it can be found in the location
+	// indicated by the Path field.
 	Object map[string]interface{}
-	Type   bindingType
-	Path   string
+	// Type indicates where the Object field should be injected in the application; can be either
+	// "env" or "volumemount".
+	Type bindingType
+	// Path is the nested location the collected data can be found in the Object field.
+	Path string
 }
 
 // Handler produces a unstructured object produced from the strategy encoded in
