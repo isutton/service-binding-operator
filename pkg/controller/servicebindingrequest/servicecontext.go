@@ -111,9 +111,8 @@ func buildServiceContext(
 	volumeKeys := make([]string, 0)
 	envVars := make(map[string]interface{})
 
-	for n, v := range anns {
-		args := annotations.HandlerArgs{Client: client, Name: n, Object: obj, Value: v}
-		h, err := annotations.BuildHandler(args)
+	for annotationKey, annotationValue := range anns {
+		h, err := annotations.BuildHandler(client, obj, annotationKey, annotationValue)
 		if err != nil {
 			if err == annotations.ErrInvalidAnnotationPrefix {
 				continue

@@ -39,28 +39,24 @@ type Result struct {
 	Path string
 }
 
-// Handler produces a unstructured object produced from the strategy encoded in
-// an annotation value.
+// Handler is responsible for collecting relevant data related to a service from the source encoded
+// in an annotation key and value pair.
 type Handler interface {
+	// Handle returns collected data and related metadata from the source encoded in the handler
+	// annotation key and value pair.
 	Handle() (Result, error)
 }
 
-// HandlerArgs are arguments that can be used by action constructors to perform
-// its task.
-type HandlerArgs struct {
-	// Object is the owner resource unstructured representation.
-	Object *unstructured.Unstructured
-	// Name is the annotation key, with prefix included.
-	Name string
-	// Value is the annotation value.
-	Value string
-	// Client is the Kubernetes dynamic client.
-	Client dynamic.Interface
-}
-
-// BuildHandler attempts to create an action for the given args.
-func BuildHandler(args HandlerArgs) (Handler, error) {
-	bindingInfo, err := NewBindingInfo(args.Name, args.Value)
+// BuildHandler attempts to create an annotation handler for the given annotationKey and
+// annotationValue. kubeClient is required by some annotation handlers, and an error is returned in
+// the case it is required by an annotation handler but is not defined.
+func BuildHandler(
+	kubeClient dynamic.Interface,
+	obj *unstructured.Unstructured,
+	annotationKey string,
+	annotationValue string,
+) (Handler, error) {
+	bindingInfo, err := NewBindingInfo(annotationKey, annotationValue)
 	if err != nil {
 		return nil, err
 	}
@@ -69,11 +65,11 @@ func BuildHandler(args HandlerArgs) (Handler, error) {
 
 	switch {
 	case IsAttribute(val):
-		return NewAttributeHandler(bindingInfo, *args.Object), nil
+		return NewAttributeHandler(bindingInfo, *obj), nil
 	case IsSecret(val):
-		return NewSecretHandler(args.Client, bindingInfo, *args.Object)
+		return NewSecretHandler(kubeClient, bindingInfo, *obj)
 	case IsConfigMap(val):
-		return NewConfigMapHandler(args.Client, bindingInfo, *args.Object)
+		return NewConfigMapHandler(kubeClient, bindingInfo, *obj)
 	default:
 		panic("not implemented")
 	}

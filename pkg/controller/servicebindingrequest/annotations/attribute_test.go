@@ -11,15 +11,17 @@ import (
 // given annotation name and value.
 func TestAttributeHandler(t *testing.T) {
 	type args struct {
-		HandlerArgs
+		obj      *unstructured.Unstructured
+		key      string
+		value    string
 		expected map[string]interface{}
 	}
 
 	assertHandler := func(args args) func(t *testing.T) {
 		return func(t *testing.T) {
-			bindingInfo, err := NewBindingInfo(args.Name, args.Value)
+			bindingInfo, err := NewBindingInfo(args.key, args.value)
 			require.NoError(t, err)
-			handler := NewAttributeHandler(bindingInfo, *args.Object)
+			handler := NewAttributeHandler(bindingInfo, *args.obj)
 			got, err := handler.Handle()
 			require.NoError(t, err)
 			require.NotNil(t, got)
@@ -35,14 +37,12 @@ func TestAttributeHandler(t *testing.T) {
 					"dbConnectionIP": "127.0.0.1",
 				},
 			},
-			HandlerArgs: HandlerArgs{
-				Name:  "servicebindingoperator.redhat.io/status.dbConnectionIP",
-				Value: "binding:env:attribute",
-				Object: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"status": map[string]interface{}{
-							"dbConnectionIP": "127.0.0.1",
-						},
+			key:   "servicebindingoperator.redhat.io/status.dbConnectionIP",
+			value: "binding:env:attribute",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": map[string]interface{}{
+						"dbConnectionIP": "127.0.0.1",
 					},
 				},
 			},
@@ -56,14 +56,12 @@ func TestAttributeHandler(t *testing.T) {
 			expected: map[string]interface{}{
 				"alias": "127.0.0.1",
 			},
-			HandlerArgs: HandlerArgs{
-				Name:  "servicebindingoperator.redhat.io/alias-status.dbConnectionIP",
-				Value: "binding:env:attribute",
-				Object: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"status": map[string]interface{}{
-							"dbConnectionIP": "127.0.0.1",
-						},
+			key:   "servicebindingoperator.redhat.io/alias-status.dbConnectionIP",
+			value: "binding:env:attribute",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": map[string]interface{}{
+						"dbConnectionIP": "127.0.0.1",
 					},
 				},
 			},
@@ -78,14 +76,12 @@ func TestAttributeHandler(t *testing.T) {
 					"dbConnectionIPs": []string{"127.0.0.1", "1.1.1.1"},
 				},
 			},
-			HandlerArgs: HandlerArgs{
-				Name:  "servicebindingoperator.redhat.io/status.dbConnectionIPs",
-				Value: "binding:env:attribute",
-				Object: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"status": map[string]interface{}{
-							"dbConnectionIPs": []string{"127.0.0.1", "1.1.1.1"},
-						},
+			key:   "servicebindingoperator.redhat.io/status.dbConnectionIPs",
+			value: "binding:env:attribute",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": map[string]interface{}{
+						"dbConnectionIPs": []string{"127.0.0.1", "1.1.1.1"},
 					},
 				},
 			},
@@ -102,16 +98,14 @@ func TestAttributeHandler(t *testing.T) {
 				},
 			},
 		},
-		HandlerArgs: HandlerArgs{
-			Name:  "servicebindingoperator.redhat.io/status.connection",
-			Value: "binding:env:attribute",
-			Object: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"status": map[string]interface{}{
-						"connection": map[string]interface{}{
-							"host": "127.0.0.1",
-							"port": "1234",
-						},
+		key:   "servicebindingoperator.redhat.io/status.connection",
+		value: "binding:env:attribute",
+		obj: &unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"status": map[string]interface{}{
+					"connection": map[string]interface{}{
+						"host": "127.0.0.1",
+						"port": "1234",
 					},
 				},
 			},
@@ -128,16 +122,14 @@ func TestAttributeHandler(t *testing.T) {
 					},
 				},
 			},
-			HandlerArgs: HandlerArgs{
-				Name:  "servicebindingoperator.redhat.io/status.connection.host",
-				Value: "binding:env:attribute",
-				Object: &unstructured.Unstructured{
-					Object: map[string]interface{}{
-						"status": map[string]interface{}{
-							"connection": map[string]interface{}{
-								"host": "127.0.0.1",
-								"port": "1234",
-							},
+			key:   "servicebindingoperator.redhat.io/status.connection.host",
+			value: "binding:env:attribute",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"status": map[string]interface{}{
+						"connection": map[string]interface{}{
+							"host": "127.0.0.1",
+							"port": "1234",
 						},
 					},
 				},
