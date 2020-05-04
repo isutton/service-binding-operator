@@ -41,7 +41,6 @@ func buildServiceContexts(
 	client dynamic.Interface,
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
-	envVarPrefix *string,
 ) (ServiceContextList, error) {
 	serviceCtxs := make([]*ServiceContext, 0)
 	for _, s := range selectors {
@@ -52,7 +51,7 @@ func buildServiceContexts(
 		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 
 		serviceCtx, err := buildServiceContext(
-			client, *s.Namespace, gvk, s.ResourceRef, envVarPrefix)
+			client, *s.Namespace, gvk, s.ResourceRef)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +66,6 @@ func buildServiceContext(
 	ns string,
 	gvk schema.GroupVersionKind,
 	resourceRef string,
-	envVarPrefix *string,
 ) (*ServiceContext, error) {
 	obj, err := findService(client, ns, gvk, resourceRef)
 	if err != nil {
@@ -133,10 +131,9 @@ func buildServiceContext(
 	}
 
 	serviceCtx := &ServiceContext{
-		Object:       obj,
-		EnvVars:      envVars,
-		VolumeKeys:   volumeKeys,
-		EnvVarPrefix: envVarPrefix,
+		Object:     obj,
+		EnvVars:    envVars,
+		VolumeKeys: volumeKeys,
 	}
 
 	return serviceCtx, nil

@@ -28,20 +28,20 @@ func TestBuildServiceContexts(t *testing.T) {
 
 	t.Run("existing selectors", func(t *testing.T) {
 		serviceCtxs, err := buildServiceContexts(
-			f.FakeDynClient(), ns, extractServiceSelectors(sbr), nil)
+			f.FakeDynClient(), ns, extractServiceSelectors(sbr))
 		require.NoError(t, err)
 		require.NotEmpty(t, serviceCtxs)
 	})
 
 	t.Run("empty selectors", func(t *testing.T) {
-		serviceCtxs, err := buildServiceContexts(f.FakeDynClient(), ns, nil, nil)
+		serviceCtxs, err := buildServiceContexts(f.FakeDynClient(), ns, nil)
 		require.NoError(t, err)
 		require.Empty(t, serviceCtxs)
 	})
 
 	t.Run("services in different namespace", func(t *testing.T) {
 		serviceCtxs, err := buildServiceContexts(
-			f.FakeDynClient(), ns, extractServiceSelectors(sbr), nil)
+			f.FakeDynClient(), ns, extractServiceSelectors(sbr))
 		require.NoError(t, err)
 		require.NotEmpty(t, serviceCtxs)
 	})
