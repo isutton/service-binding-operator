@@ -44,6 +44,7 @@ func createServiceIndexPath(name string, gvk schema.GroupVersionKind) []string {
 func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	svcCollectedKeys := make(map[string]interface{})
 	customEnvVarCtx := make(map[string]interface{})
+	svcEnvVars := make(map[string]string)
 
 	for _, svcCtx := range r.serviceCtxs {
 		// contribute service contributed env vars
@@ -98,10 +99,17 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	for k, v := range customEnvVars {
 		envVars[k] = []byte(v.(string))
 	}
+	if r.bindingPrefix != "" {
+		svcEnvVars, err = envvars.Build(svcCollectedKeys, r.bindingPrefix)
+		if err != nil {
+			return nil, err
+		}
 
-	svcEnvVars, err := envvars.Build(svcCollectedKeys)
-	if err != nil {
-		return nil, err
+	} else {
+		svcEnvVars, err = envvars.Build(svcCollectedKeys)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for k, v := range svcEnvVars {
