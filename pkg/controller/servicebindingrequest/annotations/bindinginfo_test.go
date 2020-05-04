@@ -45,6 +45,17 @@ func TestNewBindingInfo(t *testing.T) {
 			name:    "{path} annotation",
 			wantErr: false,
 		},
+		{
+			args: args{name: prefix(""), value: "binding"},
+			want: &BindingInfo{
+				Descriptor:            "binding:status.connectionString",
+				ResourceReferencePath: "status.connectionString",
+				SourcePath:            "status.connectionString",
+				Value:                 "binding",
+			},
+			name:    "empty annotation name",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

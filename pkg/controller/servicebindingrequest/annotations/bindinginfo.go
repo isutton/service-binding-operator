@@ -25,6 +25,7 @@ type BindingInfo struct {
 
 var ErrInvalidAnnotationPrefix = errors.New("invalid annotation prefix")
 var ErrInvalidAnnotationName = errors.New("invalid annotation name")
+var ErrEmptyAnnotationName = errors.New("empty annotation name")
 
 // NewBindingInfo parses the encoded in the annotation name, returning its parts.
 func NewBindingInfo(name string, value string) (*BindingInfo, error) {
@@ -34,6 +35,10 @@ func NewBindingInfo(name string, value string) (*BindingInfo, error) {
 	}
 
 	cleanName := strings.TrimPrefix(name, ServiceBindingOperatorAnnotationPrefix)
+	if len(cleanName) == 0 {
+		return nil, ErrEmptyAnnotationName
+	}
+
 	parts := strings.SplitN(cleanName, "-", 2)
 
 	// if there is only one part, it means the value of the referenced field itself will be used
