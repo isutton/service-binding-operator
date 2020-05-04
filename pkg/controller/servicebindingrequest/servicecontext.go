@@ -37,8 +37,6 @@ func (sc ServiceContextList) GetObjects() []*unstructured.Unstructured {
 
 // buildServiceContexts return a collection of ServiceContext values from the given service
 // selectors.
-//
-// TODO(isuttonl): implement tests
 func buildServiceContexts(
 	client dynamic.Interface,
 	ns string,
