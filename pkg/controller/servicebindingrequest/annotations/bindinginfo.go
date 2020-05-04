@@ -41,25 +41,18 @@ func NewBindingInfo(name string, value string) (*BindingInfo, error) {
 
 	parts := strings.SplitN(cleanName, "-", 2)
 
-	// if there is only one part, it means the value of the referenced field itself will be used
-	if len(parts) == 1 {
-		return &BindingInfo{
-			ResourceReferencePath: parts[0],
-			SourcePath:            parts[0],
-			Descriptor:            strings.Join([]string{value, parts[0]}, ":"),
-			Value:                 value,
-		}, nil
-	}
+	resourceReferencePath := parts[0]
+	sourcePath := parts[0]
 
 	// the annotation is a reference to another manifest
 	if len(parts) == 2 {
-		return &BindingInfo{
-			ResourceReferencePath: parts[0],
-			SourcePath:            parts[1],
-			Descriptor:            strings.Join([]string{value, parts[1]}, ":"),
-			Value:                 value,
-		}, nil
+		sourcePath = parts[1]
 	}
 
-	return nil, ErrInvalidAnnotationName
+	return &BindingInfo{
+		ResourceReferencePath: resourceReferencePath,
+		SourcePath:            sourcePath,
+		Descriptor:            strings.Join([]string{value, sourcePath}, ":"),
+		Value:                 value,
+	}, nil
 }
