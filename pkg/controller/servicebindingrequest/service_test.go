@@ -77,29 +77,32 @@ func TestFindServiceCRD(t *testing.T) {
 	})
 }
 
-func TestPlannerLoadDescriptor(t *testing.T) {
-	type args struct {
+func TestLoadDescriptor(t *testing.T) {
+	type testCase struct {
+		name       string
 		path       string
 		descriptor string
 		root       string
 		expected   map[string]string
 	}
 
-	assertLoadDescriptor := func(args args) func(t *testing.T) {
-		return func(t *testing.T) {
+	testCases := []testCase{
+		{
+			name:       "should build proper annotation",
+			descriptor: "binding:volumemount:secret:user",
+			root:       "status",
+			path:       "user",
+			expected: map[string]string{
+				"servicebindingoperator.redhat.io/status.user": "binding:volumemount:secret",
+			},
+		},
+	}
+
+	for _, args := range testCases {
+		t.Run(args.name, func(t *testing.T) {
 			anns := map[string]string{}
 			loadDescriptor(anns, args.path, args.descriptor, args.root)
 			require.Equal(t, args.expected, anns)
-		}
+		})
 	}
-
-	t.Run("", assertLoadDescriptor(args{
-		descriptor: "binding:volumemount:secret:user",
-		root:       "status",
-		path:       "user",
-		expected: map[string]string{
-			"servicebindingoperator.redhat.io/status.user": "binding:volumemount:secret",
-		},
-	}))
-
 }
