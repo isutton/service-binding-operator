@@ -96,25 +96,20 @@ func TestCustomEnvPath_Parse(t *testing.T) {
 		},
 	}
 
-	t.Run("", assertParse(args{
+	t.Run("JDBC connection string template", assertParse(args{
 		envVarCtx: envVarCtx,
 		templates: []corev1.EnvVar{
 			{
 				Name:  "JDBC_CONNECTION_STRING",
 				Value: `{{ .spec.dbName }}:{{ .status.creds.user }}@{{ .status.creds.pass }}`,
 			},
-			{
-				Name:  "ANOTHER_STRING",
-				Value: `{{ .spec.dbName }}_{{ .status.creds.user }}`,
-			},
 		},
 		expected: map[string]interface{}{
 			"JDBC_CONNECTION_STRING": "database-name:database-user@database-pass",
-			"ANOTHER_STRING":         "database-name_database-user",
 		},
 	}))
 
-	t.Run("", assertParse(args{
+	t.Run("incomplete template", assertParse(args{
 		envVarCtx: envVarCtx,
 		templates: []corev1.EnvVar{
 			{
