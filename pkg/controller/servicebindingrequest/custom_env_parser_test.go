@@ -60,54 +60,6 @@ func TestCustomEnvParser(t *testing.T) {
 			},
 		},
 	}))
-
-	t.Run("arbitrary first level field", testCase(args{
-		in: map[string]interface{}{
-			"foo": "bar",
-		},
-		wanted: []wantedVar{
-			{Name: "FOO", Value: "bar"},
-		},
-		varTemplates: []corev1.EnvVar{
-			corev1.EnvVar{
-				Name:  "FOO",
-				Value: `{{ .foo }}`,
-			},
-		},
-	}))
-
-	t.Run("arbitrary 10th level field", testCase(args{
-		in: map[string]interface{}{
-			"a": map[string]interface{}{
-				"b": map[string]interface{}{
-					"c": map[string]interface{}{
-						"d": map[string]interface{}{
-							"e": map[string]interface{}{
-								"f": map[string]interface{}{
-									"g": map[string]interface{}{
-										"h": map[string]interface{}{
-											"i": map[string]interface{}{
-												"j": "tenth",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		wanted: []wantedVar{
-			{Name: "TENTH", Value: "tenth"},
-		},
-		varTemplates: []corev1.EnvVar{
-			corev1.EnvVar{
-				Name:  "TENTH",
-				Value: `{{ .a.b.c.d.e.f.g.h.i.j }}`,
-			},
-		},
-	}))
 }
 
 func TestCustomEnvPath_Parse(t *testing.T) {
