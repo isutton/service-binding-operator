@@ -5,7 +5,14 @@ import (
 	"strings"
 )
 
-// Field is the representation of a node in a path.
+// Field is the representation of a term in a field path.
+//
+// Assuming that 'status.dbCredentials' is a path for a value in a nested object, 'status' and
+// 'dbCredentials' are represented as Field values.
+//
+// Field contains two members: 'Name' and 'Index'. 'Name' is a string like 'status' or
+// 'dbCredentials', and 'Index' is the optional integer representation of the value, if it can be
+// transformed to a valid positive integer.
 type Field struct {
 	// Name is the field name.
 	Name string
@@ -23,7 +30,7 @@ func NewField(name string) Field {
 	return f
 }
 
-// Path represents a path inside a data-structure.
+// Path represents a field path.
 type Path []Field
 
 // Head returns the path head if one exists.
@@ -35,6 +42,8 @@ func (p Path) Head() (Field, bool) {
 }
 
 // Tail returns the path tail if present.
+//
+// Returns 'b.c' in the path 'a.b.c'.
 func (p Path) Tail() Path {
 	_, exists := p.Head()
 	if !exists {
@@ -49,6 +58,9 @@ func (p Path) HasTail() bool {
 }
 
 // AdjustedPath adjusts the current path depending on the head element.
+//
+// In the case the head of a path ('a' in the 'a.b.c' path) exists and is different than '*', returns
+// itself otherwise returns the path tail ('b.c' in the example).
 func (p Path) AdjustedPath() Path {
 	head, exists := p.Head()
 	if !exists {
@@ -60,6 +72,7 @@ func (p Path) AdjustedPath() Path {
 	return p
 }
 
+// LastField returns the last field from the receiver.
 func (p Path) LastField() (Field, bool) {
 	if len(p) > 0 {
 		return p[len(p)-1], true
@@ -67,6 +80,9 @@ func (p Path) LastField() (Field, bool) {
 	return Field{}, false
 }
 
+// BasePath returns the receiver's base path.
+//
+// For example, returns 'a.b' from the 'a.b.c' path.
 func (p Path) BasePath() Path {
 	if len(p) > 1 {
 		return p[:len(p)-1]
@@ -74,12 +90,16 @@ func (p Path) BasePath() Path {
 	return Path{}
 }
 
+// Decompose returns the receiver's base path and the last field.
 func (p Path) Decompose() (Path, Field) {
 	f, _ := p.LastField()
 	b := p.BasePath()
 	return b, f
 }
 
+// Clean creates a new Path without '*' or integer values.
+//
+// For example, returns 'a.b.c' for 'a.b.*.c' or 'a.b.1.c'.
 func (p Path) Clean() Path {
 	newPath := make(Path, 0)
 	for _, f := range p.AdjustedPath() {
@@ -94,7 +114,7 @@ func (p Path) Clean() Path {
 	return newPath
 }
 
-// NewPath creates a new path with the given string.
+// NewPath creates a new path with the given string in the format 'a.b.c'.
 func NewPath(s string) Path {
 	parts := strings.Split(s, ".")
 	return NewPathWithParts(parts)
