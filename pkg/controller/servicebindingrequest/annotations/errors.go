@@ -18,3 +18,9 @@ type UnknownBindingTypeErr string
 func (e UnknownBindingTypeErr) Error() string {
 	return string(e) + " is not supported"
 }
+
+type ErrInvalidBindingValue string
+
+func (e ErrInvalidBindingValue) Error() string {
+	return fmt.Sprintf("invalid binding value %q", string(e))
+}

@@ -60,7 +60,7 @@ func discoverBindingType(val string) (bindingType, error) {
 	re := regexp.MustCompile("^binding:(.*?):.*$")
 	parts := re.FindStringSubmatch(val)
 	if len(parts) == 0 {
-		return "", fmt.Errorf("error extracting binding type")
+		return "", ErrInvalidBindingValue(val)
 	}
 	t := bindingType(parts[1])
 	_, ok := supportedBindingTypes[t]
