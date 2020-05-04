@@ -99,7 +99,7 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		envVars[k] = []byte(v.(string))
 	}
 
-	svcEnvVars, err := envvars.Build(svcCollectedKeys, []string{})
+	svcEnvVars, err := envvars.Build(svcCollectedKeys)
 	if err != nil {
 		return nil, err
 	}

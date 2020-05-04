@@ -1,23 +1,87 @@
 package envvars
 
 import (
-	"bytes"
 	"testing"
-	"text/template"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestBuild(t *testing.T) {
-	src := map[string]interface{}{
-		"status": map[string]interface{}{
-			"listeners": []map[string]interface{}{
-				{
-					"type": "secure",
-					"addresses": []map[string]interface{}{
+
+	type testCase struct {
+		name     string
+		expected map[string]string
+		src      interface{}
+		path     []string
+	}
+
+	testCases := []testCase{
+		{
+			name: "should create envvars without prefix",
+			expected: map[string]string{
+				"STATUS_LISTENERS_0_TYPE":             "secure",
+				"STATUS_LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+				"STATUS_LISTENERS_0_ADDRESSES_0_PORT": "9093",
+			},
+			src: map[string]interface{}{
+				"status": map[string]interface{}{
+					"listeners": []map[string]interface{}{
 						{
-							"host": "my-cluster-kafka-bootstrap.coffeeshop.svc",
-							"port": "9093",
+							"type": "secure",
+							"addresses": []map[string]interface{}{
+								{
+									"host": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+									"port": "9093",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should create envvars with service prefix",
+			expected: map[string]string{
+				"KAFKA_STATUS_LISTENERS_0_TYPE":             "secure",
+				"KAFKA_STATUS_LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+				"KAFKA_STATUS_LISTENERS_0_ADDRESSES_0_PORT": "9093",
+			},
+			path: []string{"kafka"},
+			src: map[string]interface{}{
+				"status": map[string]interface{}{
+					"listeners": []map[string]interface{}{
+						{
+							"type": "secure",
+							"addresses": []map[string]interface{}{
+								{
+									"host": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+									"port": "9093",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "should create envvars with binding and service prefixes",
+			expected: map[string]string{
+				"BINDING_KAFKA_STATUS_LISTENERS_0_TYPE":             "secure",
+				"BINDING_KAFKA_STATUS_LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+				"BINDING_KAFKA_STATUS_LISTENERS_0_ADDRESSES_0_PORT": "9093",
+			},
+			path: []string{"binding", "kafka"},
+			src: map[string]interface{}{
+				"status": map[string]interface{}{
+					"listeners": []map[string]interface{}{
+						{
+							"type": "secure",
+							"addresses": []map[string]interface{}{
+								{
+									"host": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+									"port": "9093",
+								},
+							},
 						},
 					},
 				},
@@ -25,23 +89,11 @@ func TestBuild(t *testing.T) {
 		},
 	}
 
-	expected := map[string]string{
-		"STATUS_LISTENERS_0_TYPE":             "secure",
-		"STATUS_LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
-		"STATUS_LISTENERS_0_ADDRESSES_0_PORT": "9093",
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := Build(tc.src, tc.path...)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, actual)
+		})
 	}
-
-	actual, err := Build(src, []string{})
-	require.NoError(t, err)
-	require.Equal(t, expected, actual)
-
-	tmpl, err := template.New("specific").
-		Parse(`{{ index . "status" "listeners" 0 "type" }}`)
-	require.NoError(t, err)
-
-	buf := bytes.NewBuffer(nil)
-	err = tmpl.Execute(buf, src)
-
-	require.NoError(t, err)
-	require.Equal(t, "secure", buf.String())
 }

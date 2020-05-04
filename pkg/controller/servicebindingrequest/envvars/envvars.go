@@ -14,8 +14,6 @@ var ErrUnsupportedType = errors.New("unsupported type")
 // Build returns an environment variable dictionary with an entry for each
 // leaf containing a scalar value.
 //
-// path indicates the node that should be treated as root, and informing an empty slice
-//
 // Example:
 //
 // 	src := map[string]interface{}{
@@ -33,7 +31,7 @@ var ErrUnsupportedType = errors.New("unsupported type")
 //			},
 //		},
 //	}
-//	actual, _ := Build(src, []string{})
+//	actual, _ := Build(src)
 //
 // actual should contain the following values:
 //
@@ -43,15 +41,15 @@ var ErrUnsupportedType = errors.New("unsupported type")
 //
 // Now, consider the following example:
 //
-//	actual, _ = Build(src, []string{"status"})
+//	actual, _ = Build(src, "kafka")
 //
 // actual should contain the following values instead:
 //
-// 	"LISTENERS_0_TYPE":             "secure",
-// 	"LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
-// 	"LISTENERS_0_ADDRESSES_0_PORT": "9093",
+// 	"KAFKA_STATUS_LISTENERS_0_TYPE":             "secure",
+// 	"KAFKA_STATUS_LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+// 	"KAFKA_STATUS_LISTENERS_0_ADDRESSES_0_PORT": "9093",
 //
-func Build(obj interface{}, path []string) (map[string]string, error) {
+func Build(obj interface{}, path ...string) (map[string]string, error) {
 	// perform the appropriate action depending on its type; maybe at some point
 	// reflection might be required.
 	switch val := obj.(type) {
@@ -120,7 +118,7 @@ func buildInner(
 	value interface{},
 	envVars map[string]string,
 ) error {
-	if envVar, err := Build(value, append(path, key)); err != nil {
+	if envVar, err := Build(value, append(path, key)...); err != nil {
 		return err
 	} else {
 		return mergo.Merge(&envVars, envVar)
