@@ -63,8 +63,8 @@ func TestRetriever(t *testing.T) {
 	actual, err := retriever.GetEnvVars()
 	require.NoError(t, err)
 	require.Equal(t, map[string][]byte{
-		"SAME_NAMESPACE":  []byte(crInSameNamespace.GetName()),
-		"OTHER_NAMESPACE": []byte(cr.GetName()),
-		"DIRECT_ACCESS":   []byte(cr.GetName()),
+		"SERVICE_BINDING_SAME_NAMESPACE":  []byte(crInSameNamespace.GetName()),
+		"SERVICE_BINDING_OTHER_NAMESPACE": []byte(cr.GetName()),
+		"SERVICE_BINDING_DIRECT_ACCESS":   []byte(cr.GetName()),
 	}, actual)
 }
