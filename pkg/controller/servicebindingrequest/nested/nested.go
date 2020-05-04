@@ -22,13 +22,6 @@ func getValueFromMap(obj map[string]interface{}, path Path) (interface{}, bool, 
 	return getValue(val, path.Tail())
 }
 
-// GetValueFromMap attempts to retrieve from `obj` a value from the given path
-// `p`.
-func GetValueFromMap(obj map[string]interface{}, p ...string) (interface{}, bool, error) {
-	path := NewPathWithParts(p)
-	return getValueFromMap(obj, path)
-}
-
 // collectValues accumulates the values found in all the given `path` in all
 // elements present in `obj`.
 func collectValues(obj []interface{}, path Path) (interface{}, error) {
