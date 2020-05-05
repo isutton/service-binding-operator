@@ -41,14 +41,13 @@ func buildServiceContexts(
 	client dynamic.Interface,
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
-	envVarPrefix *string,
 ) (ServiceContextList, error) {
 	serviceCtxs := make([]*ServiceContext, 0)
 	for _, s := range selectors {
 		if s.Namespace == nil {
 			s.Namespace = &ns
 		}
-
+		envVarPrefix := s.EnvVarPrefix
 		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 
 		serviceCtx, err := buildServiceContext(
