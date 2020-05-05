@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
-	"github.com/imdario/mergo"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/envvars"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
@@ -39,35 +38,31 @@ func createServiceIndexPath(name string, gvk schema.GroupVersionKind) []string {
 
 }
 
+func buildServiceEnvVars(svcCtx *ServiceContext, globalPrefix string) (map[string]string, error) {
+	prefixes := []string{}
+	if globalPrefix != "" {
+		prefixes = append(prefixes, globalPrefix)
+	}
+	if svcCtx.EnvVarPrefix != nil {
+		prefixes = append(prefixes, *svcCtx.EnvVarPrefix)
+	}
+	return envvars.Build(svcCtx.EnvVars, prefixes...)
+}
+
 // GetEnvVars returns the data read from related resources (see ReadBindableResourcesData and
 // ReadCRDDescriptionData).
 func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
-	svcCollectedKeys := make(map[string]interface{})
 	customEnvVarCtx := make(map[string]interface{})
-
 	envVars := make(map[string][]byte)
+
 	for _, svcCtx := range r.serviceCtxs {
-		prefixes := []string{}
-		if r.bindingPrefix != "" {
-			prefixes = append(prefixes, r.bindingPrefix)
-		}
-		if svcCtx.EnvVarPrefix != nil {
-			prefixes = append(prefixes, *svcCtx.EnvVarPrefix)
-		}
-		svcEnvVars, err := envvars.Build(svcCtx.EnvVars, prefixes...)
+		svcEnvVars, err := buildServiceEnvVars(svcCtx, r.bindingPrefix)
 		if err != nil {
 			return nil, err
 		}
+
 		for k, v := range svcEnvVars {
 			envVars[k] = []byte(v)
-		}
-	}
-
-	for _, svcCtx := range r.serviceCtxs {
-		// contribute service contributed env vars
-		err := mergo.Merge(&svcCollectedKeys, svcCtx.EnvVars, mergo.WithAppendSlice, mergo.WithOverride)
-		if err != nil {
-			return nil, err
 		}
 
 		// contribute the entire resource to the context shared with the custom env parser
