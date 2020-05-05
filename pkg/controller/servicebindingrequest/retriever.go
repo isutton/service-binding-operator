@@ -45,6 +45,24 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	svcCollectedKeys := make(map[string]interface{})
 	customEnvVarCtx := make(map[string]interface{})
 
+	envVars := make(map[string][]byte)
+	for _, svcCtx := range r.serviceCtxs {
+		prefixes := []string{}
+		if r.bindingPrefix != "" {
+			prefixes = append(prefixes, r.bindingPrefix)
+		}
+		if svcCtx.EnvVarPrefix != nil {
+			prefixes = append(prefixes, *svcCtx.EnvVarPrefix)
+		}
+		svcEnvVars, err := envvars.Build(svcCtx.EnvVars, prefixes...)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range svcEnvVars {
+			envVars[k] = []byte(v)
+		}
+	}
+
 	for _, svcCtx := range r.serviceCtxs {
 		// contribute service contributed env vars
 		err := mergo.Merge(&svcCollectedKeys, svcCtx.EnvVars, mergo.WithAppendSlice, mergo.WithOverride)
@@ -93,8 +111,6 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		return nil, err
 	}
 
-	// convert values to a map[string][]byte
-	envVars := make(map[string][]byte)
 	for k, v := range customEnvVars {
 		if len(r.bindingPrefix) > 0 {
 			k = strings.Join([]string{r.bindingPrefix, k}, "_")
