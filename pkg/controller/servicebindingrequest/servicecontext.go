@@ -47,11 +47,11 @@ func buildServiceContexts(
 		if s.Namespace == nil {
 			s.Namespace = &ns
 		}
-
+		envVarPrefix := s.EnvVarPrefix
 		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 
 		serviceCtx, err := buildServiceContext(
-			client, *s.Namespace, gvk, s.ResourceRef)
+			client, *s.Namespace, gvk, s.ResourceRef, envVarPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -66,6 +66,7 @@ func buildServiceContext(
 	ns string,
 	gvk schema.GroupVersionKind,
 	resourceRef string,
+	envVarPrefix *string,
 ) (*ServiceContext, error) {
 	obj, err := findService(client, ns, gvk, resourceRef)
 	if err != nil {
@@ -131,9 +132,10 @@ func buildServiceContext(
 	}
 
 	serviceCtx := &ServiceContext{
-		Object:     obj,
-		EnvVars:    envVars,
-		VolumeKeys: volumeKeys,
+		Object:       obj,
+		EnvVars:      envVars,
+		VolumeKeys:   volumeKeys,
+		EnvVarPrefix: envVarPrefix,
 	}
 
 	return serviceCtx, nil
