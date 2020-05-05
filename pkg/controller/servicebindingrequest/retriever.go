@@ -118,19 +118,6 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		envVars[k] = []byte(v.(string))
 	}
 
-	prefixes := []string{}
-	if r.bindingPrefix != "" {
-		prefixes = append(prefixes, r.bindingPrefix)
-	}
-	svcEnvVars, err := envvars.Build(svcCollectedKeys, prefixes...)
-	if err != nil {
-		return nil, err
-	}
-
-	for k, v := range svcEnvVars {
-		envVars[k] = []byte(v)
-	}
-
 	return envVars, nil
 }
 
