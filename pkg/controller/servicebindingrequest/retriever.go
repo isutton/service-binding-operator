@@ -14,14 +14,14 @@ import (
 
 // Retriever reads all data referred in plan instance, and store in a secret.
 type Retriever struct {
-	logger          *log.Log                     // logger instance
-	data            map[string][]byte            // data retrieved
-	Objects         []*unstructured.Unstructured // list of objects employed
-	client          dynamic.Interface            // Kubernetes API client
-	VolumeKeys      []string                     // list of keys found
-	bindingPrefix   string                       // prefix for variable names
-	envVarTemplates []corev1.EnvVar              // list of environment variable names and templates
-	serviceCtxs     ServiceContextList           // list of service contexts associated with a SBR
+	logger             *log.Log                     // logger instance
+	data               map[string][]byte            // data retrieved
+	Objects            []*unstructured.Unstructured // list of objects employed
+	client             dynamic.Interface            // Kubernetes API client
+	VolumeKeys         []string                     // list of keys found
+	globalEnvVarPrefix string                       // prefix for variable names
+	envVarTemplates    []corev1.EnvVar              // list of environment variable names and templates
+	serviceCtxs        ServiceContextList           // list of service contexts associated with a SBR
 }
 
 // createServiceIndexPath returns a string slice with fields representing a path to a resource in the
@@ -38,13 +38,13 @@ func createServiceIndexPath(name string, gvk schema.GroupVersionKind) []string {
 
 }
 
-func buildServiceEnvVars(svcCtx *ServiceContext, globalPrefix string) (map[string]string, error) {
+func buildServiceEnvVars(svcCtx *ServiceContext, globalEnvVarPrefix string) (map[string]string, error) {
 	prefixes := []string{}
-	if globalPrefix != "" {
-		prefixes = append(prefixes, globalPrefix)
+	if len(globalEnvVarPrefix) > 0 {
+		prefixes = append(prefixes, globalEnvVarPrefix)
 	}
-	if svcCtx.EnvVarPrefix != nil {
-		prefixes = append(prefixes, *svcCtx.EnvVarPrefix)
+	if len(svcCtx.EnvVarPrefix) > 0 {
+		prefixes = append(prefixes, svcCtx.EnvVarPrefix)
 	}
 	return envvars.Build(svcCtx.EnvVars, prefixes...)
 }
@@ -56,7 +56,7 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	envVars := make(map[string][]byte)
 
 	for _, svcCtx := range r.serviceCtxs {
-		svcEnvVars, err := buildServiceEnvVars(svcCtx, r.bindingPrefix)
+		svcEnvVars, err := buildServiceEnvVars(svcCtx, r.globalEnvVarPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -107,8 +107,8 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	}
 
 	for k, v := range customEnvVars {
-		if len(r.bindingPrefix) > 0 {
-			k = strings.Join([]string{r.bindingPrefix, k}, "_")
+		if len(r.globalEnvVarPrefix) > 0 {
+			k = strings.Join([]string{r.globalEnvVarPrefix, k}, "_")
 		}
 		envVars[k] = []byte(v.(string))
 	}
@@ -146,16 +146,16 @@ func NewRetriever(
 	client dynamic.Interface,
 	envVars []corev1.EnvVar,
 	serviceContexts ServiceContextList,
-	bindingPrefix string,
+	globalEnvVarPrefix string,
 ) *Retriever {
 	return &Retriever{
-		logger:          log.NewLog("retriever"),
-		data:            make(map[string][]byte),
-		Objects:         []*unstructured.Unstructured{},
-		client:          client,
-		VolumeKeys:      []string{},
-		bindingPrefix:   bindingPrefix,
-		envVarTemplates: envVars,
-		serviceCtxs:     serviceContexts,
+		logger:             log.NewLog("retriever"),
+		data:               make(map[string][]byte),
+		Objects:            []*unstructured.Unstructured{},
+		client:             client,
+		VolumeKeys:         []string{},
+		globalEnvVarPrefix: globalEnvVarPrefix,
+		envVarTemplates:    envVars,
+		serviceCtxs:        serviceContexts,
 	}
 }

@@ -67,3 +67,77 @@ func TestRetriever(t *testing.T) {
 		"SERVICE_BINDING_DIRECT_ACCESS":   []byte(cr.GetName()),
 	}, actual)
 }
+
+func TestBuildServiceEnvVars(t *testing.T) {
+
+	type testCase struct {
+		ctx                *ServiceContext
+		globalEnvVarPrefix string
+		expected           map[string]string
+	}
+
+	testCases := []testCase{
+		{
+			globalEnvVarPrefix: "GLOBAL",
+			ctx: &ServiceContext{
+				EnvVarPrefix: "SERVICE",
+				EnvVars: map[string]interface{}{
+					"status": map[string]interface{}{
+						"host": "localhost",
+					},
+				},
+			},
+			expected: map[string]string{
+				"GLOBAL_SERVICE_STATUS_HOST": "localhost",
+			},
+		},
+		{
+			globalEnvVarPrefix: "",
+			ctx: &ServiceContext{
+				EnvVarPrefix: "",
+				EnvVars: map[string]interface{}{
+					"status": map[string]interface{}{
+						"host": "localhost",
+					},
+				},
+			},
+			expected: map[string]string{
+				"STATUS_HOST": "localhost",
+			},
+		},
+		{
+			globalEnvVarPrefix: "",
+			ctx: &ServiceContext{
+				EnvVarPrefix: "SERVICE",
+				EnvVars: map[string]interface{}{
+					"status": map[string]interface{}{
+						"host": "localhost",
+					},
+				},
+			},
+			expected: map[string]string{
+				"SERVICE_STATUS_HOST": "localhost",
+			},
+		},
+		{
+			globalEnvVarPrefix: "GLOBAL",
+			ctx: &ServiceContext{
+				EnvVarPrefix: "",
+				EnvVars: map[string]interface{}{
+					"status": map[string]interface{}{
+						"host": "localhost",
+					},
+				},
+			},
+			expected: map[string]string{
+				"GLOBAL_STATUS_HOST": "localhost",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		actual, err := buildServiceEnvVars(tc.ctx, tc.globalEnvVarPrefix)
+		require.NoError(t, err)
+		require.Equal(t, tc.expected, actual)
+	}
+}
