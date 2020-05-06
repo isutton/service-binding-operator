@@ -132,7 +132,12 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		if updateErr == nil {
 			return Done()
 		}
-		return NoRequeue(ErrEmptyBackingServiceSelectors)
+		// TODO: do not requeue here
+		//
+		// Since there are nothing to recover from in the case service selectors is empty, it is
+		// still required to requeue due to some watches not being implemented. This is known issue
+		// being worked in https://github.com/redhat-developer/service-binding-operator/pull/442.
+		return RequeueError(ErrEmptyBackingServiceSelectors)
 	}
 
 	serviceCtxs, err := buildServiceContexts(r.dynClient, sbr.GetNamespace(), selectors)
