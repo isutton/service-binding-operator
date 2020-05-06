@@ -27,9 +27,9 @@ type ResourceHandler struct {
 	relatedResourceName string
 	// resource is the unstructured object to extract data using inputPath.
 	resource unstructured.Unstructured
-	// valueDecoder is a function used to decode values from the resource being handled; for example,
+	// stringValue is a function used to decode values from the resource being handled; for example,
 	// to decode Base64 keys the decodeBase64String can be used.
-	valueDecoder func(interface{}) (string, error)
+	stringValue func(interface{}) (string, error)
 	// inputPathRoot indicates the root where input paths will be applied to extract a value from the
 	// resource.
 	inputPathRoot *string
@@ -126,7 +126,7 @@ func (h *ResourceHandler) Handle() (Result, error) {
 	if mapVal, ok := val.(map[string]interface{}); ok {
 		tmpVal := make(map[string]interface{})
 		for k, v := range mapVal {
-			decodedVal, err := h.valueDecoder(v)
+			decodedVal, err := h.stringValue(v)
 			if err != nil {
 				return Result{}, err
 			}
@@ -134,7 +134,7 @@ func (h *ResourceHandler) Handle() (Result, error) {
 		}
 		val = tmpVal
 	} else {
-		val, err = h.valueDecoder(val)
+		val, err = h.stringValue(val)
 		if err != nil {
 			return Result{}, err
 		}
@@ -154,8 +154,8 @@ func (h *ResourceHandler) Handle() (Result, error) {
 	}, nil
 }
 
-// stringValueDecoder asserts the given value 'v' and returns its string value.
-func stringValueDecoder(v interface{}) (string, error) {
+// stringValue asserts the given value 'v' and returns its string value.
+func stringValue(v interface{}) (string, error) {
 	s, ok := v.(string)
 	if !ok {
 		return "", fmt.Errorf("value is not a string")
@@ -199,6 +199,6 @@ func NewResourceHandler(
 		relatedGroupVersionResource: relatedGroupVersionResource,
 		relatedResourceName:         relatedResourceName,
 		resource:                    resource,
-		valueDecoder:                stringValueDecoder,
+		stringValue:                 stringValue,
 	}, nil
 }
