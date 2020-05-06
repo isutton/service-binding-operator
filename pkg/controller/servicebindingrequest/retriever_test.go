@@ -19,7 +19,6 @@ func TestRetriever(t *testing.T) {
 	ns := "testing"
 	backingServiceNs := "backing-servicec-ns"
 	crName := "db-testing"
-	// testEnvVarPrefix := "TEST_PREFIX"
 
 	f := mocks.NewFake(t, ns)
 	f.AddMockedUnstructuredCSV("csv")
