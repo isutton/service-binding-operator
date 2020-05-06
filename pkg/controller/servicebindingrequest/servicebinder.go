@@ -2,7 +2,7 @@ package servicebindingrequest
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"gotest.tools/assert/cmp"
@@ -53,9 +53,32 @@ type ServiceBinderOptions struct {
 	Binding                *Binding
 }
 
-// Valid returns whether the options are valid.
-func (o *ServiceBinderOptions) Valid() bool {
-	return o.SBR != nil && o.DynClient != nil && o.Client != nil && o.Binding != nil
+// ErrInvalidServiceBinderOptions is returned when ServiceBinderOptions contains an invalid value.
+type ErrInvalidServiceBinderOptions string
+
+func (e ErrInvalidServiceBinderOptions) Error() string {
+	return fmt.Sprintf("option %q is missing", string(e))
+}
+
+// Valid returns an error if the receiver is invalid, nil otherwise.
+func (o *ServiceBinderOptions) Valid() error {
+	if o.SBR == nil {
+		return ErrInvalidServiceBinderOptions("SBR")
+	}
+
+	if o.DynClient == nil {
+		return ErrInvalidServiceBinderOptions("DynClient")
+	}
+
+	if o.Client == nil {
+		return ErrInvalidServiceBinderOptions("Client")
+	}
+
+	if o.Binding == nil {
+		return ErrInvalidServiceBinderOptions("Binding")
+	}
+
+	return nil
 }
 
 // ServiceBinder manages binding for a Service Binding Request and associated objects.
@@ -293,9 +316,6 @@ func (b *ServiceBinder) setApplicationObjects(
 	sbrStatus.Applications = boundApps
 }
 
-// InvalidOptionsErr is returned when ServiceBinderOptions are not valid.
-var InvalidOptionsErr = errors.New("invalid options")
-
 // BuildServiceBinder creates a new binding manager according to options.
 func BuildServiceBinder(
 	ctx context.Context,
@@ -304,13 +324,8 @@ func BuildServiceBinder(
 	*ServiceBinder,
 	error,
 ) {
-	// var isSBRDeleting bool
-	// if options.SBR != nil && options.SBR.GetDeletionTimestamp() != nil {
-	// 	isSBRDeleting = true
-	// }
-
-	if !options.Valid() {
-		return nil, InvalidOptionsErr
+	if err := options.Valid(); err != nil {
+		return nil, err
 	}
 
 	// FIXME(isuttonl): review whether it is possible to move Secret.Commit() and Secret.Delete() to

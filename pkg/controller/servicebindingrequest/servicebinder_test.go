@@ -526,7 +526,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 			SBR:                    nil,
 			Client:                 f.FakeClient(),
 		},
-		wantBuildErr: InvalidOptionsErr,
+		wantBuildErr: ErrInvalidServiceBinderOptions("SBR"),
 	}))
 
 	t.Run("multiple services bind golden path", assertBind(args{
