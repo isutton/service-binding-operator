@@ -206,6 +206,7 @@ e2e-create-namespace:
 
 .PHONY: e2e-setup
 e2e-setup: e2e-cleanup e2e-create-namespace e2e-deploy-3rd-party-crds
+	$(Q)mkdir -p ${LOGS_DIR}/e2e
 
 .PHONY: e2e-cleanup
 e2e-cleanup: get-test-namespace
