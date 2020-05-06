@@ -156,7 +156,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		DetectBindingResources: sbr.Spec.DetectBindingResources,
 		SBR:                    sbr,
 		Logger:                 logger,
-		Objects:                serviceCtxs.GetObjects(),
+		Objects:                serviceCtxs.GetServices(),
 		Binding:                binding,
 	}
 

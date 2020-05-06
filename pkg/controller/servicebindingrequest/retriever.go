@@ -66,15 +66,15 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		}
 
 		// contribute the entire resource to the context shared with the custom env parser
-		gvk := svcCtx.Object.GetObjectKind().GroupVersionKind()
+		gvk := svcCtx.Service.GetObjectKind().GroupVersionKind()
 
 		// add an entry in the custom environment variable context, allowing the user to use the
 		// following expression:
 		//
 		// `{{ index "v1alpha1" "postgresql.baiju.dev" "Database", "db-testing", "status", "connectionUrl" }}`
 		err = unstructured.SetNestedField(
-			customEnvVarCtx, svcCtx.Object.Object, gvk.Version, gvk.Group, gvk.Kind,
-			svcCtx.Object.GetName())
+			customEnvVarCtx, svcCtx.Service.Object, gvk.Version, gvk.Group, gvk.Kind,
+			svcCtx.Service.GetName())
 		if err != nil {
 			return nil, err
 		}
@@ -86,8 +86,8 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 		// `{{ .v1alpha1.postgresql_baiju_dev.Database.db_testing.status.connectionUrl }}`
 		err = unstructured.SetNestedField(
 			customEnvVarCtx,
-			svcCtx.Object.Object,
-			createServiceIndexPath(svcCtx.Object.GetName(), svcCtx.Object.GroupVersionKind())...,
+			svcCtx.Service.Object,
+			createServiceIndexPath(svcCtx.Service.GetName(), svcCtx.Service.GroupVersionKind())...,
 		)
 		if err != nil {
 			return nil, err

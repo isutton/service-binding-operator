@@ -13,8 +13,8 @@ import (
 
 // ServiceContext contains information related to a service.
 type ServiceContext struct {
-	// Object is the resource being used as reference.
-	Object *unstructured.Unstructured
+	// Service is the resource of the service being evaluated.
+	Service *unstructured.Unstructured
 	// EnvVars contains the service's contributed environment variables.
 	EnvVars map[string]interface{}
 	// VolumeKeys contains the keys that should be mounted as volume from the binding secret.
@@ -26,11 +26,11 @@ type ServiceContext struct {
 // ServiceContextList is a list of ServiceContext values.
 type ServiceContextList []*ServiceContext
 
-// GetObjects returns a slice of service unstructured objects contained in the collection.
-func (sc ServiceContextList) GetObjects() []*unstructured.Unstructured {
+// GetServices returns a slice of service unstructured objects contained in the collection.
+func (sc ServiceContextList) GetServices() []*unstructured.Unstructured {
 	var crs []*unstructured.Unstructured
 	for _, s := range sc {
-		crs = append(crs, s.Object)
+		crs = append(crs, s.Service)
 	}
 	return crs
 }
@@ -135,7 +135,7 @@ func buildServiceContext(
 	}
 
 	serviceCtx := &ServiceContext{
-		Object:       obj,
+		Service:      obj,
 		EnvVars:      envVars,
 		VolumeKeys:   volumeKeys,
 		EnvVarPrefix: envVarPrefix,

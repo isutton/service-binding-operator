@@ -32,10 +32,10 @@ func TestRetriever(t *testing.T) {
 
 	serviceCtxs := ServiceContextList{
 		{
-			Object: cr,
+			Service: cr,
 		},
 		{
-			Object: crInSameNamespace,
+			Service: crInSameNamespace,
 		},
 	}
 
