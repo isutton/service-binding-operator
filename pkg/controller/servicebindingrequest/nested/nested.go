@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested/acc"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested/accumulator"
 )
 
 // getValueFromMap attempts to retrieve from `obj` a value from the given path
@@ -25,7 +25,7 @@ func getValueFromMap(obj map[string]interface{}, path Path) (interface{}, bool, 
 // collectValues accumulates the values found in all the given `path` in all
 // elements present in `obj`.
 func collectValues(obj []interface{}, path Path) (interface{}, error) {
-	r := acc.NewAcc()
+	r := accumulator.NewAccumulator()
 	for _, e := range obj {
 		val, found, err := getValue(e, path.AdjustedPath())
 		if err != nil || !found {

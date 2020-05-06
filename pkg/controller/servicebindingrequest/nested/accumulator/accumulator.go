@@ -1,4 +1,4 @@
-package acc
+package accumulator
 
 import (
 	"errors"
@@ -8,16 +8,16 @@ import (
 
 const valuesKey = "values"
 
-// Acc is a value accumulator.
-type Acc map[string]interface{}
+// Accumulator is a value accumulator.
+type Accumulator map[string]interface{}
 
 // UnsupportedTypeErr is returned when an unsupported type is encountered.
 var UnsupportedTypeErr = errors.New("unsupported type")
 
 // Accumulate accumulates the `val` value. An error is returned in the case
 // `val` contains an unsupported type.
-func (a Acc) Accumulate(val interface{}) error {
-	b := NewAcc()
+func (a Accumulator) Accumulate(val interface{}) error {
+	b := NewAccumulator()
 	switch v := val.(type) {
 	case map[string]interface{}:
 		b[valuesKey] = []map[string]interface{}{v}
@@ -34,13 +34,11 @@ func (a Acc) Accumulate(val interface{}) error {
 }
 
 // Value returns the accumulated values.
-//
-// It is guaranteed
-func (a Acc) Value() interface{} {
+func (a Accumulator) Value() interface{} {
 	return a[valuesKey]
 }
 
-// NewAcc returns a new value accumulator
-func NewAcc() Acc {
-	return Acc{}
+// NewAccumulator returns a new value accumulator
+func NewAccumulator() Accumulator {
+	return Accumulator{}
 }
