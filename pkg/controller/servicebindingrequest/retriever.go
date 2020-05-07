@@ -116,31 +116,6 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	return envVars, nil
 }
 
-// ReadBindableResourcesData reads all related resources of a given sbr
-// func (r *Retriever) ReadBindableResourcesData(
-// 	sbr *v1alpha1.ServiceBindingRequest,
-// 	crs []*unstructured.Unstructured,
-// ) error {
-// 	r.logger.Info("Detecting extra resources for binding...")
-// 	for _, cr := range crs {
-// 		b := NewDetectBindableResources(sbr, cr, []schema.GroupVersionResource{
-// 			{Group: "", Version: "v1", Resource: "configmaps"},
-// 			{Group: "", Version: "v1", Resource: "services"},
-// 			{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
-// 		}, r.client)
-
-// 		vals, err := b.GetBindableVariables()
-// 		if err != nil {
-// 			return err
-// 		}
-// 		for k, v := range vals {
-// 			// r.store("", cr, k, []byte(fmt.Sprintf("%v", v)))
-// 		}
-// 	}
-
-// 	return nil
-// }
-
 // NewRetriever instantiate a new retriever instance.
 func NewRetriever(
 	client dynamic.Interface,
