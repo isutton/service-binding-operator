@@ -117,26 +117,30 @@ func findCRDDescription(
 }
 
 type bindableResource struct {
-	gvk  schema.GroupVersionKind
-	gvr  schema.GroupVersionResource
-	path string
+	gvk        schema.GroupVersionKind
+	gvr        schema.GroupVersionResource
+	inputPath  string
+	outputPath string
 }
 
 var bindableResources = []bindableResource{
 	{
-		gvk:  schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"},
-		gvr:  schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"},
-		path: "data",
+		gvk:        schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"},
+		gvr:        schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"},
+		inputPath:  "data",
+		outputPath: "",
 	},
 	{
-		gvk:  schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"},
-		gvr:  schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"},
-		path: "data",
+		gvk:        schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"},
+		gvr:        schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"},
+		inputPath:  "data",
+		outputPath: "",
 	},
 	{
-		gvk:  schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
-		gvr:  schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
-		path: "spec.clusterIP",
+		gvk:        schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
+		gvr:        schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
+		inputPath:  "spec.clusterIP",
+		outputPath: "clusterIP",
 	},
 	{
 		gvk: schema.GroupVersionKind{
@@ -144,8 +148,9 @@ var bindableResources = []bindableResource{
 			Version: "v1",
 			Kind:    "Route",
 		},
-		gvr:  schema.GroupVersionResource{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
-		path: "spec.host",
+		gvr:        schema.GroupVersionResource{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
+		inputPath:  "spec.host",
+		outputPath: "host",
 	},
 }
 
@@ -199,7 +204,7 @@ func buildOwnedResourceContexts(
 			if err != nil {
 				return nil, err
 			}
-			val, _, err := nested.GetValue(obj.Object, br.path, br.path)
+			val, _, err := nested.GetValue(obj.Object, br.inputPath, br.outputPath)
 			if err != nil {
 				return nil, err
 			}

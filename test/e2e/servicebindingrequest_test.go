@@ -57,7 +57,7 @@ var (
 	// Intermediate secret should have following data
 	// for etcd operator
 	etcdSecretAssertion = map[string]string{
-		"ETCDCLUSTER_SPEC_CLUSTERIP": "172.30.0.129",
+		"ETCDCLUSTER_CLUSTERIP": "172.30.0.129",
 	}
 	deploymentsGVR = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 )
