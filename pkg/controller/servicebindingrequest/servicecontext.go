@@ -131,7 +131,7 @@ func buildServiceContext(
 	for annotationKey, annotationValue := range anns {
 		h, err := annotations.BuildHandler(client, obj, annotationKey, annotationValue)
 		if err != nil {
-			if err == annotations.ErrInvalidAnnotationPrefix {
+			if err == annotations.ErrInvalidAnnotationPrefix || annotations.IsErrHandlerNotFound(err) {
 				continue
 			}
 			return nil, err

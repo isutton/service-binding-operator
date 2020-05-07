@@ -1,6 +1,8 @@
 package annotations
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 )
@@ -39,12 +41,22 @@ type Result struct {
 	Path string
 }
 
-// Handler is responsible for collecting relevant data related to a service from the source encoded
-// in an annotation key and value pair.
+// Handler should be implemented by types that want to offer a mechanism to provide binding data to
+// the system.
 type Handler interface {
-	// Handle returns collected data and related metadata from the source encoded in the handler
-	// annotation key and value pair.
+	// Handle returns binding data.
 	Handle() (Result, error)
+}
+
+type ErrHandlerNotFound string
+
+func (e ErrHandlerNotFound) Error() string {
+	return fmt.Sprintf("could not find handler for annotation value %q", string(e))
+}
+
+func IsErrHandlerNotFound(err error) bool {
+	_, ok := err.(ErrHandlerNotFound)
+	return ok
 }
 
 // BuildHandler attempts to create an annotation handler for the given annotationKey and
@@ -71,6 +83,6 @@ func BuildHandler(
 	case IsConfigMap(val):
 		return NewConfigMapHandler(kubeClient, bindingInfo, *obj)
 	default:
-		panic("not implemented")
+		return nil, ErrHandlerNotFound(val)
 	}
 }
