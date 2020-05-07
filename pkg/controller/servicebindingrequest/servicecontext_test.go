@@ -24,7 +24,7 @@ func TestBuildServiceContexts(t *testing.T) {
 	f.AddMockedUnstructuredCSV("cluster-service-version")
 	f.AddMockedDatabaseCR(resourceRef, ns)
 	f.AddMockedUnstructuredDatabaseCRD()
-	f.AddMockedSecret("db-credentials")
+	f.AddMockedUnstructuredSecret("db-credentials")
 
 	t.Run("existing selectors", func(t *testing.T) {
 		serviceCtxs, err := buildServiceContexts(

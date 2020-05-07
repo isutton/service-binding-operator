@@ -161,6 +161,11 @@ func PostgresDatabaseCRMock(ns, name string) PostgresDatabase {
 	}
 }
 
+func UnstructuredSecretMock(ns, name string) (*unstructured.Unstructured, error) {
+	s := SecretMock(ns, name)
+	return converter.ToUnstructured(&s)
+}
+
 func UnstructuredPostgresDatabaseCRMock(ns, name string) (*unstructured.Unstructured, error) {
 	c := PostgresDatabaseCRMock(ns, name)
 	return converter.ToUnstructured(&c)

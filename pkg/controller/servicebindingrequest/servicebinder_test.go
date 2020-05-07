@@ -203,7 +203,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		err := unstructured.SetNestedMap(db1.Object, runtimeStatus, "status")
 		require.NoError(t, err)
 	}
-	f.AddMockedSecret("db1")
+	f.AddMockedUnstructuredSecret("db1")
 
 	db2 := f.AddMockedUnstructuredPostgresDatabaseCR("db2")
 	{
@@ -215,7 +215,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		err := unstructured.SetNestedMap(db2.Object, runtimeStatus, "status")
 		require.NoError(t, err)
 	}
-	f.AddMockedSecret("db2")
+	f.AddMockedUnstructuredSecret("db2")
 
 	// create the ServiceBindingRequest
 	sbrSingleService := &v1alpha1.ServiceBindingRequest{

@@ -8,7 +8,6 @@ import (
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -182,9 +181,10 @@ func (f *Fake) AddMockedUnstructuredPostgresDatabaseCR(ref string) *unstructured
 	return d
 }
 
-// AddMockedSecret add mocked object from SecretMock.
-func (f *Fake) AddMockedSecret(name string) *corev1.Secret {
-	s := SecretMock(f.ns, name)
+// AddMockedUnstructuredSecret add mocked object from SecretMock.
+func (f *Fake) AddMockedUnstructuredSecret(name string) *unstructured.Unstructured {
+	s, err := UnstructuredSecretMock(f.ns, name)
+	require.NoError(f.t, err)
 	f.objs = append(f.objs, s)
 	return s
 }

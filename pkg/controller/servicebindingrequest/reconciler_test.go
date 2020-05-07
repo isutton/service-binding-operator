@@ -55,7 +55,7 @@ func TestApplicationSelectorByName(t *testing.T) {
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
 	f.AddMockedUnstructuredDeployment(reconcilerName, nil)
-	f.AddMockedSecret("db-credentials")
+	f.AddMockedUnstructuredSecret("db-credentials")
 
 	fakeClient := f.FakeClient()
 	fakeDynClient := f.FakeDynClient()
@@ -103,7 +103,7 @@ func TestReconcilerReconcileUsingSecret(t *testing.T) {
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
 	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)
-	f.AddMockedSecret("db-credentials")
+	f.AddMockedUnstructuredSecret("db-credentials")
 
 	fakeClient := f.FakeClient()
 	fakeDynClient := f.FakeDynClient()
@@ -160,7 +160,7 @@ func TestReconcilerReconcileUsingVolumes(t *testing.T) {
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
 	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)
-	f.AddMockedSecret("db-credentials")
+	f.AddMockedUnstructuredSecret("db-credentials")
 
 	fakeClient := f.FakeClient()
 	reconciler := &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
@@ -199,7 +199,7 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	f.AddMockedUnstructuredCSV("cluster-service-version-list")
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
-	f.AddMockedSecret("db-credentials")
+	f.AddMockedUnstructuredSecret("db-credentials")
 
 	fakeClient := f.FakeClient()
 	reconciler := &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
@@ -286,7 +286,7 @@ func TestReconcilerReconcileWithConflictingAppSelc(t *testing.T) {
 	f.AddMockedUnstructuredServiceBindingRequest(reconcilerName, backingServiceResourceRef, applicationResourceRef2, deploymentsGVR, matchLabels1)
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
-	f.AddMockedSecret("db-credentials")
+	f.AddMockedUnstructuredSecret("db-credentials")
 
 	fakeClient := f.FakeClient()
 	fakeDynClient := f.FakeDynClient()
