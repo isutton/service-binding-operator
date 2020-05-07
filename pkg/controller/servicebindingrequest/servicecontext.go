@@ -42,7 +42,7 @@ func buildServiceContexts(
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
 ) (ServiceContextList, error) {
-	serviceCtxs := make([]*ServiceContext, 0)
+	serviceCtxs := make(ServiceContextList, 0)
 	for _, s := range selectors {
 		if s.Namespace == nil {
 			s.Namespace = &ns
@@ -53,17 +53,34 @@ func buildServiceContexts(
 		if s.EnvVarPrefix != nil && len(*s.EnvVarPrefix) > 0 {
 			svcEnvVarPrefix = *s.EnvVarPrefix
 		}
-		serviceCtx, err := buildServiceContext(
+		svcCtx, err := buildServiceContext(
 			client, *s.Namespace, gvk, s.ResourceRef, svcEnvVarPrefix)
 		if err != nil {
 			return nil, err
 		}
-		serviceCtxs = append(serviceCtxs, serviceCtx)
+
+		ownedResources, err := getOwnedResources(
+			client, ns, gvk, svcCtx.Service.GetName(), svcCtx.Service.GetUID())
+		if err != nil {
+			return nil, err
+		}
+
+		ownedResourceCtxs, err := buildOwnedResourceContexts(
+			client, ownedResources, svcCtx.EnvVarPrefix)
+		if err != nil {
+			return nil, err
+		}
+
+		serviceCtxs = append(serviceCtxs, svcCtx)
+		serviceCtxs = append(serviceCtxs, ownedResourceCtxs...)
 	}
 
 	return serviceCtxs, nil
 }
 
+// buildServiceContext inspects g the API server searching for the service resources, associated CRD
+// and OLM's CRDDescription if present, and processes those with relevant annotations to compose a
+// ServiceContext.
 func buildServiceContext(
 	client dynamic.Interface,
 	ns string,
@@ -95,7 +112,7 @@ func buildServiceContext(
 		if err != nil {
 			return nil, err
 		}
-		// then override collected annotations with CR annotations
+		// then override collected annotations with CRD annotations
 		err = mergo.Merge(&anns, crd.GetAnnotations(), mergo.WithOverride)
 		if err != nil {
 			return nil, err

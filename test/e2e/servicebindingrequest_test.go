@@ -57,7 +57,7 @@ var (
 	// Intermediate secret should have following data
 	// for etcd operator
 	etcdSecretAssertion = map[string]string{
-		"ETCDCLUSTER_CLUSTERIP": "172.30.0.129",
+		"ETCDCLUSTER_SPEC_CLUSTERIP": "172.30.0.129",
 	}
 	deploymentsGVR = schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 )
@@ -384,10 +384,16 @@ func CreateSBR(
 }
 
 // setSBRBackendGVK sets backend service selector
-func setSBRBackendGVK(sbr *v1alpha1.ServiceBindingRequest, resourceRef string, backendGVK schema.GroupVersionKind) {
+func setSBRBackendGVK(
+	sbr *v1alpha1.ServiceBindingRequest,
+	resourceRef string,
+	backendGVK schema.GroupVersionKind,
+	envVarPrefix string,
+) {
 	sbr.Spec.BackingServiceSelector = &v1alpha1.BackingServiceSelector{
 		GroupVersionKind: metav1.GroupVersionKind{Group: backendGVK.Group, Version: backendGVK.Version, Kind: backendGVK.Kind},
 		ResourceRef:      resourceRef,
+		EnvVarPrefix:     &envVarPrefix,
 	}
 }
 
@@ -541,7 +547,10 @@ func serviceBindingRequestTest(
 				deploymentsGVR,
 				matchLabels,
 				func(sbr *v1alpha1.ServiceBindingRequest) {
-					setSBRBackendGVK(sbr, resourceRef, v1beta2.SchemeGroupVersion.WithKind(v1beta2.EtcdClusterResourceKind))
+					setSBRBackendGVK(sbr, resourceRef,
+						v1beta2.SchemeGroupVersion.WithKind(v1beta2.EtcdClusterResourceKind),
+						"ETCDCLUSTER",
+					)
 					setSBRBindUnannotated(sbr, true)
 				})
 		case EtcdClusterStep:

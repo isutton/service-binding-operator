@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/types"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -13,6 +14,7 @@ import (
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
+	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested"
 )
 
 var (
@@ -112,4 +114,100 @@ func findCRDDescription(
 	crd *unstructured.Unstructured,
 ) (*olmv1alpha1.CRDDescription, error) {
 	return NewOLM(client, ns).SelectCRDByGVK(bssGVK, crd)
+}
+
+type bindableResource struct {
+	gvk  schema.GroupVersionKind
+	gvr  schema.GroupVersionResource
+	path string
+}
+
+var bindableResources = []bindableResource{
+	{
+		gvk:  schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ConfigMap"},
+		gvr:  schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"},
+		path: "data",
+	},
+	{
+		gvk:  schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Secret"},
+		gvr:  schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"},
+		path: "data",
+	},
+	{
+		gvk:  schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Service"},
+		gvr:  schema.GroupVersionResource{Group: "", Version: "v1", Resource: "services"},
+		path: "spec.clusterIP",
+	},
+	{
+		gvk: schema.GroupVersionKind{
+			Group:   "route.openshift.io",
+			Version: "v1",
+			Kind:    "Route",
+		},
+		gvr:  schema.GroupVersionResource{Group: "route.openshift.io", Version: "v1", Resource: "routes"},
+		path: "spec.host",
+	},
+}
+
+func getOwnedResources(
+	client dynamic.Interface,
+	ns string,
+	gvk schema.GroupVersionKind,
+	name string,
+	uid types.UID,
+) (
+	[]*unstructured.Unstructured,
+	error,
+) {
+	var resources []*unstructured.Unstructured
+	for _, br := range bindableResources {
+		lst, err := client.Resource(br.gvr).Namespace(ns).List(metav1.ListOptions{})
+		if err != nil {
+			return resources, err
+		}
+		for _, item := range lst.Items {
+			owners := item.GetOwnerReferences()
+			for _, owner := range owners {
+				if owner.UID == uid {
+					resources = append(resources, &item)
+				}
+			}
+		}
+	}
+	return resources, nil
+}
+
+func buildOwnedResourceContexts(
+	client dynamic.Interface,
+	objs []*unstructured.Unstructured,
+	svcEnvVarPrefix string,
+) ([]*ServiceContext, error) {
+	ctxs := make(ServiceContextList, 0)
+
+	for _, obj := range objs {
+		for _, br := range bindableResources {
+			if br.gvk != obj.GetObjectKind().GroupVersionKind() {
+				continue
+			}
+			ctx, err := buildServiceContext(
+				client,
+				obj.GetNamespace(),
+				obj.GetObjectKind().GroupVersionKind(),
+				obj.GetName(),
+				svcEnvVarPrefix,
+			)
+			if err != nil {
+				return nil, err
+			}
+			val, _, err := nested.GetValue(obj.Object, br.path, br.path)
+			if err != nil {
+				return nil, err
+			}
+			ctx.EnvVars = val
+
+			ctxs = append(ctxs, ctx)
+		}
+	}
+
+	return ctxs, nil
 }
