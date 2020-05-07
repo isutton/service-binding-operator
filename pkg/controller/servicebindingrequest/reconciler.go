@@ -4,8 +4,7 @@ import (
 	"context"
 	"errors"
 
-	v1 "github.com/openshift/custom-resource-status/conditions/v1"
-	"github.com/redhat-developer/service-binding-operator/pkg/conditions"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,6 +15,14 @@ import (
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
+)
+
+const (
+	// BindingReady indicates that the binding succeeded
+	BindingReady conditionsv1.ConditionType = "Ready"
+	// EmptyServiceSelectorsReason is used when the ServiceBindingRequest has empty
+	// backingServiceSelectors.
+	EmptyServiceSelectorsReason = "EmptyServiceSelectors"
 )
 
 // Reconciler reconciles a ServiceBindingRequest object
@@ -122,10 +129,10 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 
 	selectors := extractServiceSelectors(sbr)
 	if len(selectors) == 0 {
-		v1.SetStatusCondition(&sbr.Status.Conditions, v1.Condition{
-			Type:    conditions.BindingReady,
+		conditionsv1.SetStatusCondition(&sbr.Status.Conditions, conditionsv1.Condition{
+			Type:    BindingReady,
 			Status:  corev1.ConditionFalse,
-			Reason:  conditions.EmptyServiceSelectorsReason,
+			Reason:  EmptyServiceSelectorsReason,
 			Message: "The spec.backingServiceSelectors field is empty.",
 		})
 		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)

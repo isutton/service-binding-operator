@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
-	"github.com/redhat-developer/service-binding-operator/pkg/conditions"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -71,7 +70,7 @@ func TestApplicationSelectorByName(t *testing.T) {
 		sbrOutput, err := reconciler.getServiceBindingRequest(namespacedName)
 		require.NoError(t, err)
 
-		require.Equal(t, conditions.BindingReady, sbrOutput.Status.Conditions[0].Type)
+		require.Equal(t, BindingReady, sbrOutput.Status.Conditions[0].Type)
 		require.Equal(t, corev1.ConditionTrue, sbrOutput.Status.Conditions[0].Status)
 		require.Equal(t, 1, len(sbrOutput.Status.Applications))
 		expectedStatus := v1alpha1.BoundApplication{
@@ -128,7 +127,7 @@ func TestReconcilerReconcileUsingSecret(t *testing.T) {
 		sbrOutput, err := reconciler.getServiceBindingRequest(namespacedName)
 		require.NoError(t, err)
 
-		require.Equal(t, conditions.BindingReady, sbrOutput.Status.Conditions[0].Type)
+		require.Equal(t, BindingReady, sbrOutput.Status.Conditions[0].Type)
 		require.Equal(t, corev1.ConditionTrue, sbrOutput.Status.Conditions[0].Status)
 		require.Equal(t, reconcilerName, sbrOutput.Status.Secret)
 
@@ -216,7 +215,7 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	require.True(t,
 		conditionsv1.IsStatusConditionPresentAndEqual(
 			sbrOutput.Status.Conditions,
-			conditions.BindingReady,
+			BindingReady,
 			corev1.ConditionTrue,
 		),
 		"Ready condition should exist and true; existing conditions: %+v",
@@ -239,7 +238,7 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	sbrOutput2, err := reconciler.getServiceBindingRequest(namespacedName)
 	require.NoError(t, err)
 
-	require.Equal(t, conditions.BindingReady, sbrOutput2.Status.Conditions[0].Type)
+	require.Equal(t, BindingReady, sbrOutput2.Status.Conditions[0].Type)
 	require.Equal(t, corev1.ConditionTrue, sbrOutput2.Status.Conditions[0].Status)
 	require.Equal(t, reconcilerName, sbrOutput2.Status.Secret)
 	require.Equal(t, 1, len(sbrOutput2.Status.Applications))
@@ -262,7 +261,7 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	d = appsv1.Deployment{}
 	require.NoError(t, fakeClient.Get(ctx, namespacedName, &d))
 
-	require.Equal(t, conditions.BindingReady, sbrOutput3.Status.Conditions[0].Type)
+	require.Equal(t, BindingReady, sbrOutput3.Status.Conditions[0].Type)
 	require.Equal(t, corev1.ConditionTrue, sbrOutput3.Status.Conditions[0].Status)
 	require.Equal(t, reconcilerName, sbrOutput3.Status.Secret)
 	require.Equal(t, s.Data["password"], []byte("abc123"))
@@ -313,7 +312,7 @@ func TestReconcilerReconcileWithConflictingAppSelc(t *testing.T) {
 			},
 		}
 
-		require.Equal(t, conditions.BindingReady, sbrOutput.Status.Conditions[0].Type)
+		require.Equal(t, BindingReady, sbrOutput.Status.Conditions[0].Type)
 		require.Equal(t, corev1.ConditionTrue, sbrOutput.Status.Conditions[0].Status)
 		require.Equal(t, reconcilerName, sbrOutput.Status.Secret)
 		require.True(t, reflect.DeepEqual(expectedStatus, sbrOutput.Status.Applications[0]))
@@ -338,7 +337,7 @@ func TestEmptyApplicationSelector(t *testing.T) {
 	sbrOutput, err := reconciler.getServiceBindingRequest(namespacedName)
 	require.NoError(t, err)
 
-	require.Equal(t, conditions.BindingReady, sbrOutput.Status.Conditions[0].Type)
+	require.Equal(t, BindingReady, sbrOutput.Status.Conditions[0].Type)
 	// Currently the Conditions[0].Status would be true as application's absence won't cause error
 	// TODO New steps to conditions to be introduced - InjectionReady, CollectionReady
 	require.Equal(t, corev1.ConditionTrue, sbrOutput.Status.Conditions[0].Status)

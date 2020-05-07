@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
-	"github.com/redhat-developer/service-binding-operator/pkg/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/stretchr/testify/require"
@@ -409,7 +408,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   conditions.BindingReady,
+				Type:   BindingReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
@@ -448,7 +447,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   conditions.BindingReady,
+				Type:   BindingReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
@@ -488,7 +487,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   conditions.BindingReady,
+				Type:   BindingReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
@@ -509,7 +508,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		wantErr: EmptyApplicationSelectorErr,
 		wantConditions: []wantedCondition{
 			{
-				Type:    conditions.BindingReady,
+				Type:    BindingReady,
 				Status:  corev1.ConditionFalse,
 				Reason:  BindingFail,
 				Message: EmptyApplicationSelectorErr.Error(),
@@ -543,7 +542,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   conditions.BindingReady,
+				Type:   BindingReady,
 				Status: corev1.ConditionTrue,
 			},
 		},

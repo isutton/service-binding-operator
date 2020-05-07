@@ -16,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
-	"github.com/redhat-developer/service-binding-operator/pkg/conditions"
 	"github.com/redhat-developer/service-binding-operator/pkg/converter"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
@@ -233,7 +232,7 @@ func (b *ServiceBinder) onError(
 		b.setApplicationObjects(sbrStatus, objs)
 	}
 	conditionsv1.SetStatusCondition(&sbrStatus.Conditions, conditionsv1.Condition{
-		Type:    conditions.BindingReady,
+		Type:    BindingReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  BindingFail,
 		Message: b.message(err),
@@ -274,7 +273,7 @@ func (b *ServiceBinder) Bind() (reconcile.Result, error) {
 	}
 
 	conditionsv1.SetStatusCondition(&sbrStatus.Conditions, conditionsv1.Condition{
-		Type:   conditions.BindingReady,
+		Type:   BindingReady,
 		Status: corev1.ConditionTrue,
 	})
 
