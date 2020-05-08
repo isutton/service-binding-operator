@@ -22,7 +22,7 @@ type ServiceContext struct {
 	// VolumeKeys contains the keys that should be mounted as volume from the binding secret.
 	VolumeKeys []string
 	// EnvVarPrefix indicates the prefix to use in environment variables.
-	EnvVarPrefix string
+	EnvVarPrefix *string
 }
 
 // ServiceContextList is a list of ServiceContext values.
@@ -58,7 +58,7 @@ func buildServiceContexts(
 			svcEnvVarPrefix = *s.EnvVarPrefix
 		}
 		svcCtx, err := buildServiceContext(
-			client, *s.Namespace, gvk, s.ResourceRef, svcEnvVarPrefix, restMapper)
+			client, *s.Namespace, gvk, s.ResourceRef, &svcEnvVarPrefix, restMapper)
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +91,7 @@ func findOwnedResourcesCtxs(
 	name string,
 	uid types.UID,
 	gvk schema.GroupVersionKind,
-	envVarPrefix string,
+	envVarPrefix *string,
 	restMapper meta.RESTMapper,
 ) (ServiceContextList, error) {
 	ownedResources, err := getOwnedResources(
@@ -121,7 +121,7 @@ func buildServiceContext(
 	ns string,
 	gvk schema.GroupVersionKind,
 	resourceRef string,
-	envVarPrefix string,
+	envVarPrefix *string,
 	restMapper meta.RESTMapper,
 ) (*ServiceContext, error) {
 	obj, err := findService(client, ns, gvk, resourceRef)

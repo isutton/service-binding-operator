@@ -43,9 +43,13 @@ func buildServiceEnvVars(svcCtx *ServiceContext, globalEnvVarPrefix string) (map
 	if len(globalEnvVarPrefix) > 0 {
 		prefixes = append(prefixes, globalEnvVarPrefix)
 	}
-	if len(svcCtx.EnvVarPrefix) > 0 {
-		prefixes = append(prefixes, svcCtx.EnvVarPrefix)
+	if svcCtx.EnvVarPrefix != nil && len(*svcCtx.EnvVarPrefix) > 0 {
+		prefixes = append(prefixes, *svcCtx.EnvVarPrefix)
 	}
+	if svcCtx.EnvVarPrefix == nil {
+		prefixes = append(prefixes, svcCtx.Service.GroupVersionKind().Kind)
+	}
+
 	return envvars.Build(svcCtx.EnvVars, prefixes...)
 }
 

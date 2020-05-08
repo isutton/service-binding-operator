@@ -185,7 +185,7 @@ func getOwnedResources(
 func buildOwnedResourceContexts(
 	client dynamic.Interface,
 	objs []*unstructured.Unstructured,
-	svcEnvVarPrefix string,
+	svcEnvVarPrefix *string,
 	restMapper meta.RESTMapper,
 ) ([]*ServiceContext, error) {
 	ctxs := make(ServiceContextList, 0)

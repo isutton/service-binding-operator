@@ -109,7 +109,7 @@ func TestFindOwnedResourcesCtxs_ConfigMap(t *testing.T) {
 			cr.GetName(),
 			cr.GetUID(),
 			cr.GroupVersionKind(),
-			"",
+			nil,
 			restMapper,
 		)
 		require.NoError(t, err)
@@ -153,7 +153,7 @@ func TestFindOwnedResourcesCtxs_Secret(t *testing.T) {
 			cr.GetName(),
 			cr.GetUID(),
 			cr.GroupVersionKind(),
-			"",
+			nil,
 			restMapper,
 		)
 		require.NoError(t, err)

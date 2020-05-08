@@ -76,61 +76,72 @@ func TestBuildServiceEnvVars(t *testing.T) {
 		expected           map[string]string
 	}
 
+	cr, err := mocks.UnstructuredDatabaseCRMock("namespace", "name")
+	require.NoError(t, err)
+
+	serviceEnvVarPrefix := "serviceprefix"
+	emptyString := ""
+
 	testCases := []testCase{
 		{
-			globalEnvVarPrefix: "GLOBAL",
+			globalEnvVarPrefix: "",
 			ctx: &ServiceContext{
-				EnvVarPrefix: "SERVICE",
+				EnvVarPrefix: &emptyString,
 				EnvVars: map[string]interface{}{
-					"status": map[string]interface{}{
-						"host": "localhost",
-					},
+					"apiKey": "my-secret-key",
 				},
 			},
 			expected: map[string]string{
-				"GLOBAL_SERVICE_STATUS_HOST": "localhost",
+				"APIKEY": "my-secret-key",
+			},
+		},
+		{
+			globalEnvVarPrefix: "globalprefix",
+			ctx: &ServiceContext{
+				EnvVarPrefix: &emptyString,
+				EnvVars: map[string]interface{}{
+					"apiKey": "my-secret-key",
+				},
+			},
+			expected: map[string]string{
+				"GLOBALPREFIX_APIKEY": "my-secret-key",
+			},
+		},
+		{
+			globalEnvVarPrefix: "globalprefix",
+			ctx: &ServiceContext{
+				EnvVarPrefix: &serviceEnvVarPrefix,
+				EnvVars: map[string]interface{}{
+					"apiKey": "my-secret-key",
+				},
+			},
+			expected: map[string]string{
+				"GLOBALPREFIX_SERVICEPREFIX_APIKEY": "my-secret-key",
 			},
 		},
 		{
 			globalEnvVarPrefix: "",
 			ctx: &ServiceContext{
-				EnvVarPrefix: "",
+				Service:      cr,
+				EnvVarPrefix: nil,
 				EnvVars: map[string]interface{}{
-					"status": map[string]interface{}{
-						"host": "localhost",
-					},
+					"apiKey": "my-secret-key",
 				},
 			},
 			expected: map[string]string{
-				"STATUS_HOST": "localhost",
+				"DATABASE_APIKEY": "my-secret-key",
 			},
 		},
 		{
 			globalEnvVarPrefix: "",
 			ctx: &ServiceContext{
-				EnvVarPrefix: "SERVICE",
+				EnvVarPrefix: &serviceEnvVarPrefix,
 				EnvVars: map[string]interface{}{
-					"status": map[string]interface{}{
-						"host": "localhost",
-					},
+					"apiKey": "my-secret-key",
 				},
 			},
 			expected: map[string]string{
-				"SERVICE_STATUS_HOST": "localhost",
-			},
-		},
-		{
-			globalEnvVarPrefix: "GLOBAL",
-			ctx: &ServiceContext{
-				EnvVarPrefix: "",
-				EnvVars: map[string]interface{}{
-					"status": map[string]interface{}{
-						"host": "localhost",
-					},
-				},
-			},
-			expected: map[string]string{
-				"GLOBAL_STATUS_HOST": "localhost",
+				"SERVICEPREFIX_APIKEY": "my-secret-key",
 			},
 		},
 	}
