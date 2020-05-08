@@ -87,6 +87,30 @@ func TestBuild(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "should create envvars without prefix",
+			expected: map[string]string{
+				"STATUS_LISTENERS_0_TYPE":             "secure",
+				"STATUS_LISTENERS_0_ADDRESSES_0_HOST": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+				"STATUS_LISTENERS_0_ADDRESSES_0_PORT": "9093",
+			},
+			path: []string{""},
+			src: map[string]interface{}{
+				"status": map[string]interface{}{
+					"listeners": []map[string]interface{}{
+						{
+							"type": "secure",
+							"addresses": []map[string]interface{}{
+								{
+									"host": "my-cluster-kafka-bootstrap.coffeeshop.svc",
+									"port": "9093",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
