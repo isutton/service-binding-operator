@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -35,6 +36,7 @@ func NewSecretHandler(
 	client dynamic.Interface,
 	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
+	restMapper meta.RESTMapper,
 ) (Handler, error) {
 	h, err := NewResourceHandler(
 		client,
@@ -45,6 +47,7 @@ func NewSecretHandler(
 			Resource: "secrets",
 		},
 		&dataPath,
+		restMapper,
 	)
 	if err != nil {
 		return nil, err

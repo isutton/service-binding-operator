@@ -6,6 +6,7 @@ import (
 
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,9 +28,10 @@ const (
 
 // Reconciler reconciles a ServiceBindingRequest object
 type Reconciler struct {
-	client    client.Client     // kubernetes api client
-	dynClient dynamic.Interface // kubernetes dynamic api client
-	scheme    *runtime.Scheme   // api scheme
+	client     client.Client     // kubernetes api client
+	dynClient  dynamic.Interface // kubernetes dynamic api client
+	scheme     *runtime.Scheme   // api scheme
+	RestMapper meta.RESTMapper   // restMapper to convert GVK and GVR
 }
 
 // reconcilerLog local logger instance
@@ -152,6 +154,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		sbr.GetNamespace(),
 		selectors,
 		sbr.Spec.DetectBindingResources,
+		r.RestMapper,
 	)
 	if err != nil {
 		return RequeueError(err)

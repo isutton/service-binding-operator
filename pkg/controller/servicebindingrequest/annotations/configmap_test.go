@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/redhat-developer/service-binding-operator/pkg/testutils"
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
 
@@ -30,12 +31,15 @@ func TestConfigMapHandler(t *testing.T) {
 				f.AddMockResource(r)
 			}
 
+			restMapper := testutils.BuildTestRESTMapper()
+
 			bindingInfo, err := NewBindingInfo(args.name, args.value)
 			require.NoError(t, err)
 			handler, err := NewConfigMapHandler(
 				f.FakeDynClient(),
 				bindingInfo,
 				unstructured.Unstructured{Object: args.service},
+				restMapper,
 			)
 			require.NoError(t, err)
 			got, err := handler.Handle()
@@ -72,15 +76,13 @@ func TestConfigMapHandler(t *testing.T) {
 			},
 		},
 		expected: map[string]interface{}{
-			"status": map[string]interface{}{
-				"dbCredentials": map[string]interface{}{
-					"password": "hunter2",
-				},
+			"configmap": map[string]interface{}{
+				"password": "hunter2",
 			},
 		},
 	}))
 
-	t.Run("secret/map", assertHandler(args{
+	t.Run("configmap/map", assertHandler(args{
 		name:  "servicebindingoperator.redhat.io/status.dbCredentials",
 		value: "binding:env:object:configmap",
 		service: map[string]interface{}{
@@ -107,10 +109,12 @@ func TestConfigMapHandler(t *testing.T) {
 			},
 		},
 		expected: map[string]interface{}{
-			"status": map[string]interface{}{
-				"dbCredentials": map[string]interface{}{
-					"username": "AzureDiamond",
-					"password": "hunter2",
+			"configmap": map[string]interface{}{
+				"status": map[string]interface{}{
+					"dbCredentials": map[string]interface{}{
+						"username": "AzureDiamond",
+						"password": "hunter2",
+					},
 				},
 			},
 		},

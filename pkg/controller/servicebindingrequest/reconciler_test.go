@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
+	"github.com/redhat-developer/service-binding-operator/pkg/testutils"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,9 +57,16 @@ func TestApplicationSelectorByName(t *testing.T) {
 	f.AddMockedUnstructuredDeployment(reconcilerName, nil)
 	f.AddMockedUnstructuredSecret("db-credentials")
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	fakeClient := f.FakeClient()
 	fakeDynClient := f.FakeDynClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
+	reconciler := &Reconciler{
+		RestMapper: restMapper,
+		client:     fakeClient,
+		dynClient:  fakeDynClient,
+		scheme:     f.S,
+	}
 
 	t.Run("test-application-selector-by-name", func(t *testing.T) {
 
@@ -104,9 +112,16 @@ func TestReconcilerReconcileUsingSecret(t *testing.T) {
 	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)
 	f.AddMockedUnstructuredSecret("db-credentials")
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	fakeClient := f.FakeClient()
 	fakeDynClient := f.FakeDynClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
+	reconciler := &Reconciler{
+		RestMapper: restMapper,
+		client:     fakeClient,
+		dynClient:  fakeDynClient,
+		scheme:     f.S,
+	}
 
 	t.Run("reconcile-using-secret", func(t *testing.T) {
 		res, err := reconciler.Reconcile(reconcileRequest())
@@ -161,8 +176,15 @@ func TestReconcilerReconcileUsingVolumes(t *testing.T) {
 	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)
 	f.AddMockedUnstructuredSecret("db-credentials")
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	fakeClient := f.FakeClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
+	reconciler := &Reconciler{
+		RestMapper: restMapper,
+		client:     fakeClient,
+		dynClient:  f.FakeDynClient(),
+		scheme:     f.S,
+	}
 
 	t.Run("reconcile-using-volume", func(t *testing.T) {
 		res, err := reconciler.Reconcile(reconcileRequest())
@@ -200,8 +222,15 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
 	f.AddMockedUnstructuredSecret("db-credentials")
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	fakeClient := f.FakeClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
+	reconciler := &Reconciler{
+		RestMapper: restMapper,
+		client:     fakeClient,
+		dynClient:  f.FakeDynClient(),
+		scheme:     f.S,
+	}
 
 	// Reconcile without deployment
 	res, err := reconciler.Reconcile(reconcileRequest())
@@ -227,7 +256,12 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	f.AddMockedUnstructuredDeployment(reconcilerName, matchLabels)
 
 	fakeClient = f.FakeClient()
-	reconciler = &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
+	reconciler = &Reconciler{
+		RestMapper: restMapper,
+		client:     fakeClient,
+		dynClient:  f.FakeDynClient(),
+		scheme:     f.S,
+	}
 	res, err = reconciler.Reconcile(reconcileRequest())
 	require.NoError(t, err)
 	require.False(t, res.Requeue)
@@ -250,7 +284,13 @@ func TestReconcilerGenericBinding(t *testing.T) {
 	s.Data["password"] = []byte("abc123")
 	require.NoError(t, fakeClient.Update(ctx, &s))
 
-	reconciler = &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
+	reconciler = &Reconciler{
+		RestMapper: restMapper,
+		client:     fakeClient,
+		dynClient:  f.FakeDynClient(),
+		scheme:     f.S,
+	}
+
 	res, err = reconciler.Reconcile(reconcileRequest())
 	require.NoError(t, err)
 	require.False(t, res.Requeue)
@@ -289,7 +329,37 @@ func TestReconcilerReconcileWithConflictingAppSelc(t *testing.T) {
 
 	fakeClient := f.FakeClient()
 	fakeDynClient := f.FakeDynClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: fakeDynClient, scheme: f.S}
+
+	// configMapRestMapper := meta.NewDefaultRESTMapper(
+	// 	[]schema.GroupVersion{
+	// 		{Version: "v1"},
+	// 	},
+	// )
+	// configMapRestMapper.Add(
+	// 	schema.GroupVersionKind{Kind: "ConfigMap", Version: "v1"},
+	// 	meta.RESTScopeNamespace,
+	// )
+
+	// secretRestMapper := meta.NewDefaultRESTMapper(
+	// 	[]schema.GroupVersion{
+	// 		{Version: "v1"},
+	// 	},
+	// )
+	// secretRestMapper.Add(
+	// 	schema.GroupVersionKind{Kind: "Secret", Version: "v1"},
+	// 	meta.RESTScopeNamespace,
+	// )
+
+	// multiRestMapper := meta.MultiRESTMapper{configMapRestMapper, secretRestMapper}
+
+	restMapper := testutils.BuildTestRESTMapper()
+
+	reconciler := &Reconciler{
+		client:     fakeClient,
+		dynClient:  fakeDynClient,
+		scheme:     f.S,
+		RestMapper: restMapper,
+	}
 
 	t.Run("test-reconciler-reconcile-with-conflicting-application-selector", func(t *testing.T) {
 
@@ -326,8 +396,15 @@ func TestEmptyApplicationSelector(t *testing.T) {
 	f.AddMockedUnstructuredServiceBindingRequestWithoutApplication(reconcilerName, backingServiceResourceRef)
 	f.AddMockedUnstructuredDatabaseCR(backingServiceResourceRef)
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	fakeClient := f.FakeClient()
-	reconciler := &Reconciler{client: fakeClient, dynClient: f.FakeDynClient(), scheme: f.S}
+	reconciler := &Reconciler{
+		RestMapper: restMapper,
+		client:     fakeClient,
+		dynClient:  f.FakeDynClient(),
+		scheme:     f.S,
+	}
 
 	res, err := reconciler.Reconcile(reconcileRequest())
 	require.NoError(t, err)

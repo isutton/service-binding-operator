@@ -3,6 +3,7 @@ package annotations
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 )
@@ -67,6 +68,7 @@ func BuildHandler(
 	obj *unstructured.Unstructured,
 	annotationKey string,
 	annotationValue string,
+	restMapper meta.RESTMapper,
 ) (Handler, error) {
 	bindingInfo, err := NewBindingInfo(annotationKey, annotationValue)
 	if err != nil {
@@ -79,9 +81,9 @@ func BuildHandler(
 	case IsAttribute(val):
 		return NewAttributeHandler(bindingInfo, *obj), nil
 	case IsSecret(val):
-		return NewSecretHandler(kubeClient, bindingInfo, *obj)
+		return NewSecretHandler(kubeClient, bindingInfo, *obj, restMapper)
 	case IsConfigMap(val):
-		return NewConfigMapHandler(kubeClient, bindingInfo, *obj)
+		return NewConfigMapHandler(kubeClient, bindingInfo, *obj, restMapper)
 	default:
 		return nil, ErrHandlerNotFound(val)
 	}

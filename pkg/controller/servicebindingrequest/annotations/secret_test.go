@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/redhat-developer/service-binding-operator/pkg/testutils"
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 )
 
@@ -30,12 +31,15 @@ func TestSecretHandler(t *testing.T) {
 				f.AddMockResource(r)
 			}
 
+			restMapper := testutils.BuildTestRESTMapper()
+
 			bindingInfo, err := NewBindingInfo(args.name, args.value)
 			require.NoError(t, err)
 			handler, err := NewSecretHandler(
 				f.FakeDynClient(),
 				bindingInfo,
 				unstructured.Unstructured{Object: args.service},
+				restMapper,
 			)
 			require.NoError(t, err)
 			got, err := handler.Handle()
@@ -71,10 +75,8 @@ func TestSecretHandler(t *testing.T) {
 			},
 		},
 		expected: map[string]interface{}{
-			"status": map[string]interface{}{
-				"dbCredentials": map[string]interface{}{
-					"password": "hunter2",
-				},
+			"secret": map[string]interface{}{
+				"password": "hunter2",
 			},
 		},
 	}))
@@ -106,10 +108,12 @@ func TestSecretHandler(t *testing.T) {
 			},
 		},
 		expected: map[string]interface{}{
-			"status": map[string]interface{}{
-				"dbCredentials": map[string]interface{}{
-					"username": "AzureDiamond",
-					"password": "hunter2",
+			"secret": map[string]interface{}{
+				"status": map[string]interface{}{
+					"dbCredentials": map[string]interface{}{
+						"username": "AzureDiamond",
+						"password": "hunter2",
+					},
 				},
 			},
 		},

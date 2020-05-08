@@ -1,6 +1,7 @@
 package annotations
 
 import (
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -19,6 +20,7 @@ func NewConfigMapHandler(
 	client dynamic.Interface,
 	bindingInfo *BindingInfo,
 	resource unstructured.Unstructured,
+	restMapper meta.RESTMapper,
 ) (Handler, error) {
 	return NewResourceHandler(
 		client,
@@ -29,5 +31,6 @@ func NewConfigMapHandler(
 			Resource: "configmaps",
 		},
 		&dataPath,
+		restMapper,
 	)
 }

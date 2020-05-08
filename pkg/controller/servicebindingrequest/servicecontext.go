@@ -4,6 +4,7 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,6 +44,7 @@ func buildServiceContexts(
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
 	includeServiceOwnedResources bool,
+	restMapper meta.RESTMapper,
 ) (ServiceContextList, error) {
 	serviceCtxs := make(ServiceContextList, 0)
 	for _, s := range selectors {
@@ -56,7 +58,7 @@ func buildServiceContexts(
 			svcEnvVarPrefix = *s.EnvVarPrefix
 		}
 		svcCtx, err := buildServiceContext(
-			client, *s.Namespace, gvk, s.ResourceRef, svcEnvVarPrefix)
+			client, *s.Namespace, gvk, s.ResourceRef, svcEnvVarPrefix, restMapper)
 		if err != nil {
 			return nil, err
 		}
@@ -71,6 +73,7 @@ func buildServiceContexts(
 				svcCtx.Service.GetUID(),
 				gvk,
 				svcCtx.EnvVarPrefix,
+				restMapper,
 			)
 			if err != nil {
 				return nil, err
@@ -89,6 +92,7 @@ func findOwnedResourcesCtxs(
 	uid types.UID,
 	gvk schema.GroupVersionKind,
 	envVarPrefix string,
+	restMapper meta.RESTMapper,
 ) (ServiceContextList, error) {
 	ownedResources, err := getOwnedResources(
 		client,
@@ -105,6 +109,7 @@ func findOwnedResourcesCtxs(
 		client,
 		ownedResources,
 		envVarPrefix,
+		restMapper,
 	)
 }
 
@@ -117,6 +122,7 @@ func buildServiceContext(
 	gvk schema.GroupVersionKind,
 	resourceRef string,
 	envVarPrefix string,
+	restMapper meta.RESTMapper,
 ) (*ServiceContext, error) {
 	obj, err := findService(client, ns, gvk, resourceRef)
 	if err != nil {
@@ -159,7 +165,13 @@ func buildServiceContext(
 	envVars := make(map[string]interface{})
 
 	for annotationKey, annotationValue := range anns {
-		h, err := annotations.BuildHandler(client, obj, annotationKey, annotationValue)
+		h, err := annotations.BuildHandler(
+			client,
+			obj,
+			annotationKey,
+			annotationValue,
+			restMapper,
+		)
 		if err != nil {
 			if err == annotations.ErrInvalidAnnotationPrefix || annotations.IsErrHandlerNotFound(err) {
 				continue

@@ -6,6 +6,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	pgv1alpha1 "github.com/operator-backing-service-samples/postgresql-operator/pkg/apis/postgresql/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
+	"github.com/redhat-developer/service-binding-operator/pkg/testutils"
 	"github.com/redhat-developer/service-binding-operator/test/mocks"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,22 +32,24 @@ func TestBuildServiceContexts(t *testing.T) {
 	f.AddMockedUnstructuredDatabaseCRD()
 	f.AddMockedUnstructuredSecret("db-credentials")
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	t.Run("existing selectors", func(t *testing.T) {
 		serviceCtxs, err := buildServiceContexts(
-			f.FakeDynClient(), ns, extractServiceSelectors(sbr), false)
+			f.FakeDynClient(), ns, extractServiceSelectors(sbr), false, restMapper)
 		require.NoError(t, err)
 		require.NotEmpty(t, serviceCtxs)
 	})
 
 	t.Run("empty selectors", func(t *testing.T) {
-		serviceCtxs, err := buildServiceContexts(f.FakeDynClient(), ns, nil, false)
+		serviceCtxs, err := buildServiceContexts(f.FakeDynClient(), ns, nil, false, restMapper)
 		require.NoError(t, err)
 		require.Empty(t, serviceCtxs)
 	})
 
 	t.Run("services in different namespace", func(t *testing.T) {
 		serviceCtxs, err := buildServiceContexts(
-			f.FakeDynClient(), ns, extractServiceSelectors(sbr), false)
+			f.FakeDynClient(), ns, extractServiceSelectors(sbr), false, restMapper)
 		require.NoError(t, err)
 		require.NotEmpty(t, serviceCtxs)
 	})
@@ -97,6 +100,8 @@ func TestFindOwnedResourcesCtxs_ConfigMap(t *testing.T) {
 	f.AddMockResource(us)
 	f.AddMockResource(&unstructured.Unstructured{Object: route})
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	t.Run("existing selectors", func(t *testing.T) {
 		ownedResourcesCtxs, err := findOwnedResourcesCtxs(
 			f.FakeDynClient(),
@@ -105,6 +110,7 @@ func TestFindOwnedResourcesCtxs_ConfigMap(t *testing.T) {
 			cr.GetUID(),
 			cr.GroupVersionKind(),
 			"",
+			restMapper,
 		)
 		require.NoError(t, err)
 		require.NotEmpty(t, ownedResourcesCtxs)
@@ -138,6 +144,8 @@ func TestFindOwnedResourcesCtxs_Secret(t *testing.T) {
 	f.AddMockResource(us)
 	f.AddMockResource(&unstructured.Unstructured{Object: route})
 
+	restMapper := testutils.BuildTestRESTMapper()
+
 	t.Run("existing selectors", func(t *testing.T) {
 		ownedResourcesCtxs, err := findOwnedResourcesCtxs(
 			f.FakeDynClient(),
@@ -146,6 +154,7 @@ func TestFindOwnedResourcesCtxs_Secret(t *testing.T) {
 			cr.GetUID(),
 			cr.GroupVersionKind(),
 			"",
+			restMapper,
 		)
 		require.NoError(t, err)
 		require.NotEmpty(t, ownedResourcesCtxs)

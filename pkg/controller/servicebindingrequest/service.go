@@ -186,6 +186,7 @@ func buildOwnedResourceContexts(
 	client dynamic.Interface,
 	objs []*unstructured.Unstructured,
 	svcEnvVarPrefix string,
+	restMapper meta.RESTMapper,
 ) ([]*ServiceContext, error) {
 	ctxs := make(ServiceContextList, 0)
 
@@ -200,6 +201,7 @@ func buildOwnedResourceContexts(
 				obj.GetObjectKind().GroupVersionKind(),
 				obj.GetName(),
 				svcEnvVarPrefix,
+				restMapper,
 			)
 			if err != nil {
 				return nil, err

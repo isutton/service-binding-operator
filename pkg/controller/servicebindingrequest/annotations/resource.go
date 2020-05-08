@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,6 +34,9 @@ type ResourceHandler struct {
 	// inputPathRoot indicates the root where input paths will be applied to extract a value from the
 	// resource.
 	inputPathRoot *string
+	// restMapper allows clients to map resources to kind, and map kind and version
+	// to interfaces for manipulating those objects.
+	restMapper meta.RESTMapper
 }
 
 // discoverRelatedResourceName returns the resource name referenced by the handler. Can return an
@@ -68,18 +72,6 @@ func discoverBindingType(val string) (bindingType, error) {
 		return "", UnknownBindingTypeErr(t)
 	}
 	return t, nil
-}
-
-// getOutputPath infers the output path based on the given bindingInfo value.
-//
-// In the case the resource reference and source path are the same, the resource reference path is
-// returned; otherwise the output path is the source path prefixed by the resource reference path.
-func getOutputPath(bindingInfo *BindingInfo) string {
-	outputPath := bindingInfo.ResourceReferencePath
-	if bindingInfo.ResourceReferencePath != bindingInfo.SourcePath {
-		outputPath = bindingInfo.ResourceReferencePath + "." + bindingInfo.SourcePath
-	}
-	return outputPath
 }
 
 // getInputPathFields infers the input path fields based on the given bindingInfo value.
@@ -145,7 +137,17 @@ func (h *ResourceHandler) Handle() (Result, error) {
 		return Result{}, err
 	}
 
-	outputPath := getOutputPath(h.bindingInfo)
+	// get resource's kind.
+	gvk, err := h.restMapper.KindFor(h.relatedGroupVersionResource)
+	if err != nil {
+		return Result{}, err
+	}
+
+	// prefix the output path with the kind of the resource.
+	outputPath := strings.Join([]string{
+		strings.ToLower(gvk.Kind),
+		h.bindingInfo.SourcePath,
+	}, ".")
 
 	return Result{
 		Object: nested.ComposeValue(val, nested.NewPath(outputPath)),
@@ -170,6 +172,7 @@ func NewResourceHandler(
 	resource unstructured.Unstructured,
 	relatedGroupVersionResource schema.GroupVersionResource,
 	inputPathPrefix *string,
+	restMapper meta.RESTMapper,
 ) (*ResourceHandler, error) {
 	if client == nil {
 		return nil, InvalidArgumentErr("client")
@@ -200,5 +203,6 @@ func NewResourceHandler(
 		relatedResourceName:         relatedResourceName,
 		resource:                    resource,
 		stringValue:                 stringValue,
+		restMapper:                  restMapper,
 	}, nil
 }
