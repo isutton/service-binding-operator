@@ -177,5 +177,5 @@ func GetValue(obj interface{}, p string, o string) (map[string]interface{}, bool
 		return nil, found, err
 	}
 
-	return ComposeValue(val, outputPath), true, nil
+	return ComposeValue(val, outputPath), found, nil
 }
