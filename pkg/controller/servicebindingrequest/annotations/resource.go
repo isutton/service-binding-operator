@@ -103,7 +103,7 @@ func (h *ResourceHandler) Handle() (Result, error) {
 		Namespace(ns).
 		Get(h.relatedResourceName, metav1.GetOptions{})
 	if err != nil {
-		return Result{}, fmt.Errorf("error handling annotation: %w", err)
+		return Result{}, err
 	}
 
 	inputPathFields := getInputPathFields(h.bindingInfo, h.inputPathRoot)
