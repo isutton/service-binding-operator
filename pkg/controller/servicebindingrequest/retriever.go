@@ -107,9 +107,12 @@ func (r *Retriever) GetEnvVars() (map[string][]byte, error) {
 	}
 
 	for k, v := range customEnvVars {
+		prefix := []string{}
 		if len(r.globalEnvVarPrefix) > 0 {
-			k = strings.Join([]string{r.globalEnvVarPrefix, k}, "_")
+			prefix = append(prefix, r.globalEnvVarPrefix)
 		}
+		prefix = append(prefix, k)
+		k = strings.Join(prefix, "_")
 		envVars[k] = []byte(v.(string))
 	}
 
