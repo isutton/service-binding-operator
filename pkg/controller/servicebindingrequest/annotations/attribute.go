@@ -1,6 +1,8 @@
 package annotations
 
 import (
+	"strings"
+
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -45,6 +47,15 @@ func NewAttributeHandler(
 	if len(bindingInfo.ResourceReferencePath) > 0 {
 		outputPath = bindingInfo.ResourceReferencePath
 	}
+
+	// the current implementation removes "status." and "spec." from fields exported through
+	// annotations.
+	for _, prefix := range []string{"status.", "spec."} {
+		if strings.HasPrefix(outputPath, prefix) {
+			outputPath = strings.Replace(outputPath, prefix, "", 1)
+		}
+	}
+
 	return &AttributeHandler{
 		inputPath:  bindingInfo.SourcePath,
 		outputPath: outputPath,

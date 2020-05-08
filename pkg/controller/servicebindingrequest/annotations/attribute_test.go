@@ -30,12 +30,10 @@ func TestAttributeHandler(t *testing.T) {
 	}
 
 	// "scalar" tests whether a single deep scalar value can be extracted from the given object.
-	t.Run("should extract a single value from .status.dbConnectionIP into .status.dbConnectionIP",
+	t.Run("should extract a single value from .status.dbConnectionIP into .dbConnectionIP",
 		assertHandler(args{
 			expected: map[string]interface{}{
-				"status": map[string]interface{}{
-					"dbConnectionIP": "127.0.0.1",
-				},
+				"dbConnectionIP": "127.0.0.1",
 			},
 			key:   "servicebindingoperator.redhat.io/status.dbConnectionIP",
 			value: "binding:env:attribute",
@@ -69,12 +67,10 @@ func TestAttributeHandler(t *testing.T) {
 	)
 
 	// tests whether a deep slice value can be extracted from the given object.
-	t.Run("should extract a slice from .status.dbConnectionIPs into .status.dbConnectionIPs",
+	t.Run("should extract a slice from .status.dbConnectionIPs into .dbConnectionIPs",
 		assertHandler(args{
 			expected: map[string]interface{}{
-				"status": map[string]interface{}{
-					"dbConnectionIPs": []string{"127.0.0.1", "1.1.1.1"},
-				},
+				"dbConnectionIPs": []string{"127.0.0.1", "1.1.1.1"},
 			},
 			key:   "servicebindingoperator.redhat.io/status.dbConnectionIPs",
 			value: "binding:env:attribute",
@@ -89,13 +85,11 @@ func TestAttributeHandler(t *testing.T) {
 	)
 
 	// tests whether a deep map value can be extracted from the given object.
-	t.Run("should extract a map from .status.connection into .status.connection", assertHandler(args{
+	t.Run("should extract a map from .status.connection into .connection", assertHandler(args{
 		expected: map[string]interface{}{
-			"status": map[string]interface{}{
-				"connection": map[string]interface{}{
-					"host": "127.0.0.1",
-					"port": "1234",
-				},
+			"connection": map[string]interface{}{
+				"host": "127.0.0.1",
+				"port": "1234",
 			},
 		},
 		key:   "servicebindingoperator.redhat.io/status.connection",
@@ -113,13 +107,11 @@ func TestAttributeHandler(t *testing.T) {
 	}))
 
 	// "map.key" tests whether a deep map key can be extracted from the given object.
-	t.Run("should extract a single map key from .status.connection into .status.connection",
+	t.Run("should extract a single map key from .status.connection into .connection",
 		assertHandler(args{
 			expected: map[string]interface{}{
-				"status": map[string]interface{}{
-					"connection": map[string]interface{}{
-						"host": "127.0.0.1",
-					},
+				"connection": map[string]interface{}{
+					"host": "127.0.0.1",
 				},
 			},
 			key:   "servicebindingoperator.redhat.io/status.connection.host",
