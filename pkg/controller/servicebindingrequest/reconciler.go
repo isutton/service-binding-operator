@@ -147,7 +147,12 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		return RequeueError(ErrEmptyBackingServiceSelectors)
 	}
 
-	serviceCtxs, err := buildServiceContexts(r.dynClient, sbr.GetNamespace(), selectors)
+	serviceCtxs, err := buildServiceContexts(
+		r.dynClient,
+		sbr.GetNamespace(),
+		selectors,
+		sbr.Spec.DetectBindingResources,
+	)
 	if err != nil {
 		return RequeueError(err)
 	}

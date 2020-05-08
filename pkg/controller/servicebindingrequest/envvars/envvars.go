@@ -72,7 +72,14 @@ func Build(obj interface{}, path ...string) (map[string]string, error) {
 
 // buildEnvVarName returns the environment variable name for the given `path`.
 func buildEnvVarName(path []string) string {
-	envVar := strings.Join(path, "_")
+	// remove empty values from path
+	newPath := []string{}
+	for _, p := range path {
+		if len(p) > 0 {
+			newPath = append(newPath, p)
+		}
+	}
+	envVar := strings.Join(newPath, "_")
 	envVar = strings.ToUpper(envVar)
 	return envVar
 }

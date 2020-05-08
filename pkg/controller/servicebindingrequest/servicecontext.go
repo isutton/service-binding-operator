@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
 	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
@@ -41,6 +42,7 @@ func buildServiceContexts(
 	client dynamic.Interface,
 	ns string,
 	selectors []v1alpha1.BackingServiceSelector,
+	includeServiceOwnedResources bool,
 ) (ServiceContextList, error) {
 	serviceCtxs := make(ServiceContextList, 0)
 	for _, s := range selectors {
@@ -59,23 +61,51 @@ func buildServiceContexts(
 			return nil, err
 		}
 
-		ownedResources, err := getOwnedResources(
-			client, ns, gvk, svcCtx.Service.GetName(), svcCtx.Service.GetUID())
-		if err != nil {
-			return nil, err
-		}
-
-		ownedResourceCtxs, err := buildOwnedResourceContexts(
-			client, ownedResources, svcCtx.EnvVarPrefix)
-		if err != nil {
-			return nil, err
-		}
-
 		serviceCtxs = append(serviceCtxs, svcCtx)
-		serviceCtxs = append(serviceCtxs, ownedResourceCtxs...)
+
+		if includeServiceOwnedResources {
+			ownedResourcesCtxs, err := findOwnedResourcesCtxs(
+				client,
+				ns,
+				svcCtx.Service.GetName(),
+				svcCtx.Service.GetUID(),
+				gvk,
+				svcCtx.EnvVarPrefix,
+			)
+			if err != nil {
+				return nil, err
+			}
+			serviceCtxs = append(serviceCtxs, ownedResourcesCtxs...)
+		}
 	}
 
 	return serviceCtxs, nil
+}
+
+func findOwnedResourcesCtxs(
+	client dynamic.Interface,
+	ns string,
+	name string,
+	uid types.UID,
+	gvk schema.GroupVersionKind,
+	envVarPrefix string,
+) (ServiceContextList, error) {
+	ownedResources, err := getOwnedResources(
+		client,
+		ns,
+		gvk,
+		name,
+		uid,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildOwnedResourceContexts(
+		client,
+		ownedResources,
+		envVarPrefix,
+	)
 }
 
 // buildServiceContext inspects g the API server searching for the service resources, associated CRD
