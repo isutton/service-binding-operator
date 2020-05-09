@@ -111,6 +111,31 @@ func TestBuild(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "should create envvar for int64 type",
+			expected: map[string]string{
+				"STATUS_VALUE": "-9223372036",
+			},
+			src: map[string]interface{}{
+				"status": map[string]interface{}{
+					"value": int64(-9223372036),
+				},
+			},
+		},
+		{
+			name: "should create envvar for float64 type",
+			expected: map[string]string{
+				"": "100.72",
+			},
+			src: float64(100.72),
+		},
+		{
+			name: "should create envvar for empty string type",
+			expected: map[string]string{
+				"": "",
+			},
+			src: "",
+		},
 	}
 
 	for _, tc := range testCases {
