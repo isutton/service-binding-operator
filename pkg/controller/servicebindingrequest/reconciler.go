@@ -219,8 +219,9 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 			},
 		)
 		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
-		if updateErr == nil {
-			return Done()
+		if updateErr != nil {
+			logger.Error(err, "Error updating service-binding-request status.")
+			return RequeueError(updateErr)
 		}
 		return Done()
 	}
