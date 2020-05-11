@@ -61,6 +61,12 @@ func buildServiceContexts(
 
 		serviceCtxs = append(serviceCtxs, svcCtx)
 
+		svcEnvVarPrefix := svcCtx.EnvVarPrefix
+		if svcEnvVarPrefix == nil {
+			s := s.Kind
+			svcEnvVarPrefix = &s
+		}
+
 		if includeServiceOwnedResources {
 			ownedResourcesCtxs, err := findOwnedResourcesCtxs(
 				client,
@@ -68,7 +74,7 @@ func buildServiceContexts(
 				svcCtx.Service.GetName(),
 				svcCtx.Service.GetUID(),
 				gvk,
-				svcCtx.EnvVarPrefix,
+				svcEnvVarPrefix,
 				restMapper,
 			)
 			if err != nil {
