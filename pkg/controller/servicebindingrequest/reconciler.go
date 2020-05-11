@@ -204,12 +204,20 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	if sbr.Spec.ApplicationSelector == emptyApplication ||
 		(sbr.Spec.ApplicationSelector.ResourceRef == "" &&
 			sbr.Spec.ApplicationSelector.LabelSelector.MatchLabels == nil) {
-		conditionsv1.SetStatusCondition(&sbr.Status.Conditions, conditionsv1.Condition{
-			Type:    InjectionReady,
-			Status:  corev1.ConditionFalse,
-			Reason:  EmptyApplicationSelectorReason,
-			Message: "The spec.applicationSelector field is empty.",
-		})
+		conditionsv1.SetStatusCondition(&sbr.Status.Conditions,
+			conditionsv1.Condition{
+				Type:    InjectionReady,
+				Status:  corev1.ConditionFalse,
+				Reason:  EmptyApplicationSelectorReason,
+				Message: "The spec.applicationSelector field is empty.",
+			},
+		)
+		conditionsv1.SetStatusCondition(&sbr.Status.Conditions,
+			conditionsv1.Condition{
+				Type:   CollectionReady,
+				Status: corev1.ConditionTrue,
+			},
+		)
 		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
 		if updateErr == nil {
 			return Done()

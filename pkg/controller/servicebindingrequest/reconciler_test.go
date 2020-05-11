@@ -416,5 +416,9 @@ func TestEmptyApplicationSelector(t *testing.T) {
 
 	require.Equal(t, InjectionReady, sbrOutput.Status.Conditions[0].Type)
 	require.Equal(t, corev1.ConditionFalse, sbrOutput.Status.Conditions[0].Status)
+
+	require.Equal(t, CollectionReady, sbrOutput.Status.Conditions[1].Type)
+	require.Equal(t, corev1.ConditionTrue, sbrOutput.Status.Conditions[1].Status)
+
 	require.Equal(t, 0, len(sbrOutput.Status.Applications))
 }
