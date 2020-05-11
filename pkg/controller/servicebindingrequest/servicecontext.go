@@ -53,12 +53,8 @@ func buildServiceContexts(
 		}
 		gvk := schema.GroupVersionKind{Kind: s.Kind, Version: s.Version, Group: s.Group}
 
-		svcEnvVarPrefix := ""
-		if s.EnvVarPrefix != nil && len(*s.EnvVarPrefix) > 0 {
-			svcEnvVarPrefix = *s.EnvVarPrefix
-		}
 		svcCtx, err := buildServiceContext(
-			client, *s.Namespace, gvk, s.ResourceRef, &svcEnvVarPrefix, restMapper)
+			client, *s.Namespace, gvk, s.ResourceRef, s.EnvVarPrefix, restMapper)
 		if err != nil {
 			return nil, err
 		}
