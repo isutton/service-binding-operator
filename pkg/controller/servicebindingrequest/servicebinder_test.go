@@ -408,7 +408,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   BindingReady,
+				Type:   InjectionReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
@@ -447,7 +447,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   BindingReady,
+				Type:   InjectionReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
@@ -487,7 +487,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   BindingReady,
+				Type:   InjectionReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
@@ -508,7 +508,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		wantErr: EmptyApplicationSelectorErr,
 		wantConditions: []wantedCondition{
 			{
-				Type:    BindingReady,
+				Type:    InjectionReady,
 				Status:  corev1.ConditionFalse,
 				Reason:  BindingFail,
 				Message: EmptyApplicationSelectorErr.Error(),
@@ -542,7 +542,7 @@ func TestServiceBinder_Bind(t *testing.T) {
 		},
 		wantConditions: []wantedCondition{
 			{
-				Type:   BindingReady,
+				Type:   InjectionReady,
 				Status: corev1.ConditionTrue,
 			},
 		},

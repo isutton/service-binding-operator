@@ -19,11 +19,17 @@ import (
 )
 
 const (
-	// BindingReady indicates that the binding succeeded
-	BindingReady conditionsv1.ConditionType = "Ready"
+	// CollectionReady indicates readiness for collection and persistance of intermediate manifests
+	CollectionReady conditionsv1.ConditionType = "CollectionReady"
+	// InjectionReady indicates readiness to change application manifests to use those intermediate manifests
+	// If status is true, it indicates that the binding succeeded
+	InjectionReady conditionsv1.ConditionType = "InjectionReady"
 	// EmptyServiceSelectorsReason is used when the ServiceBindingRequest has empty
 	// backingServiceSelectors.
 	EmptyServiceSelectorsReason = "EmptyServiceSelectors"
+	// EmptyApplicationSelectorReason is used when the ServiceBindingRequest has empty
+	// applicationSelector.
+	EmptyApplicationSelectorReason = "EmptyApplicationSelector"
 )
 
 // Reconciler reconciles a ServiceBindingRequest object
@@ -132,7 +138,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	selectors := extractServiceSelectors(sbr)
 	if len(selectors) == 0 {
 		conditionsv1.SetStatusCondition(&sbr.Status.Conditions, conditionsv1.Condition{
-			Type:    BindingReady,
+			Type:    CollectionReady,
 			Status:  corev1.ConditionFalse,
 			Reason:  EmptyServiceSelectorsReason,
 			Message: "The spec.backingServiceSelectors field is empty.",
@@ -192,6 +198,23 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		logger := logger.WithName("unbind")
 		logger.Info("Executing unbinding steps...")
 		return sb.Unbind()
+	}
+
+	var emptyApplication v1alpha1.ApplicationSelector
+	if sbr.Spec.ApplicationSelector == emptyApplication ||
+		(sbr.Spec.ApplicationSelector.ResourceRef == "" &&
+			sbr.Spec.ApplicationSelector.LabelSelector.MatchLabels == nil) {
+		conditionsv1.SetStatusCondition(&sbr.Status.Conditions, conditionsv1.Condition{
+			Type:    InjectionReady,
+			Status:  corev1.ConditionFalse,
+			Reason:  EmptyApplicationSelectorReason,
+			Message: "The spec.applicationSelector field is empty.",
+		})
+		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
+		if updateErr == nil {
+			return Done()
+		}
+		return Done()
 	}
 
 	logger.Info("Binding applications with intermediary secret...")

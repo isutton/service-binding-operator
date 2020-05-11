@@ -232,7 +232,7 @@ func (b *ServiceBinder) onError(
 		b.setApplicationObjects(sbrStatus, objs)
 	}
 	conditionsv1.SetStatusCondition(&sbrStatus.Conditions, conditionsv1.Condition{
-		Type:    BindingReady,
+		Type:    InjectionReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  BindingFail,
 		Message: b.message(err),
@@ -273,7 +273,7 @@ func (b *ServiceBinder) Bind() (reconcile.Result, error) {
 	}
 
 	conditionsv1.SetStatusCondition(&sbrStatus.Conditions, conditionsv1.Condition{
-		Type:   BindingReady,
+		Type:   InjectionReady,
 		Status: corev1.ConditionTrue,
 	})
 

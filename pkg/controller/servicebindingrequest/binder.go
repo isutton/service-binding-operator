@@ -63,7 +63,7 @@ func (f ExtraFieldsModifierFunc) ModifyExtraFields(u *unstructured.Unstructured)
 	return f(u)
 }
 
-var EmptyApplicationSelectorErr = errors.New("application ResourceRef or MatchLabel not found")
+var EmptyApplicationSelectorErr = errors.New("application resourceRef or matchLabel not found")
 var ApplicationNotFound = errors.New("Application is already deleted")
 
 // search objects based in Kind/APIVersion, which contain the labels defined in ApplicationSelector.
