@@ -137,13 +137,16 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 
 	selectors := extractServiceSelectors(sbr)
 	if len(selectors) == 0 {
-		conditionsv1.SetStatusCondition(&sbr.Status.Conditions, conditionsv1.Condition{
-			Type:    CollectionReady,
-			Status:  corev1.ConditionFalse,
-			Reason:  EmptyServiceSelectorsReason,
-			Message: "The spec.backingServiceSelectors field is empty.",
-		})
-		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
+		_, updateErr := updateServiceBindingRequestStatus(
+			r.dynClient,
+			sbr,
+			conditionsv1.Condition{
+				Type:    CollectionReady,
+				Status:  corev1.ConditionFalse,
+				Reason:  EmptyServiceSelectorsReason,
+				Message: "The spec.backingServiceSelectors field is empty.",
+			},
+		)
 		if updateErr == nil {
 			return Done()
 		}
@@ -204,21 +207,22 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 	if sbr.Spec.ApplicationSelector == emptyApplication ||
 		(sbr.Spec.ApplicationSelector.ResourceRef == "" &&
 			sbr.Spec.ApplicationSelector.LabelSelector.MatchLabels == nil) {
-		conditionsv1.SetStatusCondition(&sbr.Status.Conditions,
-			conditionsv1.Condition{
-				Type:    InjectionReady,
-				Status:  corev1.ConditionFalse,
-				Reason:  EmptyApplicationSelectorReason,
-				Message: "The spec.applicationSelector field is empty.",
-			},
+		_, updateErr := updateServiceBindingRequestStatus(
+			r.dynClient,
+			sbr,
+			[]conditionsv1.Condition{
+				conditionsv1.Condition{
+					Type:    InjectionReady,
+					Status:  corev1.ConditionFalse,
+					Reason:  EmptyApplicationSelectorReason,
+					Message: "The spec.applicationSelector field is empty.",
+				},
+				conditionsv1.Condition{
+					Type:   CollectionReady,
+					Status: corev1.ConditionTrue,
+				},
+			}...,
 		)
-		conditionsv1.SetStatusCondition(&sbr.Status.Conditions,
-			conditionsv1.Condition{
-				Type:   CollectionReady,
-				Status: corev1.ConditionTrue,
-			},
-		)
-		_, updateErr := updateServiceBindingRequestStatus(r.dynClient, sbr)
 		if updateErr != nil {
 			logger.Error(err, "Error updating service-binding-request status.")
 			return RequeueError(updateErr)

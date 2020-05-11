@@ -176,7 +176,13 @@ func (b *ServiceBinder) Unbind() (reconcile.Result, error) {
 func updateServiceBindingRequestStatus(
 	dynClient dynamic.Interface,
 	sbr *v1alpha1.ServiceBindingRequest,
+	condition ...conditionsv1.Condition,
 ) (*v1alpha1.ServiceBindingRequest, error) {
+
+	for _, v := range condition {
+		conditionsv1.SetStatusCondition(&sbr.Status.Conditions, v)
+	}
+
 	u, err := converter.ToUnstructured(sbr)
 	if err != nil {
 		return nil, err
