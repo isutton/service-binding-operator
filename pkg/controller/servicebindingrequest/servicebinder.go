@@ -176,10 +176,10 @@ func (b *ServiceBinder) Unbind() (reconcile.Result, error) {
 func updateServiceBindingRequestStatus(
 	dynClient dynamic.Interface,
 	sbr *v1alpha1.ServiceBindingRequest,
-	condition ...conditionsv1.Condition,
+	conditions ...conditionsv1.Condition,
 ) (*v1alpha1.ServiceBindingRequest, error) {
 
-	for _, v := range condition {
+	for _, v := range conditions {
 		conditionsv1.SetStatusCondition(&sbr.Status.Conditions, v)
 	}
 

@@ -93,6 +93,20 @@ func extractServiceSelectors(
 	return selectors
 }
 
+// isApplicationSelectorEmpty returns true if applicationSelector is not declared in
+// the Service Binding Request.
+func isApplicationSelectorEmpty(
+	application v1alpha1.ApplicationSelector,
+) bool {
+	var emptyApplication v1alpha1.ApplicationSelector
+	if application == emptyApplication ||
+		application.ResourceRef == "" &&
+			application.LabelSelector.MatchLabels == nil {
+		return true
+	}
+	return false
+}
+
 // Reconcile a ServiceBindingRequest by the following steps:
 // 1. Inspecting SBR in order to identify backend service. The service is composed by a CRD name and
 //    kind, and by inspecting "connects-to" label identify the name of service instance;
@@ -203,10 +217,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		return sb.Unbind()
 	}
 
-	var emptyApplication v1alpha1.ApplicationSelector
-	if sbr.Spec.ApplicationSelector == emptyApplication ||
-		(sbr.Spec.ApplicationSelector.ResourceRef == "" &&
-			sbr.Spec.ApplicationSelector.LabelSelector.MatchLabels == nil) {
+	if isApplicationSelectorEmpty(sbr.Spec.ApplicationSelector) {
 		_, updateErr := updateServiceBindingRequestStatus(
 			r.dynClient,
 			sbr,
