@@ -26,7 +26,7 @@ func newReconciler(mgr manager.Manager, client dynamic.Interface) (reconcile.Rec
 	return &Reconciler{
 		dynClient:  client,
 		scheme:     mgr.GetScheme(),
-		RestMapper: mgr.GetRESTMapper(),
+		restMapper: mgr.GetRESTMapper(),
 	}, nil
 }
 

@@ -29,7 +29,7 @@ const (
 type Reconciler struct {
 	dynClient  dynamic.Interface // kubernetes dynamic api client
 	scheme     *runtime.Scheme   // api scheme
-	RestMapper meta.RESTMapper   // restMapper to convert GVK and GVR
+	restMapper meta.RESTMapper   // restMapper to convert GVK and GVR
 }
 
 // reconcilerLog local logger instance
@@ -152,7 +152,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		sbr.GetNamespace(),
 		selectors,
 		sbr.Spec.DetectBindingResources,
-		r.RestMapper,
+		r.restMapper,
 	)
 	if err != nil {
 		return RequeueError(err)
@@ -175,7 +175,7 @@ func (r *Reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		Logger:                 logger,
 		Objects:                serviceCtxs.GetServices(),
 		Binding:                binding,
-		RESTMapper:             r.RestMapper,
+		RESTMapper:             r.restMapper,
 	}
 
 	sb, err := BuildServiceBinder(ctx, options)
