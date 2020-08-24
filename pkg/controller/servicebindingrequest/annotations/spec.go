@@ -25,7 +25,9 @@ const (
 	secretObjectType objectType = "Secret"
 	// stringObjectType indicates the path contains a value string.
 	stringObjectType objectType = "string"
-	// emptyObjectType indicates the path contains a value string.
+	// emptyObjectType is used as default value when the objectType key is present in the string
+	// provided by the user but no value has been provided; can be used by the user to force the
+	// system to use the default objectType.
 	emptyObjectType objectType = ""
 
 	// mapElementType indicates the value found at path is a map[string]interface{}.
@@ -159,7 +161,182 @@ func (m *model) getPath() []string {
 	return strings.Split(p, ".")
 }
 
-func (m *model) produceValue(
+func produceStringValue(obj map[string]interface{}, path []string) (string, error) {
+	val, ok, err := unstructured.NestedFieldCopy(obj, path...)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", errors.New("not found")
+	}
+	return fmt.Sprintf("%v", val), nil
+}
+
+func produceStringOfMapValue(obj map[string]interface{}, path []string) (map[string]string, error) {
+	val, ok, err := unstructured.NestedStringMap(obj, path...)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.New("not found")
+	}
+	return val, nil
+}
+
+func produceStringValueFromDataField(
+	kubeClient dynamic.Interface,
+	ns string,
+	objType objectType,
+	obj map[string]interface{},
+	path []string,
+	sourceKey string,
+) (string, error) {
+	if kubeClient == nil {
+		return "", errors.New("kubeClient required for this functionality")
+	}
+
+	var resource schema.GroupVersionResource
+	if objType == secretObjectType {
+		resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
+	} else if objType == configMapObjectType {
+		resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
+	}
+
+	resourceName, ok, err := unstructured.NestedString(obj, path...)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", errors.New("not found")
+	}
+
+	otherObj, err := kubeClient.Resource(resource).Namespace(ns).Get(resourceName, v1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	val, ok, err := unstructured.NestedString(otherObj.Object, "data", sourceKey)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", errors.New("not found")
+	}
+	if objType == secretObjectType {
+		n, err := base64.StdEncoding.DecodeString(val)
+		if err != nil {
+			return "", err
+		}
+		val = string(n)
+	}
+	return val, nil
+}
+
+func produceMapValueFromPath(
+	obj map[string]interface{},
+	path []string,
+	sourceKey string,
+	sourceValue string,
+) (map[string]interface{}, error) {
+	val, ok, err := unstructured.NestedSlice(obj, path...)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.New("not found")
+	}
+
+	r := make(map[string]interface{})
+	for _, e := range val {
+		if mm, ok := e.(map[string]interface{}); ok {
+			k := mm[sourceKey]
+			ks := k.(string)
+			v := mm[sourceValue]
+			r[ks] = v
+		}
+	}
+
+	return r, nil
+}
+
+func produceSliceOfStringsValueFromPath(
+	obj map[string]interface{},
+	path []string,
+	sourceValue string,
+) ([]string, error) {
+	val, ok, err := unstructured.NestedSlice(obj, path...)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.New("not found")
+	}
+
+	r := make([]string, 0, len(val))
+	for _, e := range val {
+		if mm, ok := e.(map[string]interface{}); ok {
+			v := mm[sourceValue].(string)
+			r = append(r, v)
+		}
+	}
+
+	return r, nil
+}
+
+func produceMapValueFromDataField(
+	kubeClient dynamic.Interface,
+	ns string,
+	objType objectType,
+	obj map[string]interface{},
+	path []string,
+	sourceKey string,
+
+) (map[string]string, error) {
+	if kubeClient == nil {
+		return nil, errors.New("kubeClient required for this functionality")
+	}
+
+	var resource schema.GroupVersionResource
+	if objType == secretObjectType {
+		resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
+	} else if objType == configMapObjectType {
+		resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
+	}
+
+	resourceName, ok, err := unstructured.NestedString(obj, path...)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.New("not found")
+	}
+
+	otherObj, err := kubeClient.Resource(resource).Namespace(ns).Get(resourceName, v1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	val, ok, err := unstructured.NestedStringMap(otherObj.Object, "data")
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, errors.New("not found")
+	}
+	if objType == secretObjectType {
+		for k, v := range val {
+			n, err := base64.StdEncoding.DecodeString(v)
+			if err != nil {
+				return nil, err
+			}
+			val[k] = string(n)
+		}
+	}
+	return val, nil
+}
+
+func produceValue(
+	m *model,
 	obj unstructured.Unstructured,
 	kubeClient dynamic.Interface,
 ) (interface{}, error) {
@@ -167,153 +344,31 @@ func (m *model) produceValue(
 	isStringElementType := m.elementType == stringElementType
 	isStringObjectType := m.objectType == stringObjectType
 	isMapElementType := m.elementType == mapElementType
+	isSliceOfMapsElementType := m.elementType == sliceOfMapsElementType
+	isSliceOfStringsElementType := m.elementType == sliceOfStringsElementType
 	hasDataField := (m.objectType == secretObjectType || m.objectType == configMapObjectType)
 
 	switch {
 	case isStringElementType && isStringObjectType:
-		val, ok, err := unstructured.NestedFieldCopy(obj.Object, path...)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
-		return fmt.Sprintf("%v", val), nil
-
-	case isMapElementType && isStringObjectType:
-		val, ok, err := unstructured.NestedStringMap(obj.Object, path...)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
-		return val, nil
+		return produceStringValue(obj.Object, path)
 
 	case isStringElementType && hasDataField:
-		if kubeClient == nil {
-			return "", errors.New("kubeClient required for this functionality")
-		}
-
-		var resource schema.GroupVersionResource
-		if m.objectType == secretObjectType {
-			resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
-		} else if m.objectType == configMapObjectType {
-			resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
-		}
-
-		resourceName, ok, err := unstructured.NestedString(obj.Object, path...)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
-
-		otherObj, err := kubeClient.Resource(resource).Namespace(obj.GetNamespace()).Get(resourceName, v1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-
-		val, ok, err := unstructured.NestedString(otherObj.Object, "data", m.sourceKey)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
-		if m.objectType == secretObjectType {
-			n, err := base64.StdEncoding.DecodeString(val)
-			if err != nil {
-				return "", err
-			}
-			val = string(n)
-		}
-		return val, nil
-
-	case m.elementType == sliceOfMapsElementType:
-		val, ok, err := unstructured.NestedSlice(obj.Object, path...)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
-
-		r := make(map[string]interface{})
-		for _, e := range val {
-			if mm, ok := e.(map[string]interface{}); ok {
-				k := mm[m.sourceKey]
-				ks := k.(string)
-				v := mm[m.sourceValue]
-				r[ks] = v
-			}
-		}
-
-		return r, nil
-
-	case m.elementType == sliceOfStringsElementType:
-		val, ok, err := unstructured.NestedSlice(obj.Object, path...)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
-
-		r := make([]string, 0, len(val))
-		for _, e := range val {
-			if mm, ok := e.(map[string]interface{}); ok {
-				v := mm[m.sourceValue].(string)
-				r = append(r, v)
-			}
-		}
-
-		return r, nil
+		return produceStringValueFromDataField(
+			kubeClient, obj.GetNamespace(), m.objectType, obj.Object, path, m.sourceKey)
 
 	case isMapElementType && hasDataField:
-		if kubeClient == nil {
-			return "", errors.New("kubeClient required for this functionality")
-		}
+		return produceMapValueFromDataField(
+			kubeClient, obj.GetNamespace(), m.objectType, obj.Object, path, m.sourceKey)
 
-		var resource schema.GroupVersionResource
-		if m.objectType == secretObjectType {
-			resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
-		} else if m.objectType == configMapObjectType {
-			resource = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "configmaps"}
-		}
+	case isMapElementType && isStringObjectType:
+		return produceStringOfMapValue(obj.Object, path)
 
-		resourceName, ok, err := unstructured.NestedString(obj.Object, path...)
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
+	case isSliceOfMapsElementType:
+		return produceMapValueFromPath(obj.Object, path, m.sourceKey, m.sourceValue)
 
-		otherObj, err := kubeClient.Resource(resource).Namespace(obj.GetNamespace()).Get(resourceName, v1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-
-		val, ok, err := unstructured.NestedStringMap(otherObj.Object, "data")
-		if err != nil {
-			return "", err
-		}
-		if !ok {
-			return "", errors.New("not found")
-		}
-		if m.objectType == secretObjectType {
-			for k, v := range val {
-				n, err := base64.StdEncoding.DecodeString(v)
-				if err != nil {
-					return "", err
-				}
-				val[k] = string(n)
-			}
-		}
-		return val, nil
+	case isSliceOfStringsElementType:
+		return produceSliceOfStringsValueFromPath(obj.Object, path, m.sourceValue)
 	}
 
-	return "", errors.New("not implemented")
+	return nil, errors.New("not implemented")
 }

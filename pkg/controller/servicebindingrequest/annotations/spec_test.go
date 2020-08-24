@@ -39,7 +39,7 @@ func TestModel(t *testing.T) {
 					},
 				}
 
-				val, err := m.produce(obj, nil)
+				val, err := produceValue(m, obj, nil)
 				require.NoError(t, err)
 				require.Equal(t, "AzureDiamond", val)
 			})
@@ -67,7 +67,7 @@ func TestModel(t *testing.T) {
 						},
 					},
 				}
-				val, err := m.produce(obj, nil)
+				val, err := produceValue(m, obj, nil)
 				require.NoError(t, err)
 				require.Equal(t, "map[username:AzureDiamond]", val)
 			})
@@ -95,7 +95,7 @@ func TestModel(t *testing.T) {
 						},
 					},
 				}
-				val, err := m.produce(obj, nil)
+				val, err := produceValue(m, obj, nil)
 				require.NoError(t, err)
 				expected := map[string]string{"username": "AzureDiamond"}
 				require.Equal(t, expected, val)
@@ -130,7 +130,7 @@ func TestModel(t *testing.T) {
 			f.AddMockedUnstructuredSecret("external-secret")
 
 			kubeClient := f.FakeDynClient()
-			val, err := m.produce(obj, kubeClient)
+			val, err := produceValue(m, obj, kubeClient)
 			require.NoError(t, err)
 			expected := map[string]string{
 				"username": "user",
@@ -167,7 +167,7 @@ func TestModel(t *testing.T) {
 			f.AddMockedUnstructuredConfigMap("external-configmap")
 
 			kubeClient := f.FakeDynClient()
-			val, err := m.produce(obj, kubeClient)
+			val, err := produceValue(m, obj, kubeClient)
 			require.NoError(t, err)
 			expected := map[string]string{
 				"username": "user",
@@ -205,7 +205,7 @@ func TestModel(t *testing.T) {
 			f.AddMockedUnstructuredConfigMap("external-configmap")
 
 			kubeClient := f.FakeDynClient()
-			val, err := m.produce(obj, kubeClient)
+			val, err := produceValue(m, obj, kubeClient)
 			require.NoError(t, err)
 			require.Equal(t, "user", val)
 		}
@@ -243,7 +243,7 @@ func TestModel(t *testing.T) {
 				},
 			}
 
-			val, err := m.produce(obj, nil)
+			val, err := produceValue(m, obj, nil)
 			require.NoError(t, err)
 			expected := map[string]interface{}{
 				"http":  "www.example.com",
@@ -285,7 +285,7 @@ func TestModel(t *testing.T) {
 				},
 			}
 
-			val, err := m.produce(obj, nil)
+			val, err := produceValue(m, obj, nil)
 			require.NoError(t, err)
 			expected := []string{"www.example.com", "secure.example.com"}
 			require.Equal(t, expected, val)
