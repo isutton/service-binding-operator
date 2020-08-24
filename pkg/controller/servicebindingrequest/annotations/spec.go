@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -50,7 +51,7 @@ const (
 	elementTypeModelKey modelKey = "elementType"
 )
 
-type model struct {
+type bindingDefinition struct {
 	objectType objectType
 	// path is a template represention of the path to an element in a Kubernetes resource. The
 	// value of path is specified as JSONPath. Required.
@@ -67,7 +68,7 @@ type model struct {
 	sourceValue string
 }
 
-func buildModel(in string) (*model, error) {
+func newBindingDefinitionFromAnnotation(in string) (*bindingDefinition, error) {
 	// re contains a regular expression to split the input string using '=' and ',' as separators
 	re := regexp.MustCompile("[=,]")
 
@@ -147,7 +148,7 @@ func buildModel(in string) (*model, error) {
 		return nil, errors.New("sliceOfMaps elementType requires sourceKey and sourceValue to be present")
 	}
 
-	return &model{
+	return &bindingDefinition{
 		path:        path,
 		objectType:  objType,
 		elementType: eltType,
@@ -156,7 +157,7 @@ func buildModel(in string) (*model, error) {
 	}, nil
 }
 
-func (m *model) getPath() []string {
+func (m *bindingDefinition) getPath() []string {
 	p := strings.Trim(m.path, "{}.")
 	return strings.Split(p, ".")
 }
@@ -335,11 +336,13 @@ func produceMapValueFromDataField(
 	return val, nil
 }
 
+type bindingValue interface{}
+
 func produceValue(
-	m *model,
+	m *bindingDefinition,
 	obj unstructured.Unstructured,
 	kubeClient dynamic.Interface,
-) (interface{}, error) {
+) (bindingValue, error) {
 	path := m.getPath()
 	isStringElementType := m.elementType == stringElementType
 	isStringObjectType := m.objectType == stringObjectType
@@ -371,4 +374,64 @@ func produceValue(
 	}
 
 	return nil, errors.New("not implemented")
+}
+
+type SpecHandler struct {
+	kubeClient      dynamic.Interface
+	obj             unstructured.Unstructured
+	annotationKey   string
+	annotationValue string
+	restMapper      meta.RESTMapper
+}
+
+func (s *SpecHandler) Handle() (result, error) {
+	m, err := newBindingDefinitionFromAnnotation(s.annotationValue)
+	if err != nil {
+		return result{}, err
+	}
+	val, err := produceValue(m, s.obj, s.kubeClient)
+	if err != nil {
+		return result{}, err
+	}
+
+	data := map[string]interface{}{}
+	p := strings.SplitN(s.annotationKey, "/", 2)
+	if len(p) > 1 && (len(p[1]) > 0) {
+		data[p[1]] = val
+	} else {
+		switch val2 := val.(type) {
+		case map[string]interface{}:
+			for k, v := range val2 {
+				data[k] = v
+			}
+
+		}
+		if val2, ok := val.(map[string]interface{}); ok {
+			for k, v := range val2 {
+				data[k] = v
+			}
+		}
+	}
+
+	return result{Data: data}, nil
+}
+
+func newSpecHandler(
+	kubeClient dynamic.Interface,
+	annotationKey string,
+	annotationValue string,
+	obj unstructured.Unstructured,
+	restMapper meta.RESTMapper,
+) (handler, error) {
+	return &SpecHandler{
+		kubeClient:      kubeClient,
+		obj:             obj,
+		annotationKey:   annotationKey,
+		annotationValue: annotationValue,
+		restMapper:      restMapper,
+	}, nil
+}
+
+func isSpec(annotationKey string) bool {
+	return strings.HasPrefix(annotationKey, "service.binding")
 }

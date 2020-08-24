@@ -89,6 +89,8 @@ func BuildHandler(
 		return newSecretHandler(kubeClient, bindingInfo, *obj, restMapper)
 	case isConfigMap(val):
 		return newConfigMapHandler(kubeClient, bindingInfo, *obj, restMapper)
+	case isSpec(annotationKey):
+		return newSpecHandler(kubeClient, annotationKey, annotationValue, *obj, restMapper)
 	default:
 		return nil, errHandlerNotFound(val)
 	}
