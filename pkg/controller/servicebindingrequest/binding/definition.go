@@ -151,6 +151,7 @@ func (m *definitionMapper) MapAnnotation(name, value string) (Definition, error)
 	isSliceOfStringsElementType := eltType == sliceOfStringsElementType
 	hasDataField := (objType == secretObjectType || objType == configMapObjectType)
 
+	path = strings.Trim(path, "{}.")
 	pathParts := strings.Split(path, ".")
 
 	switch {
