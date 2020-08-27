@@ -11,7 +11,7 @@ const (
 	// emptyObjectType is used as default value when the objectType key is present in the string
 	// provided by the user but no value has been provided; can be used by the user to force the
 	// system to use the default objectType.
-	// emptyObjectType objectType = ""
+	emptyObjectType objectType = ""
 
 	// mapElementType indicates the value found at path is a map[string]interface{}.
 	mapElementType elementType = "map"
