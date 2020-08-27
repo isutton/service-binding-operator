@@ -18,7 +18,7 @@ type Definition interface {
 }
 
 type DefinitionMapper interface {
-	Map(in string) (Definition, error)
+	MapAnnotation(name, value string) (Definition, error)
 }
 
 type definitionMapper struct {
@@ -37,12 +37,12 @@ const (
 	elementTypeModelKey modelKey = "elementType"
 )
 
-func (m *definitionMapper) Map(in string) (Definition, error) {
+func (m *definitionMapper) MapAnnotation(name, value string) (Definition, error) {
 	// re contains a regular expression to split the input string using '=' and ',' as separators
 	re := regexp.MustCompile("[=,]")
 
 	// split holds the tokens extracted from the input string
-	split := re.Split(in, -1)
+	split := re.Split(value, -1)
 
 	// its length should be even, since from this point on is assumed a sequence of key and value
 	// pairs as model source
@@ -65,7 +65,7 @@ func (m *definitionMapper) Map(in string) (Definition, error) {
 	// assert PathModelKey is present
 	path, found := raw[pathModelKey]
 	if !found {
-		return nil, errors.New("path not found: " + in)
+		return nil, fmt.Errorf("path not found: '%s: %s'", name, value)
 	}
 
 	// ensure ObjectTypeModelKey has a default value
