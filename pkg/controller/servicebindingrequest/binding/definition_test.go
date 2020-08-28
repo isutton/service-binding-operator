@@ -22,6 +22,27 @@ func TestDefinitionMapperInvalidAnnotation(t *testing.T) {
 			},
 		},
 		{
+			description: "invalid path",
+			opts: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path=.status.secret",
+			},
+		},
+		{
+			description: "invalid path",
+			opts: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path=.status.secret}",
+			},
+		},
+		{
+			description: "invalid path",
+			opts: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.secret",
+			},
+		},
+		{
 			description: "other prefix supplied",
 			opts: &annotationToDefinitionMapperOptions{
 				name: "other.prefix",
@@ -29,7 +50,7 @@ func TestDefinitionMapperInvalidAnnotation(t *testing.T) {
 		},
 	}
 
-	mapper := &annotationToDefinitionMapper{}
+	mapper := &AnnotationToDefinitionMapper{}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
@@ -42,7 +63,7 @@ func TestDefinitionMapperInvalidAnnotation(t *testing.T) {
 func TestDefinitionMapperValidAnnotations(t *testing.T) {
 	type args struct {
 		description   string
-		expectedValue interface{}
+		expectedValue Definition
 		options       DefinitionMapperOptions
 	}
 
@@ -74,7 +95,7 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				name:  "service.binding",
 				value: "path={.status.dbCredential.username}",
 			},
-			description: "string definition",
+			description: "string definition with default username",
 			expectedValue: &stringDefinition{
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
@@ -231,7 +252,7 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 		},
 	}
 
-	mapper := &annotationToDefinitionMapper{}
+	mapper := &AnnotationToDefinitionMapper{}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {

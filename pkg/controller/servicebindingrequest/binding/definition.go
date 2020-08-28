@@ -70,13 +70,17 @@ type annotationToDefinitionMapperOptions struct {
 func (o *annotationToDefinitionMapperOptions) GetName() string  { return o.name }
 func (o *annotationToDefinitionMapperOptions) GetValue() string { return o.value }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-type annotationToDefinitionMapper struct {
-	kubeClient dynamic.Interface
+func NewAnnotationMapperOptions(name, value string) AnnotationToDefinitionMapperOptions {
+	return &annotationToDefinitionMapperOptions{name: name, value: value}
 }
 
-var _ DefinitionMapper = (*annotationToDefinitionMapper)(nil)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+type AnnotationToDefinitionMapper struct {
+	KubeClient dynamic.Interface
+}
+
+var _ DefinitionMapper = (*AnnotationToDefinitionMapper)(nil)
 
 type modelKey string
 
@@ -90,7 +94,7 @@ const (
 
 const annotationPrefix = "service.binding"
 
-func (m *annotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (Definition, error) {
+func (m *AnnotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (Definition, error) {
 	opts, ok := mapperOpts.(AnnotationToDefinitionMapperOptions)
 	if !ok {
 		return nil, fmt.Errorf("provide an AnnotationToDefinitionMapperOptions")
@@ -136,6 +140,12 @@ func (m *annotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (
 	path, found := raw[pathModelKey]
 	if !found {
 		return nil, fmt.Errorf("path not found: '%s: %s'", name, opts.GetValue())
+	}
+	if !strings.HasPrefix(path, "{") || !strings.HasSuffix(path, "}") {
+		return nil, fmt.Errorf("path has invalid syntax: %q", path)
+	} else {
+		// trim curly braces and initial dot
+		path = strings.Trim(path, "{}.")
 	}
 
 	// ensure ObjectTypeModelKey has a default value
@@ -194,7 +204,6 @@ func (m *annotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (
 	isSliceOfStringsElementType := eltType == sliceOfStringsElementType
 	hasDataField := (objType == secretObjectType || objType == configMapObjectType)
 
-	path = strings.Trim(path, "{}.")
 	pathParts := strings.Split(path, ".")
 
 	if len(outputName) == 0 {
@@ -210,7 +219,7 @@ func (m *annotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (
 
 	case isStringElementType && hasDataField:
 		return &stringFromDataFieldDefinition{
-			kubeClient: m.kubeClient,
+			kubeClient: m.KubeClient,
 			objectType: objType,
 			outputName: outputName,
 			path:       pathParts,
@@ -219,7 +228,7 @@ func (m *annotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (
 
 	case isMapElementType && hasDataField:
 		return &mapFromDataFieldDefinition{
-			kubeClient: m.kubeClient,
+			kubeClient: m.KubeClient,
 			objectType: objType,
 			outputName: outputName,
 			path:       pathParts,
