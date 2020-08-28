@@ -48,19 +48,35 @@ type Definition interface {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+type DefinitionMapperOptions interface{}
+
 type DefinitionMapper interface {
-	Map(name, value string) (Definition, error)
+	Map(DefinitionMapperOptions) (Definition, error)
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-type annotationMapper struct {
+type AnnotationToDefinitionMapperOptions interface {
+	DefinitionMapperOptions
+	GetValue() string
+	GetName() string
+}
+
+type annotationToDefinitionMapperOptions struct {
+	name  string
+	value string
+}
+
+func (o *annotationToDefinitionMapperOptions) GetName() string  { return o.name }
+func (o *annotationToDefinitionMapperOptions) GetValue() string { return o.value }
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+type annotationToDefinitionMapper struct {
 	kubeClient dynamic.Interface
 }
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-var _ DefinitionMapper = (*annotationMapper)(nil)
+var _ DefinitionMapper = (*annotationToDefinitionMapper)(nil)
 
 type modelKey string
 
@@ -74,7 +90,14 @@ const (
 
 const annotationPrefix = "service.binding"
 
-func (m *annotationMapper) Map(name, value string) (Definition, error) {
+func (m *annotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (Definition, error) {
+	opts, ok := mapperOpts.(AnnotationToDefinitionMapperOptions)
+	if !ok {
+		return nil, fmt.Errorf("provide an AnnotationToDefinitionMapperOptions")
+	}
+
+	name := opts.GetName()
+
 	// bail out in the case the annotation name doesn't start with "service.binding"
 	if name != annotationPrefix && !strings.HasPrefix(name, annotationPrefix+"/") {
 		return nil, fmt.Errorf("can't process annotation with name %q", name)
@@ -89,7 +112,7 @@ func (m *annotationMapper) Map(name, value string) (Definition, error) {
 	re := regexp.MustCompile("[=,]")
 
 	// split holds the tokens extracted from the input string
-	split := re.Split(value, -1)
+	split := re.Split(opts.GetValue(), -1)
 
 	// its length should be even, since from this point on is assumed a sequence of key and value
 	// pairs as model source
@@ -112,7 +135,7 @@ func (m *annotationMapper) Map(name, value string) (Definition, error) {
 	// assert PathModelKey is present
 	path, found := raw[pathModelKey]
 	if !found {
-		return nil, fmt.Errorf("path not found: '%s: %s'", name, value)
+		return nil, fmt.Errorf("path not found: '%s: %s'", name, opts.GetValue())
 	}
 
 	// ensure ObjectTypeModelKey has a default value

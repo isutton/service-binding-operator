@@ -9,46 +9,102 @@ import (
 )
 
 func TestDefinitionMapperInvalidAnnotation(t *testing.T) {
-	mapper := &annotationMapper{}
-	_, err := mapper.Map("other.prefix", "")
-	require.Error(t, err)
+	type args struct {
+		description string
+		opts        DefinitionMapperOptions
+	}
+
+	testCases := []args{
+		{
+			description: "prefix is service.binding but not followed by / or end of string",
+			opts: &annotationToDefinitionMapperOptions{
+				name: "service.bindingtrololol",
+			},
+		},
+		{
+			description: "other prefix supplied",
+			opts: &annotationToDefinitionMapperOptions{
+				name: "other.prefix",
+			},
+		},
+	}
+
+	mapper := &annotationToDefinitionMapper{}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			_, err := mapper.Map(tc.opts)
+			require.Error(t, err)
+		})
+	}
 }
 
 func TestDefinitionMapperValidAnnotations(t *testing.T) {
 	type args struct {
 		description   string
-		name          string
-		value         string
 		expectedValue interface{}
+		options       DefinitionMapperOptions
 	}
 
 	testCases := []args{
 		{
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/username",
+				value: "path={.status.dbCredential.username}",
+			},
 			description: "string definition",
 			expectedValue: &stringDefinition{
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
-			name:  "service.binding/username",
-			value: "path={.status.dbCredential.username}",
 		},
 		{
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherUsernameField",
+				value: "path={.status.dbCredential.username}",
+			},
 			description: "string definition",
 			expectedValue: &stringDefinition{
 				outputName: "anotherUsernameField",
 				path:       []string{"status", "dbCredential", "username"},
 			},
-			name:  "service.binding/anotherUsernameField",
-			value: "path={.status.dbCredential.username}",
 		},
 		{
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.dbCredential.username}",
+			},
 			description: "string definition",
 			expectedValue: &stringDefinition{
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
-			name:  "service.binding",
-			value: "path={.status.dbCredential.username}",
+		},
+		{
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/username",
+				value: "path={.status.dbCredential.username},objectType=Secret",
+			},
+			description: "map from data field definition#Secret",
+			expectedValue: &mapFromDataFieldDefinition{
+				kubeClient: nil,
+				objectType: secretObjectType,
+				outputName: "username",
+				path:       []string{"status", "dbCredential", "username"},
+			},
+		},
+		{
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherUsernameField",
+				value: "path={.status.dbCredential.username},objectType=Secret",
+			},
+			description: "map from data field definition#Secret",
+			expectedValue: &mapFromDataFieldDefinition{
+				kubeClient: nil,
+				objectType: secretObjectType,
+				outputName: "anotherUsernameField",
+				path:       []string{"status", "dbCredential", "username"},
+			},
 		},
 		{
 			description: "map from data field definition#Secret",
@@ -58,30 +114,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
-			name:  "service.binding/username",
-			value: "path={.status.dbCredential.username},objectType=Secret",
-		},
-		{
-			description: "map from data field definition#Secret",
-			expectedValue: &mapFromDataFieldDefinition{
-				kubeClient: nil,
-				objectType: secretObjectType,
-				outputName: "anotherUsernameField",
-				path:       []string{"status", "dbCredential", "username"},
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.dbCredential.username},objectType=Secret",
 			},
-			name:  "service.binding/anotherUsernameField",
-			value: "path={.status.dbCredential.username},objectType=Secret",
-		},
-		{
-			description: "map from data field definition#Secret",
-			expectedValue: &mapFromDataFieldDefinition{
-				kubeClient: nil,
-				objectType: secretObjectType,
-				outputName: "username",
-				path:       []string{"status", "dbCredential", "username"},
-			},
-			name:  "service.binding",
-			value: "path={.status.dbCredential.username},objectType=Secret",
 		},
 		{
 			description: "map from data field definition#ConfigMap",
@@ -91,8 +127,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
-			name:  "service.binding/username",
-			value: "path={.status.dbCredential.username},objectType=ConfigMap",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/username",
+				value: "path={.status.dbCredential.username},objectType=ConfigMap",
+			},
 		},
 		{
 			description: "map from data field definition#ConfigMap",
@@ -102,8 +140,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				outputName: "anotherUsernameField",
 				path:       []string{"status", "dbCredential", "username"},
 			},
-			name:  "service.binding/anotherUsernameField",
-			value: "path={.status.dbCredential.username},objectType=ConfigMap",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherUsernameField",
+				value: "path={.status.dbCredential.username},objectType=ConfigMap",
+			},
 		},
 		{
 			description: "map from data field definition#ConfigMap",
@@ -113,8 +153,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
-			name:  "service.binding",
-			value: "path={.status.dbCredential.username},objectType=ConfigMap",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.dbCredential.username},objectType=ConfigMap",
+			},
 		},
 		{
 			description: "string of map definition",
@@ -122,8 +164,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				outputName: "database",
 				path:       []string{"status", "database"},
 			},
-			name:  "service.binding/database",
-			value: "path={.status.database},elementType=map",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/database",
+				value: "path={.status.database},elementType=map",
+			},
 		},
 		{
 			description: "string of map definition",
@@ -131,8 +175,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				outputName: "anotherDatabaseField",
 				path:       []string{"status", "database"},
 			},
-			name:  "service.binding/anotherDatabaseField",
-			value: "path={.status.database},elementType=map",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherDatabaseField",
+				value: "path={.status.database},elementType=map",
+			},
 		},
 		{
 			description: "string of map definition",
@@ -140,8 +186,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				outputName: "database",
 				path:       []string{"status", "database"},
 			},
-			name:  "service.binding",
-			value: "path={.status.database},elementType=map",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.database},elementType=map",
+			},
 		},
 		{
 			description: "slice of maps from path definition",
@@ -151,8 +199,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				sourceKey:   "type",
 				sourceValue: "url",
 			},
-			name:  "service.binding",
-			value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+			},
 		},
 		{
 			description: "slice of maps from path definition",
@@ -162,8 +212,10 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				sourceKey:   "type",
 				sourceValue: "url",
 			},
-			name:  "service.binding/anotherBootstrapField",
-			value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherBootstrapField",
+				value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+			},
 		},
 		{
 			description: "slice of strings from path definition",
@@ -172,16 +224,18 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 				path:        []string{"status", "bootstrap"},
 				sourceValue: "url",
 			},
-			name:  "service.binding",
-			value: "path={.status.bootstrap},elementType=sliceOfStrings,sourceValue=url",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.bootstrap},elementType=sliceOfStrings,sourceValue=url",
+			},
 		},
 	}
 
-	mapper := &annotationMapper{}
+	mapper := &annotationToDefinitionMapper{}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			d, err := mapper.Map(tc.name, tc.value)
+			d, err := mapper.Map(tc.options)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedValue, d)
 		})
