@@ -8,7 +8,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func TestDefinitionMapper(t *testing.T) {
+func TestDefinitionMapperInvalidAnnotation(t *testing.T) {
+	mapper := &annotationMapper{}
+	_, err := mapper.Map("other.prefix", "")
+	require.Error(t, err)
+}
+
+func TestDefinitionMapperValidAnnotations(t *testing.T) {
 	type args struct {
 		description   string
 		name          string
@@ -20,9 +26,28 @@ func TestDefinitionMapper(t *testing.T) {
 		{
 			description: "string definition",
 			expectedValue: &stringDefinition{
-				path: []string{"status", "dbCredential", "username"},
+				outputName: "username",
+				path:       []string{"status", "dbCredential", "username"},
 			},
 			name:  "service.binding/username",
+			value: "path={.status.dbCredential.username}",
+		},
+		{
+			description: "string definition",
+			expectedValue: &stringDefinition{
+				outputName: "anotherUsernameField",
+				path:       []string{"status", "dbCredential", "username"},
+			},
+			name:  "service.binding/anotherUsernameField",
+			value: "path={.status.dbCredential.username}",
+		},
+		{
+			description: "string definition",
+			expectedValue: &stringDefinition{
+				outputName: "username",
+				path:       []string{"status", "dbCredential", "username"},
+			},
+			name:  "service.binding",
 			value: "path={.status.dbCredential.username}",
 		},
 		{
@@ -30,9 +55,32 @@ func TestDefinitionMapper(t *testing.T) {
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: secretObjectType,
+				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
 			name:  "service.binding/username",
+			value: "path={.status.dbCredential.username},objectType=Secret",
+		},
+		{
+			description: "map from data field definition#Secret",
+			expectedValue: &mapFromDataFieldDefinition{
+				kubeClient: nil,
+				objectType: secretObjectType,
+				outputName: "anotherUsernameField",
+				path:       []string{"status", "dbCredential", "username"},
+			},
+			name:  "service.binding/anotherUsernameField",
+			value: "path={.status.dbCredential.username},objectType=Secret",
+		},
+		{
+			description: "map from data field definition#Secret",
+			expectedValue: &mapFromDataFieldDefinition{
+				kubeClient: nil,
+				objectType: secretObjectType,
+				outputName: "username",
+				path:       []string{"status", "dbCredential", "username"},
+			},
+			name:  "service.binding",
 			value: "path={.status.dbCredential.username},objectType=Secret",
 		},
 		{
@@ -40,22 +88,65 @@ func TestDefinitionMapper(t *testing.T) {
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: configMapObjectType,
+				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
 			name:  "service.binding/username",
 			value: "path={.status.dbCredential.username},objectType=ConfigMap",
 		},
 		{
+			description: "map from data field definition#ConfigMap",
+			expectedValue: &mapFromDataFieldDefinition{
+				kubeClient: nil,
+				objectType: configMapObjectType,
+				outputName: "anotherUsernameField",
+				path:       []string{"status", "dbCredential", "username"},
+			},
+			name:  "service.binding/anotherUsernameField",
+			value: "path={.status.dbCredential.username},objectType=ConfigMap",
+		},
+		{
+			description: "map from data field definition#ConfigMap",
+			expectedValue: &mapFromDataFieldDefinition{
+				kubeClient: nil,
+				objectType: configMapObjectType,
+				outputName: "username",
+				path:       []string{"status", "dbCredential", "username"},
+			},
+			name:  "service.binding",
+			value: "path={.status.dbCredential.username},objectType=ConfigMap",
+		},
+		{
 			description: "string of map definition",
 			expectedValue: &stringOfMapDefinition{
-				path: []string{"status", "database"},
+				outputName: "database",
+				path:       []string{"status", "database"},
 			},
-			name:  "service.binding/username",
+			name:  "service.binding/database",
+			value: "path={.status.database},elementType=map",
+		},
+		{
+			description: "string of map definition",
+			expectedValue: &stringOfMapDefinition{
+				outputName: "anotherDatabaseField",
+				path:       []string{"status", "database"},
+			},
+			name:  "service.binding/anotherDatabaseField",
+			value: "path={.status.database},elementType=map",
+		},
+		{
+			description: "string of map definition",
+			expectedValue: &stringOfMapDefinition{
+				outputName: "database",
+				path:       []string{"status", "database"},
+			},
+			name:  "service.binding",
 			value: "path={.status.database},elementType=map",
 		},
 		{
 			description: "slice of maps from path definition",
 			expectedValue: &sliceOfMapsFromPathDefinition{
+				outputName:  "bootstrap",
 				path:        []string{"status", "bootstrap"},
 				sourceKey:   "type",
 				sourceValue: "url",
@@ -64,8 +155,20 @@ func TestDefinitionMapper(t *testing.T) {
 			value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
 		},
 		{
+			description: "slice of maps from path definition",
+			expectedValue: &sliceOfMapsFromPathDefinition{
+				outputName:  "anotherBootstrapField",
+				path:        []string{"status", "bootstrap"},
+				sourceKey:   "type",
+				sourceValue: "url",
+			},
+			name:  "service.binding/anotherBootstrapField",
+			value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+		},
+		{
 			description: "slice of strings from path definition",
 			expectedValue: &sliceOfStringsFromPathDefinition{
+				outputName:  "bootstrap",
 				path:        []string{"status", "bootstrap"},
 				sourceValue: "url",
 			},
@@ -74,11 +177,11 @@ func TestDefinitionMapper(t *testing.T) {
 		},
 	}
 
-	mapper := &definitionMapper{}
+	mapper := &annotationMapper{}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			d, err := mapper.MapAnnotation(tc.name, tc.value)
+			d, err := mapper.Map(tc.name, tc.value)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedValue, d)
 		})
@@ -86,47 +189,110 @@ func TestDefinitionMapper(t *testing.T) {
 }
 
 func TestStringDefinition(t *testing.T) {
-	d := &stringDefinition{
-		path: []string{"status", "dbCredential", "username"},
+	type args struct {
+		description   string
+		outputName    string
+		path          []string
+		expectedValue interface{}
 	}
-	val, err := d.Apply(&unstructured.Unstructured{
+
+	testCases := []args{
+		{
+			description: "outputName informed",
+			outputName:  "username",
+			path:        []string{"status", "dbCredentials", "username"},
+			expectedValue: map[string]interface{}{
+				"username": "AzureDiamond",
+			},
+		},
+		{
+			description: "outputName empty",
+			path:        []string{"status", "dbCredentials", "username"},
+			expectedValue: map[string]interface{}{
+				"username": "AzureDiamond",
+			},
+		},
+	}
+
+	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"status": map[string]interface{}{
-				"dbCredential": map[string]interface{}{
+				"dbCredentials": map[string]interface{}{
 					"username": "AzureDiamond",
 				},
 			},
 		},
-	})
-	require.NoError(t, err)
-	v := map[string]interface{}{
-		"": "AzureDiamond",
 	}
-	require.Equal(t, v, val.GetValue())
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			d := &stringDefinition{
+				outputName: tc.outputName,
+				path:       tc.path,
+			}
+			val, err := d.Apply(u)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedValue, val.GetValue())
+
+		})
+	}
 }
 
 func TestStringOfMap(t *testing.T) {
-	d := &stringOfMapDefinition{
-		path: []string{"status", "dbCredential"},
+	type args struct {
+		description   string
+		outputName    string
+		path          []string
+		expectedValue interface{}
+		object        *unstructured.Unstructured
 	}
-	val, err := d.Apply(&unstructured.Unstructured{
+
+	u := &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"status": map[string]interface{}{
-				"dbCredential": map[string]interface{}{
+				"dbCredentials": map[string]interface{}{
 					"username": "AzureDiamond",
 					"password": "hunter2",
 				},
 			},
 		},
-	})
-	require.NoError(t, err)
-	v := map[string]interface{}{
-		"": map[string]string{
+	}
+
+	expectedValue := map[string]interface{}{
+		"dbCredentials": map[string]interface{}{
 			"username": "AzureDiamond",
 			"password": "hunter2",
 		},
 	}
-	require.Equal(t, v, val.GetValue())
+
+	testCases := []args{
+		{
+			description:   "outputName informed",
+			expectedValue: expectedValue,
+			object:        u,
+			outputName:    "dbCredentials",
+			path:          []string{"status", "dbCredentials"},
+		},
+		{
+			description:   "outputName empty",
+			expectedValue: expectedValue,
+			object:        u,
+			outputName:    "",
+			path:          []string{"status", "dbCredentials"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			d := &stringOfMapDefinition{
+				outputName: tc.outputName,
+				path:       tc.path,
+			}
+			val, err := d.Apply(tc.object)
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedValue, val.GetValue())
+		})
+	}
 }
 
 func TestSliceOfStringsFromPath(t *testing.T) {

@@ -40,19 +40,27 @@ type objectType string
 
 type elementType string
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 type Definition interface {
 	Apply(u *unstructured.Unstructured) (Value, error)
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 type DefinitionMapper interface {
-	MapAnnotation(name, value string) (Definition, error)
+	Map(name, value string) (Definition, error)
 }
 
-type definitionMapper struct {
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+type annotationMapper struct {
 	kubeClient dynamic.Interface
 }
 
-var _ DefinitionMapper = (*definitionMapper)(nil)
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+var _ DefinitionMapper = (*annotationMapper)(nil)
 
 type modelKey string
 
@@ -64,7 +72,19 @@ const (
 	elementTypeModelKey modelKey = "elementType"
 )
 
-func (m *definitionMapper) MapAnnotation(name, value string) (Definition, error) {
+const annotationPrefix = "service.binding"
+
+func (m *annotationMapper) Map(name, value string) (Definition, error) {
+	// bail out in the case the annotation name doesn't start with "service.binding"
+	if name != annotationPrefix && !strings.HasPrefix(name, annotationPrefix+"/") {
+		return nil, fmt.Errorf("can't process annotation with name %q", name)
+	}
+
+	outputName := ""
+	if p := strings.SplitN(name, "/", 2); len(p) > 1 && len(p[1]) > 0 {
+		outputName = p[1]
+	}
+
 	// re contains a regular expression to split the input string using '=' and ',' as separators
 	re := regexp.MustCompile("[=,]")
 
@@ -154,14 +174,22 @@ func (m *definitionMapper) MapAnnotation(name, value string) (Definition, error)
 	path = strings.Trim(path, "{}.")
 	pathParts := strings.Split(path, ".")
 
+	if len(outputName) == 0 {
+		outputName = pathParts[len(pathParts)-1]
+	}
+
 	switch {
 	case isStringElementType && isStringObjectType:
-		return &stringDefinition{path: pathParts}, nil
+		return &stringDefinition{
+			outputName: outputName,
+			path:       pathParts,
+		}, nil
 
 	case isStringElementType && hasDataField:
 		return &stringFromDataFieldDefinition{
 			kubeClient: m.kubeClient,
 			objectType: objType,
+			outputName: outputName,
 			path:       pathParts,
 			sourceKey:  sourceKey,
 		}, nil
@@ -170,16 +198,19 @@ func (m *definitionMapper) MapAnnotation(name, value string) (Definition, error)
 		return &mapFromDataFieldDefinition{
 			kubeClient: m.kubeClient,
 			objectType: objType,
+			outputName: outputName,
 			path:       pathParts,
 		}, nil
 
 	case isMapElementType && isStringObjectType:
 		return &stringOfMapDefinition{
-			path: pathParts,
+			outputName: outputName,
+			path:       pathParts,
 		}, nil
 
 	case isSliceOfMapsElementType:
 		return &sliceOfMapsFromPathDefinition{
+			outputName:  outputName,
 			path:        pathParts,
 			sourceKey:   sourceKey,
 			sourceValue: sourceValue,
@@ -187,6 +218,7 @@ func (m *definitionMapper) MapAnnotation(name, value string) (Definition, error)
 
 	case isSliceOfStringsElementType:
 		return &sliceOfStringsFromPathDefinition{
+			outputName:  outputName,
 			path:        pathParts,
 			sourceValue: sourceValue,
 		}, nil
@@ -196,7 +228,8 @@ func (m *definitionMapper) MapAnnotation(name, value string) (Definition, error)
 }
 
 type stringDefinition struct {
-	path []string
+	outputName string
+	path       []string
 }
 
 var _ Definition = (*stringDefinition)(nil)
@@ -210,8 +243,13 @@ func (d *stringDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 		return nil, errors.New("not found")
 	}
 
+	outputName := d.outputName
+	if len(outputName) == 0 {
+		outputName = d.path[len(d.path)-1]
+	}
+
 	m := map[string]interface{}{
-		"": fmt.Sprintf("%v", val),
+		outputName: fmt.Sprintf("%v", val),
 	}
 	return &value{v: m}, nil
 }
@@ -219,6 +257,7 @@ func (d *stringDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 type stringFromDataFieldDefinition struct {
 	kubeClient dynamic.Interface
 	objectType objectType
+	outputName string
 	path       []string
 	sourceKey  string
 }
@@ -273,6 +312,7 @@ func (d *stringFromDataFieldDefinition) Apply(u *unstructured.Unstructured) (Val
 type mapFromDataFieldDefinition struct {
 	kubeClient dynamic.Interface
 	objectType objectType
+	outputName string
 	path       []string
 }
 
@@ -326,27 +366,34 @@ func (d *mapFromDataFieldDefinition) Apply(u *unstructured.Unstructured) (Value,
 }
 
 type stringOfMapDefinition struct {
-	path []string
+	outputName string
+	path       []string
 }
 
 var _ Definition = (*stringOfMapDefinition)(nil)
 
 func (d *stringOfMapDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
-	val, ok, err := unstructured.NestedStringMap(u.Object, d.path...)
+	val, ok, err := unstructured.NestedFieldNoCopy(u.Object, d.path...)
 	if err != nil {
 		return nil, err
 	}
 	if !ok {
 		return nil, errors.New("not found")
 	}
+
+	outputName := d.outputName
+	if len(outputName) == 0 {
+		outputName = d.path[len(d.path)-1]
+	}
 	v := map[string]interface{}{
-		"": val,
+		outputName: val,
 	}
 	return &value{v: v}, nil
 
 }
 
 type sliceOfMapsFromPathDefinition struct {
+	outputName  string
 	path        []string
 	sourceKey   string
 	sourceValue string
@@ -377,6 +424,7 @@ func (d *sliceOfMapsFromPathDefinition) Apply(u *unstructured.Unstructured) (Val
 }
 
 type sliceOfStringsFromPathDefinition struct {
+	outputName  string
 	path        []string
 	sourceValue string
 }
