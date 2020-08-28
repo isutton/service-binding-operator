@@ -4,14 +4,16 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"regexp"
-	"strings"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
+
+type objectType string
+
+type elementType string
 
 const (
 	// configMapObjectType indicates the path contains a name for a ConfigMap containing the binding
@@ -36,227 +38,14 @@ const (
 	stringElementType elementType = "string"
 )
 
-type objectType string
-
-type elementType string
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 type Definition interface {
 	Apply(u *unstructured.Unstructured) (Value, error)
 }
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 type DefinitionMapperOptions interface{}
 
 type DefinitionMapper interface {
 	Map(DefinitionMapperOptions) (Definition, error)
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-type AnnotationToDefinitionMapperOptions interface {
-	DefinitionMapperOptions
-	GetValue() string
-	GetName() string
-}
-
-type annotationToDefinitionMapperOptions struct {
-	name  string
-	value string
-}
-
-func (o *annotationToDefinitionMapperOptions) GetName() string  { return o.name }
-func (o *annotationToDefinitionMapperOptions) GetValue() string { return o.value }
-
-func NewAnnotationMapperOptions(name, value string) AnnotationToDefinitionMapperOptions {
-	return &annotationToDefinitionMapperOptions{name: name, value: value}
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-type AnnotationToDefinitionMapper struct {
-	KubeClient dynamic.Interface
-}
-
-var _ DefinitionMapper = (*AnnotationToDefinitionMapper)(nil)
-
-type modelKey string
-
-const (
-	pathModelKey        modelKey = "path"
-	objectTypeModelKey  modelKey = "objectType"
-	sourceKeyModelKey   modelKey = "sourceKey"
-	sourceValueModelKey modelKey = "sourceValue"
-	elementTypeModelKey modelKey = "elementType"
-)
-
-const annotationPrefix = "service.binding"
-
-func (m *AnnotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (Definition, error) {
-	opts, ok := mapperOpts.(AnnotationToDefinitionMapperOptions)
-	if !ok {
-		return nil, fmt.Errorf("provide an AnnotationToDefinitionMapperOptions")
-	}
-
-	name := opts.GetName()
-
-	// bail out in the case the annotation name doesn't start with "service.binding"
-	if name != annotationPrefix && !strings.HasPrefix(name, annotationPrefix+"/") {
-		return nil, fmt.Errorf("can't process annotation with name %q", name)
-	}
-
-	outputName := ""
-	if p := strings.SplitN(name, "/", 2); len(p) > 1 && len(p[1]) > 0 {
-		outputName = p[1]
-	}
-
-	// re contains a regular expression to split the input string using '=' and ',' as separators
-	re := regexp.MustCompile("[=,]")
-
-	// split holds the tokens extracted from the input string
-	split := re.Split(opts.GetValue(), -1)
-
-	// its length should be even, since from this point on is assumed a sequence of key and value
-	// pairs as model source
-	if len(split)%2 != 0 {
-		m := fmt.Sprintf("invalid input, odd number of tokens: %q", split)
-		return nil, errors.New(m)
-	}
-
-	// extract the tokens into a map, iterating a pair at a time and using the Nth element as key and
-	// Nth+1 as value
-	raw := make(map[modelKey]string)
-	for i := 0; i < len(split); i += 2 {
-		k := modelKey(split[i])
-		// invalid object type can be created here e.g. "foobar"; this does not pose a problem since
-		// the value will be used in a switch statement further on
-		v := split[i+1]
-		raw[k] = v
-	}
-
-	// assert PathModelKey is present
-	path, found := raw[pathModelKey]
-	if !found {
-		return nil, fmt.Errorf("path not found: '%s: %s'", name, opts.GetValue())
-	}
-	if !strings.HasPrefix(path, "{") || !strings.HasSuffix(path, "}") {
-		return nil, fmt.Errorf("path has invalid syntax: %q", path)
-	} else {
-		// trim curly braces and initial dot
-		path = strings.Trim(path, "{}.")
-	}
-
-	// ensure ObjectTypeModelKey has a default value
-	var objType objectType
-	if rawObjectType, found := raw[objectTypeModelKey]; !found {
-		objType = stringObjectType
-	} else {
-		// in the case the key is present but the value isn't (for example, "objectType=,") the
-		// default string object type should be set
-		if objType = objectType(rawObjectType); objType == emptyObjectType {
-			objType = stringObjectType
-		}
-	}
-
-	// ensure sourceKey has a default value
-	sourceKey, found := raw[sourceKeyModelKey]
-	if !found {
-		sourceKey = ""
-	}
-
-	// hasData indicates the configured or inferred objectType is either a Secret or ConfigMap
-	hasData := (objType == secretObjectType || objType == configMapObjectType)
-	// hasSourceKey indicates a value for sourceKey has been informed
-	hasSourceKey := len(sourceKey) > 0
-
-	var eltType elementType
-	if rawEltType, found := raw[elementTypeModelKey]; found {
-		// the input string contains an elementType configuration, use it
-		eltType = elementType(rawEltType)
-	} else if hasData && !hasSourceKey {
-		// the input doesn't contain an elementType configuration, does contain a sourceKey
-		// configuration, and is either a Secret or ConfigMap
-		eltType = mapElementType
-	} else {
-		// elementType configuration hasn't been informed and there's no extra hints, assume it is a
-		// string element
-		eltType = stringElementType
-	}
-
-	// ensure SourceValueModelKey has a default value
-	sourceValue, found := raw[sourceValueModelKey]
-	if !found {
-		sourceValue = ""
-	}
-
-	// ensure an error is returned if not all required information is available for sliceOfMaps
-	// element type
-	if eltType == sliceOfMapsElementType && (len(sourceValue) == 0 || len(sourceKey) == 0) {
-		return nil, errors.New("sliceOfMaps elementType requires sourceKey and sourceValue to be present")
-	}
-
-	isStringElementType := eltType == stringElementType
-	isStringObjectType := objType == stringObjectType
-	isMapElementType := eltType == mapElementType
-	isSliceOfMapsElementType := eltType == sliceOfMapsElementType
-	isSliceOfStringsElementType := eltType == sliceOfStringsElementType
-	hasDataField := (objType == secretObjectType || objType == configMapObjectType)
-
-	pathParts := strings.Split(path, ".")
-
-	if len(outputName) == 0 {
-		outputName = pathParts[len(pathParts)-1]
-	}
-
-	switch {
-	case isStringElementType && isStringObjectType:
-		return &stringDefinition{
-			outputName: outputName,
-			path:       pathParts,
-		}, nil
-
-	case isStringElementType && hasDataField:
-		return &stringFromDataFieldDefinition{
-			kubeClient: m.KubeClient,
-			objectType: objType,
-			outputName: outputName,
-			path:       pathParts,
-			sourceKey:  sourceKey,
-		}, nil
-
-	case isMapElementType && hasDataField:
-		return &mapFromDataFieldDefinition{
-			kubeClient: m.KubeClient,
-			objectType: objType,
-			outputName: outputName,
-			path:       pathParts,
-		}, nil
-
-	case isMapElementType && isStringObjectType:
-		return &stringOfMapDefinition{
-			outputName: outputName,
-			path:       pathParts,
-		}, nil
-
-	case isSliceOfMapsElementType:
-		return &sliceOfMapsFromPathDefinition{
-			outputName:  outputName,
-			path:        pathParts,
-			sourceKey:   sourceKey,
-			sourceValue: sourceValue,
-		}, nil
-
-	case isSliceOfStringsElementType:
-		return &sliceOfStringsFromPathDefinition{
-			outputName:  outputName,
-			path:        pathParts,
-			sourceValue: sourceValue,
-		}, nil
-	}
-
-	panic("not implemented")
 }
 
 type stringDefinition struct {
