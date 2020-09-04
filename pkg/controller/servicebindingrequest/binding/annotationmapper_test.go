@@ -67,185 +67,199 @@ func TestDefinitionMapperValidAnnotations(t *testing.T) {
 
 	testCases := []args{
 		{
+			description: "string definition",
 			options: &annotationToDefinitionMapperOptions{
 				name:  "service.binding/username",
 				value: "path={.status.dbCredential.username}",
 			},
-			description: "string definition",
 			expectedValue: &stringDefinition{
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
 		},
+
 		{
+			description: "string definition",
 			options: &annotationToDefinitionMapperOptions{
 				name:  "service.binding/anotherUsernameField",
 				value: "path={.status.dbCredential.username}",
 			},
-			description: "string definition",
 			expectedValue: &stringDefinition{
 				outputName: "anotherUsernameField",
 				path:       []string{"status", "dbCredential", "username"},
 			},
 		},
+
 		{
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding",
-				value: "path={.status.dbCredential.username}",
-			},
 			description: "string definition with default username",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.dbCredential.username}",
+			},
 			expectedValue: &stringDefinition{
 				outputName: "username",
 				path:       []string{"status", "dbCredential", "username"},
 			},
 		},
+
 		{
+			description: "map from data field definition#Secret#01",
 			options: &annotationToDefinitionMapperOptions{
 				name:  "service.binding/username",
-				value: "path={.status.dbCredential.username},objectType=Secret",
+				value: "path={.status.dbCredential},objectType=Secret,sourceValue=username",
 			},
-			description: "map from data field definition#Secret",
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: secretObjectType,
 				outputName: "username",
-				path:       []string{"status", "dbCredential", "username"},
+				path:       []string{"status", "dbCredential"},
 			},
 		},
+
 		{
+			description: "map from data field definition#Secret#02",
 			options: &annotationToDefinitionMapperOptions{
 				name:  "service.binding/anotherUsernameField",
-				value: "path={.status.dbCredential.username},objectType=Secret",
+				value: "path={.status.dbCredential},objectType=Secret,sourceValue=username",
 			},
-			description: "map from data field definition#Secret",
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: secretObjectType,
 				outputName: "anotherUsernameField",
-				path:       []string{"status", "dbCredential", "username"},
+				path:       []string{"status", "dbCredential"},
 			},
 		},
+
 		{
-			description: "map from data field definition#Secret",
+			description: "map from data field definition#Secret#03",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.dbCredential},objectType=Secret",
+			},
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: secretObjectType,
-				outputName: "username",
-				path:       []string{"status", "dbCredential", "username"},
-			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding",
-				value: "path={.status.dbCredential.username},objectType=Secret",
+				outputName: "dbCredential",
+				path:       []string{"status", "dbCredential"},
 			},
 		},
+
 		{
 			description: "map from data field definition#ConfigMap",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/username",
+				value: "path={.status.dbCredential},objectType=ConfigMap,sourceValue=username",
+			},
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: configMapObjectType,
 				outputName: "username",
-				path:       []string{"status", "dbCredential", "username"},
-			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding/username",
-				value: "path={.status.dbCredential.username},objectType=ConfigMap",
+				path:       []string{"status", "dbCredential"},
 			},
 		},
+
 		{
-			description: "map from data field definition#ConfigMap",
+			description: "map from data field definition#ConfigMap#01",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherUsernameField",
+				value: "path={.status.dbCredential},objectType=ConfigMap,sourceValue=username",
+			},
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: configMapObjectType,
 				outputName: "anotherUsernameField",
-				path:       []string{"status", "dbCredential", "username"},
-			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding/anotherUsernameField",
-				value: "path={.status.dbCredential.username},objectType=ConfigMap",
+				path:       []string{"status", "dbCredential"},
 			},
 		},
+
 		{
-			description: "map from data field definition#ConfigMap",
+			description: "map from data field definition#ConfigMap#02",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.dbCredential},objectType=ConfigMap,sourceValue=username",
+			},
 			expectedValue: &mapFromDataFieldDefinition{
 				kubeClient: nil,
 				objectType: configMapObjectType,
-				outputName: "username",
-				path:       []string{"status", "dbCredential", "username"},
-			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding",
-				value: "path={.status.dbCredential.username},objectType=ConfigMap",
+				outputName: "dbCredential",
+				path:       []string{"status", "dbCredential"},
 			},
 		},
+
 		{
 			description: "string of map definition",
-			expectedValue: &stringOfMapDefinition{
-				outputName: "database",
-				path:       []string{"status", "database"},
-			},
 			options: &annotationToDefinitionMapperOptions{
 				name:  "service.binding/database",
 				value: "path={.status.database},elementType=map",
 			},
-		},
-		{
-			description: "string of map definition",
-			expectedValue: &stringOfMapDefinition{
-				outputName: "anotherDatabaseField",
-				path:       []string{"status", "database"},
-			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding/anotherDatabaseField",
-				value: "path={.status.database},elementType=map",
-			},
-		},
-		{
-			description: "string of map definition",
 			expectedValue: &stringOfMapDefinition{
 				outputName: "database",
 				path:       []string{"status", "database"},
 			},
+		},
+
+		{
+			description: "string of map definition",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherDatabaseField",
+				value: "path={.status.database},elementType=map",
+			},
+			expectedValue: &stringOfMapDefinition{
+				outputName: "anotherDatabaseField",
+				path:       []string{"status", "database"},
+			},
+		},
+
+		{
+			description: "string of map definition",
 			options: &annotationToDefinitionMapperOptions{
 				name:  "service.binding",
 				value: "path={.status.database},elementType=map",
 			},
+			expectedValue: &stringOfMapDefinition{
+				outputName: "database",
+				path:       []string{"status", "database"},
+			},
 		},
+
 		{
 			description: "slice of maps from path definition",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+			},
 			expectedValue: &sliceOfMapsFromPathDefinition{
 				outputName:  "bootstrap",
 				path:        []string{"status", "bootstrap"},
 				sourceKey:   "type",
 				sourceValue: "url",
 			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding",
-				value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
-			},
 		},
+
 		{
 			description: "slice of maps from path definition",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding/anotherBootstrapField",
+				value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+			},
 			expectedValue: &sliceOfMapsFromPathDefinition{
 				outputName:  "anotherBootstrapField",
 				path:        []string{"status", "bootstrap"},
 				sourceKey:   "type",
 				sourceValue: "url",
 			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding/anotherBootstrapField",
-				value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
-			},
 		},
+
 		{
 			description: "slice of strings from path definition",
+			options: &annotationToDefinitionMapperOptions{
+				name:  "service.binding",
+				value: "path={.status.bootstrap},elementType=sliceOfStrings,sourceValue=url",
+			},
 			expectedValue: &sliceOfStringsFromPathDefinition{
 				outputName:  "bootstrap",
 				path:        []string{"status", "bootstrap"},
 				sourceValue: "url",
-			},
-			options: &annotationToDefinitionMapperOptions{
-				name:  "service.binding",
-				value: "path={.status.bootstrap},elementType=sliceOfStrings,sourceValue=url",
 			},
 		},
 	}
