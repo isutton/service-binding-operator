@@ -2,6 +2,7 @@ package annotations
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -23,20 +24,40 @@ type bindingInfo struct {
 	Value string
 }
 
-var ErrInvalidAnnotationPrefix = errors.New("invalid annotation prefix")
+type ErrInvalidAnnotationPrefix string
+
+func (e ErrInvalidAnnotationPrefix) Error() string {
+	return fmt.Sprintf("invalid annotation prefix: %s", string(e))
+}
+
+func IsErrInvalidAnnotationPrefix(err error) bool {
+	_, ok := err.(ErrInvalidAnnotationPrefix)
+	return ok
+}
+
 var ErrInvalidAnnotationName = errors.New("invalid annotation name")
-var ErrEmptyAnnotationName = errors.New("empty annotation name")
+
+type ErrEmptyAnnotationName string
+
+func (e ErrEmptyAnnotationName) Error() string {
+	return fmt.Sprintf("empty annotation name: %s", string(e))
+}
+
+func IsErrEmptyAnnotationName(err error) bool {
+	_, ok := err.(ErrEmptyAnnotationName)
+	return ok
+}
 
 // NewBindingInfo parses the encoded in the annotation name, returning its parts.
 func NewBindingInfo(name string, value string) (*bindingInfo, error) {
 	// do not process unknown annotations
 	if !strings.HasPrefix(name, ServiceBindingOperatorAnnotationPrefix) {
-		return nil, ErrInvalidAnnotationPrefix
+		return nil, ErrInvalidAnnotationPrefix(name)
 	}
 
 	cleanName := strings.TrimPrefix(name, ServiceBindingOperatorAnnotationPrefix)
 	if len(cleanName) == 0 {
-		return nil, ErrEmptyAnnotationName
+		return nil, ErrEmptyAnnotationName(cleanName)
 	}
 	parts := strings.SplitN(cleanName, "-", 2)
 

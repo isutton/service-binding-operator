@@ -70,7 +70,7 @@ SELECTORS:
 			// best effort approach; should not break in common cases such as a unknown annotation
 			// prefix (other annotations might exist in the resource) or, in the case of a valid
 			// annotation, the handler expected for the annotation can't be found.
-			if err == annotations.ErrInvalidAnnotationPrefix || annotations.IsErrHandlerNotFound(err) {
+			if annotations.IsErrEmptyAnnotationName(err) || annotations.IsErrHandlerNotFound(err) {
 				logger.Trace("Continuing to next selector", "Error", err)
 				continue SELECTORS
 			}
