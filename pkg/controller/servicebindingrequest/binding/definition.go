@@ -39,6 +39,7 @@ const (
 )
 
 type Definition interface {
+	GetPath() []string
 	Apply(u *unstructured.Unstructured) (Value, error)
 }
 
@@ -54,6 +55,10 @@ type stringDefinition struct {
 }
 
 var _ Definition = (*stringDefinition)(nil)
+
+func (d *stringDefinition) GetPath() []string { return d.path }
+
+func (d *stringDefinition) GetPath() []string { return d.path[0 : len(d.path)-1] }
 
 func (d *stringDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	val, ok, err := unstructured.NestedFieldCopy(u.Object, d.path...)
@@ -84,6 +89,8 @@ type stringFromDataFieldDefinition struct {
 }
 
 var _ Definition = (*stringFromDataFieldDefinition)(nil)
+
+func (d *stringFromDataFieldDefinition) GetPath() []string { return d.path }
 
 func (d *stringFromDataFieldDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	if d.kubeClient == nil {
@@ -139,6 +146,8 @@ type mapFromDataFieldDefinition struct {
 
 var _ Definition = (*mapFromDataFieldDefinition)(nil)
 
+func (d *mapFromDataFieldDefinition) GetPath() []string { return d.path }
+
 func (d *mapFromDataFieldDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	if d.kubeClient == nil {
 		return nil, errors.New("kubeClient required for this functionality")
@@ -193,6 +202,8 @@ type stringOfMapDefinition struct {
 
 var _ Definition = (*stringOfMapDefinition)(nil)
 
+func (d *stringOfMapDefinition) GetPath() []string { return d.path }
+
 func (d *stringOfMapDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	val, ok, err := unstructured.NestedFieldNoCopy(u.Object, d.path...)
 	if err != nil {
@@ -221,6 +232,8 @@ type sliceOfMapsFromPathDefinition struct {
 }
 
 var _ Definition = (*sliceOfMapsFromPathDefinition)(nil)
+
+func (d *sliceOfMapsFromPathDefinition) GetPath() []string { return d.path }
 
 func (d *sliceOfMapsFromPathDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	val, ok, err := unstructured.NestedSlice(u.Object, d.path...)
@@ -251,6 +264,8 @@ type sliceOfStringsFromPathDefinition struct {
 }
 
 var _ Definition = (*sliceOfStringsFromPathDefinition)(nil)
+
+func (d *sliceOfStringsFromPathDefinition) GetPath() []string { return d.path }
 
 func (d *sliceOfStringsFromPathDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	val, ok, err := unstructured.NestedSlice(u.Object, d.path...)
