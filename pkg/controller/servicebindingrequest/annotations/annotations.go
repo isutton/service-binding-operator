@@ -2,10 +2,6 @@ package annotations
 
 import (
 	"fmt"
-
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/dynamic"
 )
 
 // bindingType encodes the medium the binding should deliver the configuration value.
@@ -63,35 +59,4 @@ func (e errHandlerNotFound) Error() string {
 func IsErrHandlerNotFound(err error) bool {
 	_, ok := err.(errHandlerNotFound)
 	return ok
-}
-
-// BuildHandler attempts to create an annotation handler for the given annotationKey and
-// annotationValue. kubeClient is required by some annotation handlers, and an error is returned in
-// the case it is required by an annotation handler but is not defined.
-func BuildHandler(
-	kubeClient dynamic.Interface,
-	obj *unstructured.Unstructured,
-	annotationKey string,
-	annotationValue string,
-	restMapper meta.RESTMapper,
-) (handler, error) {
-	bindingInfo, err := NewBindingInfo(annotationKey, annotationValue)
-	if err != nil {
-		return nil, err
-	}
-
-	val := bindingInfo.Value
-
-	switch {
-	case isAttribute(val):
-		return newAttributeHandler(bindingInfo, *obj), nil
-	case isSecret(val):
-		return newSecretHandler(kubeClient, bindingInfo, *obj, restMapper)
-	case isConfigMap(val):
-		return newConfigMapHandler(kubeClient, bindingInfo, *obj, restMapper)
-	case isSpec(annotationKey):
-		return newSpecHandler(kubeClient, annotationKey, annotationValue, *obj, restMapper)
-	default:
-		return nil, errHandlerNotFound(val)
-	}
 }

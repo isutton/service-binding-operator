@@ -32,7 +32,7 @@ func TestSpecHandler(t *testing.T) {
 
 			restMapper := testutils.BuildTestRESTMapper()
 
-			handler, err := newSpecHandler(
+			handler, err := NewSpecHandler(
 				f.FakeDynClient(),
 				args.name,
 				args.value,
@@ -43,8 +43,8 @@ func TestSpecHandler(t *testing.T) {
 			got, err := handler.Handle()
 			require.NoError(t, err)
 			require.NotNil(t, got)
-			require.Equal(t, args.expectedData, got.Data)
-			require.Equal(t, args.expectedRawData, got.RawData)
+			require.Equal(t, args.expectedData, got.Data, "Data does not match expected")
+			require.Equal(t, args.expectedRawData, got.RawData, "RawData does not match expected")
 		}
 	}
 
@@ -78,6 +78,13 @@ func TestSpecHandler(t *testing.T) {
 		},
 		expectedData: map[string]interface{}{
 			"password": "hunter2",
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"dbCredentials": map[string]interface{}{
+					"password": "hunter2",
+				},
+			},
 		},
 	}))
 }

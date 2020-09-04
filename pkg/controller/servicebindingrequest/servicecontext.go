@@ -160,7 +160,7 @@ func runHandler(
 	volumeKeys *[]string,
 	restMapper meta.RESTMapper,
 ) error {
-	h, err := annotations.BuildHandler(client, obj, key, value, restMapper)
+	h, err := annotations.NewSpecHandler(client, key, value, *obj, restMapper)
 	if err != nil {
 		return err
 	}
