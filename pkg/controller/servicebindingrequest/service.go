@@ -14,7 +14,7 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
+	bindingnnn "github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/binding"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/nested"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
@@ -76,7 +76,7 @@ func loadDescriptor(anns map[string]string, path string, descriptor string, root
 		return
 	}
 
-	n := annotations.ServiceBindingOperatorAnnotationPrefix + root + "." + path
+	n := bindingnnn.ServiceBindingOperatorAnnotationPrefix + root + "." + path
 	v := strings.Split(descriptor, ":")
 
 	if strings.HasPrefix(descriptor, "binding:env:") {

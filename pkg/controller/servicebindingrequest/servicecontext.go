@@ -2,7 +2,7 @@ package servicebindingrequest
 
 import (
 	"github.com/imdario/mergo"
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/annotations"
+	bindingnnn "github.com/redhat-developer/service-binding-operator/pkg/controller/servicebindingrequest/binding"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -70,7 +70,7 @@ SELECTORS:
 			// best effort approach; should not break in common cases such as a unknown annotation
 			// prefix (other annotations might exist in the resource) or, in the case of a valid
 			// annotation, the handler expected for the annotation can't be found.
-			if annotations.IsErrEmptyAnnotationName(err) || annotations.IsErrHandlerNotFound(err) {
+			if bindingnnn.IsErrEmptyAnnotationName(err) || bindingnnn.IsErrHandlerNotFound(err) {
 				logger.Trace("Continuing to next selector", "Error", err)
 				continue SELECTORS
 			}
@@ -160,7 +160,7 @@ func runHandler(
 	volumeKeys *[]string,
 	restMapper meta.RESTMapper,
 ) error {
-	h, err := annotations.NewSpecHandler(client, key, value, *obj, restMapper)
+	h, err := bindingnnn.NewSpecHandler(client, key, value, *obj, restMapper)
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func runHandler(
 		return err
 	}
 
-	if r.Type == annotations.BindingTypeVolumeMount {
+	if r.Type == bindingnnn.BindingTypeVolumeMount {
 		*volumeKeys = []string(append(*volumeKeys, r.Path))
 	}
 

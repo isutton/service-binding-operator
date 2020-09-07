@@ -50,7 +50,7 @@ type serviceBinderOptions struct {
 	detectBindingResources bool
 	sbr                    *v1alpha1.ServiceBindingRequest
 	objects                []*unstructured.Unstructured
-	binding                *binding
+	binding                *internalBinding
 	restMapper             meta.RESTMapper
 }
 
@@ -432,7 +432,7 @@ func buildServiceBinder(
 	}, nil
 }
 
-type binding struct {
+type internalBinding struct {
 	envVars    map[string][]byte
 	volumeKeys []string
 }
@@ -442,14 +442,14 @@ func buildBinding(
 	customEnvVar []corev1.EnvVar,
 	svcCtxs serviceContextList,
 	globalEnvVarPrefix string,
-) (*binding, error) {
+) (*internalBinding, error) {
 	envVars, volumeKeys, err := NewRetriever(client).
 		ProcessServiceContexts(globalEnvVarPrefix, svcCtxs, customEnvVar)
 	if err != nil {
 		return nil, err
 	}
 
-	return &binding{
+	return &internalBinding{
 		envVars:    envVars,
 		volumeKeys: volumeKeys,
 	}, nil
