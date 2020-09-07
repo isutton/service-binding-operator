@@ -26,6 +26,14 @@ func TestStringDefinition(t *testing.T) {
 			},
 		},
 		{
+			description: "outputName informed - alias",
+			outputName:  "anotherName",
+			path:        []string{"status", "dbCredentials", "username"},
+			expectedValue: map[string]interface{}{
+				"anotherName": "AzureDiamond",
+			},
+		},
+		{
 			description: "outputName empty",
 			path:        []string{"status", "dbCredentials", "username"},
 			expectedValue: map[string]interface{}{
@@ -53,7 +61,6 @@ func TestStringDefinition(t *testing.T) {
 			val, err := d.Apply(u)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectedValue, val.GetValue())
-
 		})
 	}
 }
