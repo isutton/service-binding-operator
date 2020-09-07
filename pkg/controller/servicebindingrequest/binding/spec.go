@@ -111,5 +111,5 @@ func NewSpecHandler(
 }
 
 func IsSpec(annotationKey string) bool {
-	return strings.HasPrefix(annotationKey, "service.binding")
+	return strings.HasPrefix(annotationKey, AnnotationPrefix)
 }

@@ -41,11 +41,11 @@ const (
 	elementTypeModelKey modelKey = "elementType"
 )
 
-const annotationPrefix = "service.binding"
+const AnnotationPrefix = "service.binding"
 
 func parseName(name string, defaultName string) (string, error) {
 	// bail out in the case the annotation name doesn't start with "service.binding"
-	if name != annotationPrefix && !strings.HasPrefix(name, annotationPrefix+"/") {
+	if name != AnnotationPrefix && !strings.HasPrefix(name, AnnotationPrefix+"/") {
 		return "", fmt.Errorf("can't process annotation with name %q", name)
 	}
 
