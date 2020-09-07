@@ -56,7 +56,13 @@ type stringDefinition struct {
 
 var _ Definition = (*stringDefinition)(nil)
 
-func (d *stringDefinition) GetPath() []string { return d.path }
+func (d *stringDefinition) getOutputName() string {
+	outputName := d.outputName
+	if len(outputName) == 0 {
+		outputName = d.path[len(d.path)-1]
+	}
+	return outputName
+}
 
 func (d *stringDefinition) GetPath() []string { return d.path[0 : len(d.path)-1] }
 
@@ -69,14 +75,10 @@ func (d *stringDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 		return nil, errors.New("not found")
 	}
 
-	outputName := d.outputName
-	if len(outputName) == 0 {
-		outputName = d.path[len(d.path)-1]
+	m := map[string]interface{}{
+		d.getOutputName(): fmt.Sprintf("%v", val),
 	}
 
-	m := map[string]interface{}{
-		outputName: fmt.Sprintf("%v", val),
-	}
 	return &value{v: m}, nil
 }
 
