@@ -48,7 +48,7 @@ func TestSpecHandler(t *testing.T) {
 		}
 	}
 
-	t.Run("string", assertHandler(args{
+	t.Run("should return the from the related config map", assertHandler(args{
 		name:  "service.binding/password",
 		value: "path={.status.dbCredentials.password}",
 		service: map[string]interface{}{
