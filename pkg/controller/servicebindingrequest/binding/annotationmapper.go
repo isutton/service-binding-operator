@@ -91,10 +91,11 @@ func (m *AnnotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (
 
 	case mod.isMapElementType() && mod.hasDataField():
 		return &mapFromDataFieldDefinition{
-			kubeClient: m.KubeClient,
-			objectType: mod.objectType,
-			outputName: outputName,
-			path:       mod.path,
+			kubeClient:  m.KubeClient,
+			objectType:  mod.objectType,
+			outputName:  outputName,
+			path:        mod.path,
+			sourceValue: mod.sourceValue,
 		}, nil
 
 	case mod.isMapElementType() && mod.isStringObjectType():

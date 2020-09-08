@@ -140,10 +140,11 @@ func (d *stringFromDataFieldDefinition) Apply(u *unstructured.Unstructured) (Val
 }
 
 type mapFromDataFieldDefinition struct {
-	kubeClient dynamic.Interface
-	objectType objectType
-	outputName string
-	path       []string
+	kubeClient  dynamic.Interface
+	objectType  objectType
+	outputName  string
+	sourceValue string
+	path        []string
 }
 
 var _ Definition = (*mapFromDataFieldDefinition)(nil)
@@ -183,18 +184,27 @@ func (d *mapFromDataFieldDefinition) Apply(u *unstructured.Unstructured) (Value,
 	if !ok {
 		return nil, errors.New("not found")
 	}
-	if d.objectType == secretObjectType {
-		for k, v := range val {
-			n, err := base64.StdEncoding.DecodeString(v)
+
+	outputVal := make(map[string]string)
+
+	for k, v := range val {
+		if len(d.sourceValue) > 0 && k != d.sourceValue {
+			continue
+		}
+		var n string
+		if d.objectType == secretObjectType {
+			b, err := base64.StdEncoding.DecodeString(v)
 			if err != nil {
 				return nil, err
 			}
-			val[k] = string(n)
+			n = string(b)
+		} else {
+			n = v
 		}
+		outputVal[k] = string(n)
 	}
 
-	return &value{v: val}, nil
-
+	return &value{v: outputVal}, nil
 }
 
 type stringOfMapDefinition struct {
