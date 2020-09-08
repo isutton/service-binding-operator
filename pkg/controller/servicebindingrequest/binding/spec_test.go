@@ -48,7 +48,7 @@ func TestSpecHandler(t *testing.T) {
 		}
 	}
 
-	t.Run("should return the from the related config map", assertHandler(args{
+	t.Run("should return password from the resource", assertHandler(args{
 		name:  "service.binding/password",
 		value: "path={.status.dbCredentials.password}",
 		service: map[string]interface{}{
@@ -72,6 +72,7 @@ func TestSpecHandler(t *testing.T) {
 				},
 
 				Data: map[string]string{
+					"username": "AzureDiamond",
 					"password": "hunter2",
 				},
 			},
@@ -82,6 +83,165 @@ func TestSpecHandler(t *testing.T) {
 		expectedRawData: map[string]interface{}{
 			"status": map[string]interface{}{
 				"dbCredentials": map[string]interface{}{
+					"password": "hunter2",
+				},
+			},
+		},
+	}))
+
+	t.Run("should return only password from related secret", assertHandler(args{
+		name:  "service.binding/password",
+		value: "path={.status.dbCredentials},objectType=Secret,sourceValue=password",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"dbCredentials": "the-secret-resource-name",
+			},
+		},
+		resources: []runtime.Object{
+			&corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "Secret",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "the-namespace",
+					Name:      "the-secret-resource-name",
+				},
+
+				Data: map[string][]byte{
+					"username": []byte("AzureDiamond"),
+					"password": []byte("hunter2"),
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"password": "hunter2",
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"dbCredentials": map[string]interface{}{
+					"password": "hunter2",
+				},
+			},
+		},
+	}))
+
+	t.Run("should return all data from related secret", assertHandler(args{
+		name:  "service.binding",
+		value: "path={.status.dbCredentials},objectType=Secret,elementType=map",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"dbCredentials": "the-secret-resource-name",
+			},
+		},
+		resources: []runtime.Object{
+			&corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "Secret",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "the-namespace",
+					Name:      "the-secret-resource-name",
+				},
+
+				Data: map[string][]byte{
+					"username": []byte("AzureDiamond"),
+					"password": []byte("hunter2"),
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"password": "hunter2",
+			"username": "AzureDiamond",
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"dbCredentials": map[string]interface{}{
+					"username": "AzureDiamond",
+					"password": "hunter2",
+				},
+			},
+		},
+	}))
+
+	t.Run("should return only password from related config map", assertHandler(args{
+		name:  "service.binding/password",
+		value: "path={.status.dbCredentials},objectType=ConfigMap,sourceValue=password",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"dbCredentials": "the-secret-resource-name",
+			},
+		},
+		resources: []runtime.Object{
+			&corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "ConfigMap",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "the-namespace",
+					Name:      "the-secret-resource-name",
+				},
+
+				Data: map[string]string{
+					"password": "hunter2",
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"password": "hunter2",
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"dbCredentials": map[string]interface{}{
+					"password": "hunter2",
+				},
+			},
+		},
+	}))
+
+	t.Run("should return all data from related config map", assertHandler(args{
+		name:  "service.binding",
+		value: "path={.status.dbCredentials},objectType=ConfigMap,elementType=map",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"dbCredentials": "the-secret-resource-name",
+			},
+		},
+		resources: []runtime.Object{
+			&corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "ConfigMap",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "the-namespace",
+					Name:      "the-secret-resource-name",
+				},
+
+				Data: map[string]string{
+					"username": "AzureDiamond",
+					"password": "hunter2",
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"username": "AzureDiamond",
+			"password": "hunter2",
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"dbCredentials": map[string]interface{}{
+					"username": "AzureDiamond",
 					"password": "hunter2",
 				},
 			},
