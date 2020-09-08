@@ -18,7 +18,7 @@ func TestSpecHandler(t *testing.T) {
 		value           string
 		service         map[string]interface{}
 		resources       []runtime.Object
-		expectedData    map[string]interface{}
+		expectedData    interface{}
 		expectedRawData map[string]interface{}
 	}
 
@@ -244,6 +244,144 @@ func TestSpecHandler(t *testing.T) {
 					"username": "AzureDiamond",
 					"password": "hunter2",
 				},
+			},
+		},
+	}))
+
+	t.Run("should a map with type as key and url as value", assertHandler(args{
+		name:  "service.binding",
+		value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"bootstrap": []interface{}{
+					map[string]interface{}{"type": "https", "url": "secure.example.com"},
+					map[string]interface{}{"type": "http", "url": "www.example.com"},
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"bootstrap": map[string]interface{}{
+				"https": "secure.example.com",
+				"http":  "www.example.com",
+			},
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"bootstrap": map[string]interface{}{
+					"https": "secure.example.com",
+					"http":  "www.example.com",
+				},
+			},
+		},
+	}))
+
+	t.Run("should return a map with type as key and url as value", assertHandler(args{
+		name:  "service.binding/urls",
+		value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"bootstrap": []interface{}{
+					map[string]interface{}{"type": "https", "url": "secure.example.com"},
+					map[string]interface{}{"type": "http", "url": "www.example.com"},
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"urls": map[string]interface{}{
+				"https": "secure.example.com",
+				"http":  "www.example.com",
+			},
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"urls": map[string]interface{}{
+					"https": "secure.example.com",
+					"http":  "www.example.com",
+				},
+			},
+		},
+	}))
+
+	t.Run("should return a map with type as key and url as value", assertHandler(args{
+		name:  "service.binding/urls",
+		value: "path={.status.bootstrap},elementType=sliceOfMaps,sourceKey=type,sourceValue=url",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"bootstrap": []interface{}{
+					map[string]interface{}{"type": "https", "url": "secure.example.com"},
+					map[string]interface{}{"type": "http", "url": "www.example.com"},
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"urls": map[string]interface{}{
+				"https": "secure.example.com",
+				"http":  "www.example.com",
+			},
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"urls": map[string]interface{}{
+					"https": "secure.example.com",
+					"http":  "www.example.com",
+				},
+			},
+		},
+	}))
+
+	t.Run("should return a slice of strings with all urls", assertHandler(args{
+		name:  "service.binding",
+		value: "path={.status.bootstrap},elementType=sliceOfStrings,sourceValue=url",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"bootstrap": []interface{}{
+					map[string]interface{}{"type": "https", "url": "secure.example.com"},
+					map[string]interface{}{"type": "http", "url": "www.example.com"},
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"bootstrap": []string{"secure.example.com", "www.example.com"},
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"bootstrap": []string{"secure.example.com", "www.example.com"},
+			},
+		},
+	}))
+
+	t.Run("should return a slice of strings with all urls", assertHandler(args{
+		name:  "service.binding/urls",
+		value: "path={.status.bootstrap},elementType=sliceOfStrings,sourceValue=url",
+		service: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"namespace": "the-namespace",
+			},
+			"status": map[string]interface{}{
+				"bootstrap": []interface{}{
+					map[string]interface{}{"type": "https", "url": "secure.example.com"},
+					map[string]interface{}{"type": "http", "url": "www.example.com"},
+				},
+			},
+		},
+		expectedData: map[string]interface{}{
+			"urls": []string{"secure.example.com", "www.example.com"},
+		},
+		expectedRawData: map[string]interface{}{
+			"status": map[string]interface{}{
+				"urls": []string{"secure.example.com", "www.example.com"},
 			},
 		},
 	}))

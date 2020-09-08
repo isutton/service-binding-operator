@@ -126,6 +126,7 @@ func TestSliceOfStringsFromPath(t *testing.T) {
 	d := &sliceOfStringsFromPathDefinition{
 		sourceValue: "url",
 		path:        []string{"status", "bootstrap"},
+		outputName:  "bootstrap",
 	}
 	val, err := d.Apply(&unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -147,7 +148,9 @@ func TestSliceOfStringsFromPath(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	v := []string{"www.example.com", "secure.example.com"}
+	v := map[string]interface{}{
+		"bootstrap": []string{"www.example.com", "secure.example.com"},
+	}
 	require.Equal(t, v, val.GetValue())
 }
 
@@ -155,6 +158,7 @@ func TestSliceOfMapsFromPath(t *testing.T) {
 	d := &sliceOfMapsFromPathDefinition{
 		sourceKey:   "type",
 		sourceValue: "url",
+		outputName:  "bootstrap",
 		path:        []string{"status", "bootstrap"},
 	}
 	val, err := d.Apply(&unstructured.Unstructured{
@@ -178,8 +182,10 @@ func TestSliceOfMapsFromPath(t *testing.T) {
 	})
 	require.NoError(t, err)
 	v := map[string]interface{}{
-		"http":  "www.example.com",
-		"https": "secure.example.com",
+		"bootstrap": map[string]interface{}{
+			"http":  "www.example.com",
+			"https": "secure.example.com",
+		},
 	}
 	require.Equal(t, v, val.GetValue())
 }

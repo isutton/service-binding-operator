@@ -245,7 +245,7 @@ type sliceOfMapsFromPathDefinition struct {
 
 var _ Definition = (*sliceOfMapsFromPathDefinition)(nil)
 
-func (d *sliceOfMapsFromPathDefinition) GetPath() []string { return d.path }
+func (d *sliceOfMapsFromPathDefinition) GetPath() []string { return d.path[0 : len(d.path)-1] }
 
 func (d *sliceOfMapsFromPathDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	val, ok, err := unstructured.NestedSlice(u.Object, d.path...)
@@ -266,7 +266,7 @@ func (d *sliceOfMapsFromPathDefinition) Apply(u *unstructured.Unstructured) (Val
 		}
 	}
 
-	return &value{v: v}, nil
+	return &value{v: map[string]interface{}{d.outputName: v}}, nil
 }
 
 type sliceOfStringsFromPathDefinition struct {
@@ -277,7 +277,7 @@ type sliceOfStringsFromPathDefinition struct {
 
 var _ Definition = (*sliceOfStringsFromPathDefinition)(nil)
 
-func (d *sliceOfStringsFromPathDefinition) GetPath() []string { return d.path }
+func (d *sliceOfStringsFromPathDefinition) GetPath() []string { return d.path[0 : len(d.path)-1] }
 
 func (d *sliceOfStringsFromPathDefinition) Apply(u *unstructured.Unstructured) (Value, error) {
 	val, ok, err := unstructured.NestedSlice(u.Object, d.path...)
@@ -296,5 +296,5 @@ func (d *sliceOfStringsFromPathDefinition) Apply(u *unstructured.Unstructured) (
 		}
 	}
 
-	return &value{v: v}, nil
+	return &value{v: map[string]interface{}{d.outputName: v}}, nil
 }
