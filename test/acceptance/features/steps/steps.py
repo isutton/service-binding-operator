@@ -5,9 +5,11 @@
 import os
 import re
 import base64
+import ipaddress
 
-from behave import given, then, when
+from behave import register_type, given, then, when
 from pyshould import should, should_not
+import parse
 
 from servicebindingoperator import Servicebindingoperator
 from dboperator import DbOperator
@@ -19,6 +21,8 @@ from serverless_operator import ServerlessOperator
 from quarkus_application import QuarkusApplication
 from quarkus_s2i_builder_image import QuarkusS2IBuilderImage
 from knative_serving import KnativeServing
+from etcdoperator import EtcdOperator
+from etcdcluster import EtcdCluster
 from service_binding import ServiceBinding
 import time
 
@@ -95,22 +99,44 @@ def given_db_operator_is_installed(context):
 
 
 # STEP
-imported_nodejs_app_is_running_step = u'Imported Nodejs application "{application_name}" is running'
+nodejs_app_imported_from_image_is_running_step = u'Nodejs application "{application_name}" imported from "{application_image}" image is running'
 
 
-@given(imported_nodejs_app_is_running_step)
-@when(imported_nodejs_app_is_running_step)
-def imported_nodejs_app_is_running(context, application_name):
+@given(nodejs_app_imported_from_image_is_running_step)
+@when(nodejs_app_imported_from_image_is_running_step)
+def nodejs_app_imported_from_image_is_running(context, application_name, application_image):
     namespace = context.namespace
-    application = NodeJSApp(application_name, namespace.name)
+    application = NodeJSApp(application_name, namespace.name, application_image)
     if not application.is_running():
         print("application is not running, trying to import it")
         application.install() | should.be_truthy.desc("Application is installed")
         application.is_running(wait=True) | should.be_truthy.desc("Application is running")
     print("Nodejs application is running!!!")
-    application.get_db_name_from_api() | should_not.be_none
     context.application = application
     context.application_type = "nodejs"
+
+
+# STEP
+app_endpoint_is_available_step = u'Application endpoint "{endpoint}" is available'
+
+
+@given(app_endpoint_is_available_step)
+@when(app_endpoint_is_available_step)
+@then(app_endpoint_is_available_step)
+def app_endpoint_is_available(context, endpoint):
+    application = context.application
+    assert application.get_response_from_api(endpoint=endpoint) is not None, f'Application endpoint "{endpoint}" is not available'
+
+
+# STEP
+default_nodejs_app_imported_from_image_is_running_step = u'Imported Nodejs application "{application_name}" is running'
+
+
+@given(default_nodejs_app_imported_from_image_is_running_step)
+@when(default_nodejs_app_imported_from_image_is_running_step)
+def default_nodejs_app_imported_from_image_is_running(context, application_name):
+    nodejs_app_imported_from_image_is_running(context, application_name, application_image="quay.io/pmacik/nodejs-rest-http-crud")
+    app_endpoint_is_available(context, endpoint="/api/status/dbNameCM")
 
 
 # STEP
@@ -142,7 +168,7 @@ def db_instance_is_running(context, db_name):
 
 
 # STEP
-sbr_is_applied_step = u'Service Binding is applied to connect the database and the application'
+sbr_is_applied_step = u'Service Binding is applied'
 
 
 @given(sbr_is_applied_step)
@@ -181,7 +207,7 @@ def then_application_redeployed(context):
 @then(u'application should be connected to the DB "{db_name}"')
 def then_app_is_connected_to_db(context, db_name):
     application = context.application
-    app_db_name = application.get_db_name_from_api(wait=True)
+    app_db_name = application.get_response_from_api(wait=True, endpoint="/api/status/dbNameCM")
     app_db_name | should.be_equal_to(db_name)
 
 
@@ -257,32 +283,32 @@ def quarkus_app_is_imported_as_knative_service(context, application_name):
     if not application.is_imported():
         print("application is not imported, trying to import it")
         assert application.install() is True, "Quarkus application is not installed"
-        assert application.is_imported() is True, "Quarkus application is not imported"
+        assert application.is_imported(wait=True) is True, "Quarkus application is not imported"
     context.application = application
     context.application_type = "knative"
 
 
 # STEP
-@then(u'"{app_name}" deployment must contain SBR name "{sbr_name1}" and "{sbr_name2}"')
-def then_envFrom_contains(context, app_name, sbr_name1, sbr_name2):
+
+
+@then(u'"{app_name}" deployment must contain SBR name "{sbr_name}"')
+def then_envFrom_contains(context, app_name, sbr_name):
     time.sleep(60)
     openshift = Openshift()
     result = openshift.get_deployment_envFrom_info(app_name, context.namespace.name)
-
     # Expected result from 'oc' (openshift client) v4.5
-    expected_result_oc_45 = f'[map[secretRef:map[name:{sbr_name1}]] map[secretRef:map[name:{sbr_name2}]]]'
+    expected_result_oc_45 = f'secretRef:map[name:{sbr_name}]'
     # Expected result from 'oc' (openshift client) v4.6+
-    expected_result_oc_46 = f'[{{"secretRef":{{"name":"{sbr_name1}"}}}},{{"secretRef":{{"name":"{sbr_name2}"}}}}]'
-
-    assert result == expected_result_oc_45 or result == expected_result_oc_46, \
-        f'\n{app_name} deployment should contain secretRef: {sbr_name1} and {sbr_name2}\nActual secretRef: {result}'
+    expected_result_oc_46 = f'{{"secretRef":{{"name":"{sbr_name}"}}}}'
+    assert re.search(re.escape(expected_result_oc_45), result) is not None or re.search(re.escape(expected_result_oc_46), result) is not None, \
+        f'\n{app_name} deployment should contain secretRef: {sbr_name} \nActual secretRef: {result}'
 
 
 # STEP
 @then(u'deployment must contain intermediate secret "{intermediate_secret_name}"')
-def then_envFrom_contains_intermediate_secret_name(context, intermediate_secret_name):
+def envFrom_contains_intermediate_secret_name(context, intermediate_secret_name):
     assert context.application.get_deployment_with_intermediate_secret(
-        intermediate_secret_name, wait=True, timeout=120) is not None, f"There is no deployment with intermediate secret {intermediate_secret_name}"
+        intermediate_secret_name) is not None, f"There is no deployment with intermediate secret {intermediate_secret_name}"
 
 
 # STEP
@@ -292,26 +318,16 @@ def operator_manifest_installed(context, backend_service):
     _ = openshift.oc_apply_yaml_file(os.path.join(os.getcwd(), "test/acceptance/resources/", backend_service + ".operator.manifest.yaml"))
 
 
-# STEP
-@given(u'Backend CR "{cr_name}" is applied')
-def create_backend_cr(context, cr_name):
-    create_cr(context, cr_name)
+@parse.with_pattern(r'.*')
+def parse_nullable_string(text):
+    return text
+
+
+register_type(NullableString=parse_nullable_string)
 
 
 # STEP
-@given(u'Service Binding request is applied')
-def create_sbr(context):
-    sbr_is_applied(context)
-
-
-# STEP
-@when(u'Backend status in "{backend_name}" is updated')
-def backend_status_updated(context, backend_name):
-    create_cr(context, backend_name)
-
-
-# STEP
-@then(u'Secret "{secret_name}" contains "{secret_key}" key with value "{secret_value}"')
+@then(u'Secret "{secret_name}" contains "{secret_key}" key with value "{secret_value:NullableString}"')
 def check_secret_key_value(context, secret_name, secret_key, secret_value):
     openshift = Openshift()
     json_path = f'{{.data.{secret_key}}}'
@@ -332,23 +348,47 @@ def check_secret_key_value(context, secret_name, secret_key, secret_value):
 
 
 # STEP
-@given(u'The CRD "{crd_name}" is present')
-def create_crd(context, crd_name):
+@then(u'Secret "{secret_name}" contains "{secret_key}" key with dynamic IP addess as the value')
+def check_secret_key_with_ip_value(context, secret_name, secret_key):
     openshift = Openshift()
-    yaml = context.text
-    output = openshift.oc_apply(yaml)
-    result = re.search(rf'.*customresourcedefinition.apiextensions.k8s.io/{crd_name}.*(created|unchanged)', output)
-    result | should_not.be_none.desc("CRD {crd_name} Created")
+    json_path = f'{{.data.{secret_key}}}'
+    output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path)
+    timeout = 180
+    interval = 5
+    attempts = timeout/interval
+    while True:
+        actual_secret_value = base64.b64decode(output).decode('ascii')
+        try:
+            ipaddress.ip_address(actual_secret_value)
+        except ValueError:
+            pass
+        else:
+            break
+        if attempts <= 0:
+            break
+        else:
+            attempts -= 1
+            time.sleep(interval)
+            output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path)
+    result = base64.decodebytes(bytes(output, 'utf-8'))
+    with should.not_raise:
+        ipaddress.ip_address(result.decode('ascii'))
 
 
 # STEP
-@given(u'The application CR "{cr_name}" is present')
-def create_cr(context, cr_name):
+@given(u'Backend service CSV is installed')
+@given(u'The Custom Resource Definition is present')
+@given(u'The Custom Resource is present')
+@when(u'The Custom Resource is present')
+@given(u'The ConfigMap is present')
+@given(u'The Secret is present')
+def apply_yaml(context):
     openshift = Openshift()
     yaml = context.text
+    metadata_name = re.sub(r'.*: ', '', re.search(r'name: .*', yaml).group(0))
     output = openshift.oc_apply(yaml)
-    result = re.search(rf'.*{cr_name}.*(created|unchanged|configured)', output)
-    result | should_not.be_none.desc("CR {cr_name} Created/Updated")
+    result = re.search(rf'.*{metadata_name}.*(created|unchanged|configured)', output)
+    result | should_not.be_none.desc("CR {metadata_name} Created/Updated")
 
 
 @then(u'Secret "{secret_ref}" has been injected in to CR "{cr_name}" of kind "{crd_name}" at path "{json_path}"')
@@ -357,3 +397,29 @@ def verify_injected_secretRef(context, secret_ref, cr_name, crd_name, json_path)
     openshift = Openshift()
     result = openshift.get_resource_info_by_jsonpath(crd_name, cr_name, context.namespace.name, json_path, wait=True, timeout=180)
     result | should.be_equal_to(secret_ref).desc(f'Failed to inject secretRef "{secret_ref}" in "{cr_name}" at path "{json_path}"')
+
+
+@given(u'Etcd operator running')
+def etcd_operator_is_running(context):
+    """
+    Checks if the etcd operator is up and running
+    """
+    etcd_operator = EtcdOperator()
+    if not etcd_operator.is_running():
+        print("Etcd operator is not installed, installing...")
+        assert etcd_operator.install_operator_subscription() is True, "etcd operator subscription is not installed"
+        assert etcd_operator.is_running(wait=True) is True, "etcd operator not installed"
+    context.etcd_operator = etcd_operator
+
+
+@given(u'Etcd cluster "{etcd_name}" is running')
+def etc_cluster_is_running(context, etcd_name):
+    """
+    Checks if the etcd cluster is created
+    """
+    namespace = context.namespace
+    etcd_cluster = EtcdCluster(etcd_name, namespace.name)
+    if not etcd_cluster.is_present():
+        print("etcd cluster not present, creating etcd cluster")
+        assert etcd_cluster.create() is True, "etcd cluster is not created"
+        assert etcd_cluster.is_present() is True, "etcd cluster is not present"

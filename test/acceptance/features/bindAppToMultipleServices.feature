@@ -12,7 +12,7 @@ Feature: Bind a single application to multiple services
         Given Imported Nodejs application "nodejs-app" is running
         * DB "db-demo-1" is running
         * DB "db-demo-2" is running
-        * Service Binding is applied to connect the database and the application
+        * Service Binding is applied
             """
             apiVersion: operators.coreos.com/v1alpha1
             kind: ServiceBinding
@@ -30,7 +30,7 @@ Feature: Bind a single application to multiple services
                     kind: Database
                     name: db-demo-1
             """
-        When Service Binding is applied to connect the database and the application
+        When Service Binding is applied
             """
             apiVersion: operators.coreos.com/v1alpha1
             kind: ServiceBinding
@@ -53,4 +53,5 @@ Feature: Bind a single application to multiple services
         And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-1" should be changed to "True"
         And jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "binding-request-2" should be changed to "True"
         And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-2" should be changed to "True"
-        And "nodejs-app" deployment must contain SBR name "binding-request-1" and "binding-request-2"
+        And "nodejs-app" deployment must contain SBR name "binding-request-1"
+        And "nodejs-app" deployment must contain SBR name "binding-request-2"

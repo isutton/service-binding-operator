@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 
-	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
+	v1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/operators/v1alpha1"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebinding/binding"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )

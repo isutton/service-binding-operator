@@ -120,7 +120,7 @@ GOCOV ?= "-covermode=atomic -coverprofile REPLACE_FILE"
 
 GIT_COMMIT_ID ?= $(shell git rev-parse --short HEAD)
 
-OPERATOR_VERSION ?= 0.1.1
+OPERATOR_VERSION ?= 0.2.0
 OPERATOR_GROUP ?= ${GO_PACKAGE_ORG_NAME}
 OPERATOR_IMAGE ?= quay.io/${OPERATOR_GROUP}/${GO_PACKAGE_REPO_NAME}
 OPERATOR_IMAGE_REL ?= quay.io/${OPERATOR_GROUP}/app-binding-operator
@@ -517,7 +517,7 @@ push-to-manifest-repo:
 .PHONY: prepare-bundle-to-quay
 ## Prepare manifest bundle to quay application
 prepare-bundle-to-quay:
-	$(Q)python3.7 -m venv $(PYTHON_VENV_DIR)
+	$(Q)python3 -m venv $(PYTHON_VENV_DIR)
 	$(Q)$(PYTHON_VENV_DIR)/bin/pip install --upgrade setuptools
 	$(Q)$(PYTHON_VENV_DIR)/bin/pip install --upgrade pip
 	$(Q)$(PYTHON_VENV_DIR)/bin/pip install operator-courier==2.1.2
@@ -542,4 +542,4 @@ dev-release:
 ## validate the operator by installing the releases
 validate-release: setup-venv
 	$(Q)$(PYTHON_VENV_DIR)/bin/pip install yq==2.10.0
-	BUNDLE_VERSION=$(BASE_BUNDLE_VERSION) CHANNEL="alpha" ./hack/validate-release.sh
+	BUNDLE_VERSION=$(BASE_BUNDLE_VERSION) CHANNEL="beta" ./hack/validate-release.sh
