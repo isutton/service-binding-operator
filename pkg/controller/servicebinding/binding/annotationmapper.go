@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -124,5 +125,5 @@ func (m *AnnotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (
 		}, nil
 	}
 
-	panic("not implemented")
+	panic(fmt.Sprintf("not implemented: %s", opts))
 }
