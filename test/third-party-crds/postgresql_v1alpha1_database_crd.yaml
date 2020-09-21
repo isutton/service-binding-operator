@@ -8,12 +8,12 @@ metadata:
     service.binding/db.name: path={.status.dbConfigMap},objectType=ConfigMap,sourceValue=db.name
     service.binding/db.password: path={.status.dbConfigMap},objectType=ConfigMap,sourceValue=db.password
     service.binding/db.port: path={.status.dbConfigMap},objectType=ConfigMap,sourceValue=db.port
-    service.binding/db.username: path={.status.dbConfigMap},objectType=ConfigMap,sourceValue=db.username
+    service.binding/db.user: path={.status.dbConfigMap},objectType=ConfigMap,sourceValue=db.user
     service.binding/dbConnectionIP: path={.status.dbConnectionIP}
     service.binding/dbConnectionPort: path={.status.dbConnectionPort}
     service.binding/dbName: path={.status.dbName}
     service.binding/password: path={.status.dbCredentials},objectType=Secret,sourceValue=password
-    service.binding/username: path={.status.dbCredentials},objectType=Secret,sourceValue=username
+    service.binding/user: path={.status.dbCredentials},objectType=Secret,sourceValue=user
 spec:
   group: postgresql.baiju.dev
   names:
