@@ -2,7 +2,6 @@ package servicebinding
 
 import (
 	"encoding/base64"
-	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -64,19 +63,15 @@ func (s *secret) createOrUpdate(payload map[string][]byte, ownerReference metav1
 		return nil, err
 	}
 	existingSecretData, _, _ := unstructured.NestedMap(existingSecret.Object, "data")
-	payloadStr := make(map[string]string)
-	for k, v := range payload {
-		payloadStr[k] = base64.StdEncoding.EncodeToString(v)
-	}
 	payloadInterim := make(map[string]interface{})
-	for k, v := range payloadStr {
-		payloadInterim[k] = reflect.ValueOf(v).Interface()
+	for k, v := range payload {
+		payloadInterim[k] = base64.StdEncoding.EncodeToString(v)
 	}
 	comparisonResult := nestedMapComparison(existingSecretData, payloadInterim)
 	if comparisonResult.Success {
 		logger.Debug("Secret data is same. Skip Update")
 	} else {
-		logger.Info("Secret data is different; update secret", "Result", comparisonResult)
+		logger.Info("Secret data is different; update secret", "Diff", comparisonResult.Diff)
 		_, err = resourceClient.Update(u, metav1.UpdateOptions{})
 		if err != nil {
 			return nil, err
