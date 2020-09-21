@@ -35,13 +35,13 @@ Feature: Bind an application to a service
         And application should be re-deployed
         And application should be connected to the DB "db-demo-a-d-s"
         And Secret "binding-request-a-d-s" contains "DATABASE_DBNAME" key with value "db-demo-a-d-s"
-        And Secret "binding-request-a-d-s" contains "DATABASE_SECRET_USER" key with value "postgres"
-        And Secret "binding-request-a-d-s" contains "DATABASE_SECRET_PASSWORD" key with value "password"
-        And Secret "binding-request-a-d-s" contains "DATABASE_CONFIGMAP_DB_PASSWORD" key with value "password"
-        And Secret "binding-request-a-d-s" contains "DATABASE_CONFIGMAP_DB_NAME" key with value "db-demo-a-d-s"
-        And Secret "binding-request-a-d-s" contains "DATABASE_CONFIGMAP_DB_PORT" key with value "5432"
-        And Secret "binding-request-a-d-s" contains "DATABASE_CONFIGMAP_DB_USER" key with value "postgres"
-        And Secret "binding-request-a-d-s" contains "DATABASE_CONFIGMAP_DB_HOST" key with dynamic IP addess as the value
+        And Secret "binding-request-a-d-s" contains "DATABASE_USER" key with value "postgres"
+        And Secret "binding-request-a-d-s" contains "DATABASE_PASSWORD" key with value "password"
+        And Secret "binding-request-a-d-s" contains "DATABASE_DB_PASSWORD" key with value "password"
+        And Secret "binding-request-a-d-s" contains "DATABASE_DB_NAME" key with value "db-demo-a-d-s"
+        And Secret "binding-request-a-d-s" contains "DATABASE_DB_PORT" key with value "5432"
+        And Secret "binding-request-a-d-s" contains "DATABASE_DB_USER" key with value "postgres"
+        And Secret "binding-request-a-d-s" contains "DATABASE_DB_HOST" key with dynamic IP addess as the value
         And Secret "binding-request-a-d-s" contains "DATABASE_DBCONNECTIONIP" key with dynamic IP addess as the value
         And Secret "binding-request-a-d-s" contains "DATABASE_DBCONNECTIONPORT" key with value "5432"
 
@@ -243,8 +243,8 @@ Feature: Bind an application to a service
             metadata:
                 name: backend-demo
                 annotations:
-                    servicebindingoperator.redhat.io/status.ready: 'binding:env:attribute'
-                    servicebindingoperator.redhat.io/spec.host: 'binding:env:attribute'
+                    service.binding/host: path={.spec.host}
+                    service.binding/ready: path={.status.ready}
             spec:
                 host: example.common
             """
@@ -278,8 +278,8 @@ Feature: Bind an application to a service
             metadata:
                 name: backend-demo
                 annotations:
-                    servicebindingoperator.redhat.io/status.ready: 'binding:env:attribute'
-                    servicebindingoperator.redhat.io/spec.host: 'binding:env:attribute'
+                    service.binding/host: path={.spec.host}
+                    service.binding/ready: path={.status.ready}
             spec:
                 host: example.common
             status:
@@ -449,10 +449,10 @@ Feature: Bind an application to a service
             """
         Then jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "sbr-csv-secret-cm-descriptors" should be changed to "True"
         And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "sbr-csv-secret-cm-descriptors" should be changed to "False"
-        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_CONFIGMAP_DB_HOST" key with value "172.72.2.0"
-        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_CONFIGMAP_DB_PORT" key with value "3306"
-        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_SECRET_PASSWORD" key with value "secret123"
-        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_SECRET_USERNAME" key with value "admin"
+        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_DB_HOST" key with value "172.72.2.0"
+        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_DB_PORT" key with value "3306"
+        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_PASSWORD" key with value "secret123"
+        And Secret "sbr-csv-secret-cm-descriptors" contains "BACKSERV_USERNAME" key with value "admin"
 
 
     # This test scenario is disabled until the issue is resolved: https://github.com/redhat-developer/service-binding-operator/issues/656
