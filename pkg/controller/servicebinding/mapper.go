@@ -55,23 +55,28 @@ func isSBRService(sbr *v1alpha1.ServiceBinding, obj runtime.Object) bool {
 // isSBRApplication checks whether the given obj is an application in given sbr.
 func isSBRApplication(
 	restMapper meta.RESTMapper,
-	sbr *v1alpha1.ServiceBinding,
-	obj runtime.Object,
+	app *v1alpha1.Application,
+	gvk schema.GroupVersionKind,
+	name string,
 ) (bool, error) {
-	if sbr.Spec.Application == nil {
+	if app == nil {
 		return false, nil
 	}
 	appGVR := schema.GroupVersionResource{
-		Group:    sbr.Spec.Application.Group,
-		Version:  sbr.Spec.Application.Version,
-		Resource: sbr.Spec.Application.Resource,
+		Group:    app.Group,
+		Version:  app.Version,
+		Resource: app.Resource,
 	}
 	appGVK, err := restMapper.KindFor(appGVR)
 	if err != nil {
 		return false, err
 	}
 
-	isEqual := obj.GetObjectKind().GroupVersionKind() == appGVK
+	isEqual := gvk == appGVK
+
+	if len(app.Name) > 0 {
+		isEqual = app.Name == name
+	}
 
 	return isEqual, nil
 }
@@ -171,7 +176,12 @@ ITEMS:
 			log.Debug("resource is not a service declared by the SBR")
 		}
 
-		if ok, err := isSBRApplication(m.restMapper, sbr, obj.Object); err != nil {
+		if ok, err := isSBRApplication(
+			m.restMapper,
+			sbr.Spec.Application,
+			obj.Object.GetObjectKind().GroupVersionKind(),
+			obj.Meta.GetName(),
+		); err != nil {
 			log.Error(err, "identifying resource as SBR application")
 			continue ITEMS
 		} else if !ok {
