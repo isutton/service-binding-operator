@@ -44,14 +44,14 @@ var _ ResourceWatcher = (*sbrController)(nil)
 const controllerName = "servicebinding-controller"
 
 // compareObjectFields compares a nested field of two given objects.
-func compareObjectFields(objOld, objNew runtime.Object, fields ...string) (bool, error) {
+func compareObjectFields(objOld, objNew runtime.Object, fields ...string) (*comparisonResult, error) {
 	mapNew, err := runtime.DefaultUnstructuredConverter.ToUnstructured(objNew)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	mapOld, err := runtime.DefaultUnstructuredConverter.ToUnstructured(objOld)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	return nestedUnstructuredComparison(
@@ -118,8 +118,8 @@ func updateFunc(logger *log.Log) func(updateEvent event.UpdateEvent) bool {
 				logger.Error(err, "error comparing object fields: %s", err.Error())
 				return false
 			}
-			logger.Debug("Predicate evaluated for Secret/ConfigMap", "dataFieldsAreEqual", dataFieldsAreEqual)
-			return !dataFieldsAreEqual
+			logger.Debug("Predicate evaluated for Secret/ConfigMap", "dataFieldsAreEqual", dataFieldsAreEqual.Success)
+			return !dataFieldsAreEqual.Success
 		}
 		specsAreEqual, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "spec")
 		if err != nil {
@@ -131,8 +131,14 @@ func updateFunc(logger *log.Log) func(updateEvent event.UpdateEvent) bool {
 			logger.Error(err, "error comparing object's status fields: %s", err.Error())
 			return false
 		}
-		shouldReconcile := !specsAreEqual || !statusAreEqual
-		logger.Debug("Resource update event received", "GVK", e.ObjectNew.GetObjectKind(), "spec changed", !specsAreEqual, "status changed", !statusAreEqual, "should reconcile", shouldReconcile)
+		shouldReconcile := !specsAreEqual.Success || !statusAreEqual.Success
+		logger.Debug("Resource update event received",
+			"GVK", e.ObjectNew.GetObjectKind().GroupVersionKind(),
+			"Name", e.MetaNew.GetName(),
+			"SpecsAreEqual", specsAreEqual.Success,
+			"StatusAreEqual", statusAreEqual.Success,
+			"ShouldReconcile", shouldReconcile,
+		)
 
 		return shouldReconcile
 	}
@@ -208,8 +214,6 @@ func buildSBRPredicate(logger *log.Log) predicate.Funcs {
 			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			logger = logger.WithValues("Object.New", e.ObjectNew, "Object.Old", e.ObjectOld)
-
 			// should reconcile when resource is marked for deletion
 			if e.MetaNew != nil && e.MetaNew.GetDeletionTimestamp() != nil {
 				logger.Debug("Executing reconcile, object is marked for deletion.")
@@ -222,8 +226,11 @@ func buildSBRPredicate(logger *log.Log) predicate.Funcs {
 			if err != nil {
 				logger.Error(err, "")
 			}
-			logger.Debug("Predicate evaluated", "specsAreEqual", specsAreEqual)
-			return !specsAreEqual
+			logger.Debug("Predicate evaluated", "specsAreEqual", specsAreEqual.Success)
+			if !specsAreEqual.Success {
+				logger.Trace("Specs are not equal", "ObjectOld", e.ObjectOld, "ObjectNew", e.ObjectNew)
+			}
+			return !specsAreEqual.Success
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// evaluates to false, if the object is confirmed deleted

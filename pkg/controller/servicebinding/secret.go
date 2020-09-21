@@ -72,8 +72,8 @@ func (s *secret) createOrUpdate(payload map[string][]byte, ownerReference metav1
 	for k, v := range payloadStr {
 		payloadInterim[k] = reflect.ValueOf(v).Interface()
 	}
-	eq := nestedMapComparison(existingSecretData, payloadInterim)
-	if eq {
+	comparisonResult := nestedMapComparison(existingSecretData, payloadInterim)
+	if comparisonResult.Success {
 		logger.Debug("Secret data is same. Skip Update")
 	} else {
 		logger.Info("Secret data is different; update secret", "Result", comparisonResult)

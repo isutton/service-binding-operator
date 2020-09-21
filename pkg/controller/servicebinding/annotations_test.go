@@ -111,11 +111,11 @@ func TestAnnotationsSetAndRemoveSBRAnnotations(t *testing.T) {
 		// we are not modifying the origin object
 		equal, err := nestedUnstructuredComparison(u, originCopy)
 		require.NoError(t, err)
-		require.True(t, equal)
+		require.True(t, equal.Success)
 
 		equal, err = nestedUnstructuredComparison(u, newObj, []string{"metadata", "annotations"}...)
 		require.NoError(t, err)
-		require.False(t, equal)
+		require.False(t, equal.Success)
 
 		objNamespacedName, err := getSBRNamespacedNameFromObject(newObj)
 		require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestAnnotationsSetAndRemoveSBRAnnotations(t *testing.T) {
 		newObj.SetAnnotations(nil)
 		equal, err = nestedUnstructuredComparison(u, newObj)
 		require.NoError(t, err)
-		require.True(t, equal)
+		require.True(t, equal.Success)
 	})
 
 	t.Run("RemoveSBRAnnotations", func(t *testing.T) {
@@ -135,11 +135,11 @@ func TestAnnotationsSetAndRemoveSBRAnnotations(t *testing.T) {
 		// we are not modifying the origin object
 		equal, err := nestedUnstructuredComparison(u, originCopy)
 		require.NoError(t, err)
-		require.True(t, equal)
+		require.True(t, equal.Success)
 
 		equal, err = nestedUnstructuredComparison(u, newObj, []string{"metadata", "annotations"}...)
 		require.NoError(t, err)
-		require.False(t, equal)
+		require.False(t, equal.Success)
 
 		objNamespacedName, err := getSBRNamespacedNameFromObject(newObj)
 		require.NoError(t, err)
@@ -149,7 +149,7 @@ func TestAnnotationsSetAndRemoveSBRAnnotations(t *testing.T) {
 		newObj.SetAnnotations(u.GetAnnotations())
 		equal, err = nestedUnstructuredComparison(u, newObj)
 		require.NoError(t, err)
-		require.True(t, equal)
+		require.True(t, equal.Success)
 	})
 
 	t.Run("SetAndUpdateSBRAnnotations", func(t *testing.T) {

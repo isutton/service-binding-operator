@@ -127,7 +127,7 @@ func setAndUpdateSBRAnnotations(
 		if err != nil {
 			return err
 		}
-		if !equal {
+		if !equal.Success {
 			if err := updateUnstructuredObj(client, newObj); err != nil {
 				return err
 			}
@@ -158,7 +158,7 @@ func removeAndUpdateSBRAnnotations(client dynamic.Interface, objs []*unstructure
 		if err != nil {
 			return err
 		}
-		if !equal {
+		if !equal.Success {
 			if err := updateUnstructuredObj(client, newObj); err != nil {
 				return err
 			}
