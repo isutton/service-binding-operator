@@ -43,17 +43,17 @@ const (
 
 const AnnotationPrefix = "service.binding"
 
-func parseName(name string, defaultName string) (string, error) {
+func parseName(name string) (string, error) {
 	// bail out in the case the annotation name doesn't start with "service.binding"
 	if name != AnnotationPrefix && !strings.HasPrefix(name, AnnotationPrefix+"/") {
 		return "", fmt.Errorf("can't process annotation with name %q", name)
 	}
 
-	outputName := defaultName
 	if p := strings.SplitN(name, "/", 2); len(p) > 1 && len(p[1]) > 0 {
-		outputName = p[1]
+		return p[1], nil
 	}
-	return outputName, nil
+
+	return "", nil
 }
 
 func (m *AnnotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (Definition, error) {
@@ -62,15 +62,19 @@ func (m *AnnotationToDefinitionMapper) Map(mapperOpts DefinitionMapperOptions) (
 		return nil, fmt.Errorf("provide an AnnotationToDefinitionMapperOptions")
 	}
 
-	mod, err := newModel(opts.GetValue())
+	outputName, err := parseName(opts.GetName())
 	if err != nil {
 		return nil, err
 	}
 
-	defaultOutputName := mod.path[len(mod.path)-1]
-	outputName, err := parseName(opts.GetName(), defaultOutputName)
+	mod, err := newModel(opts.GetValue())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "could not create binding model for annotation key %q",
+			opts.GetName())
+	}
+
+	if len(outputName) == 0 {
+		outputName = mod.path[len(mod.path)-1]
 	}
 
 	switch {
