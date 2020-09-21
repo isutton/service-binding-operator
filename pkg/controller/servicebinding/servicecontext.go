@@ -1,6 +1,8 @@
 package servicebinding
 
 import (
+	"sort"
+
 	"github.com/imdario/mergo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -243,7 +245,15 @@ func buildServiceContext(
 	// outputObj will be used to keep the changes processed by the handler.
 	outputObj := obj.DeepCopy()
 
-	for k, v := range anns {
+	keys := make([]string, 0)
+	for k := range anns {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := anns[k]
 		// runHandler modifies 'outputObj', 'envVars' and 'volumeKeys' in place.
 		err := runHandler(client, obj, outputObj, k, v, envVars, &volumeKeys, restMapper)
 		if err != nil {
