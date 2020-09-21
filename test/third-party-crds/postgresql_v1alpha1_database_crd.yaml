@@ -11,9 +11,9 @@ metadata:
     service.binding/db.username: path={.status.dbConfigMap},objectType=ConfigMap,sourceValue=db.username
     service.binding/dbConnectionIP: path={.status.dbConnectionIP}
     service.binding/dbConnectionPort: path={.status.dbConnectionPort}
-    service.binding/username: path={.status.dbCredentials},objectType=Secret,sourceValue=username
-    service.binding/password: path={.status.dbCredentials},objectType=Secret,sourceValue=password
     service.binding/dbName: path={.status.dbName}
+    service.binding/password: path={.status.dbCredentials},objectType=Secret,sourceValue=password
+    service.binding/username: path={.status.dbCredentials},objectType=Secret,sourceValue=username
 spec:
   group: postgresql.baiju.dev
   names:
