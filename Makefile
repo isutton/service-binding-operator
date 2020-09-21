@@ -328,7 +328,7 @@ test-acceptance: test-acceptance-setup
 	$(Q)TEST_ACCEPTANCE_START_SBO=$(TEST_ACCEPTANCE_START_SBO) \
 		TEST_ACCEPTANCE_SBO_STARTED=$(TEST_ACCEPTANCE_SBO_STARTED) \
 		TEST_NAMESPACE=$(TEST_NAMESPACE) \
-		$(PYTHON_VENV_DIR)/bin/behave --junit --junit-directory $(TEST_ACCEPTANCE_OUTPUT_DIR) $(V_FLAG) --no-capture --no-capture-stderr $(TEST_ACCEPTANCE_TAGS_ARG) test/acceptance/features
+		$(PYTHON_VENV_DIR)/bin/behave --junit --junit-directory $(TEST_ACCEPTANCE_OUTPUT_DIR) $(V_FLAG) --no-capture --no-capture-stderr $(TEST_ACCEPTANCE_TAGS_ARG) test/acceptance/features || true
 	$(Q)kill $(TEST_ACCEPTANCE_SBO_STARTED)
 
 .PHONY: test-acceptance-artifacts
