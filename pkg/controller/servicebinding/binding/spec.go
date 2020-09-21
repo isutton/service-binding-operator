@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/mitchellh/copystructure"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebinding/nested"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -88,9 +89,16 @@ func (s *SpecHandler) Handle() (result, error) {
 		}
 	}
 
+	cpy, err := copystructure.Copy(out)
+	if err != nil {
+		return result{}, err
+	}
+
+	rawData := nested.ComposeValue(cpy, nested.NewPath(path))
+
 	return result{
 		Data:    out,
-		RawData: nested.ComposeValue(out, nested.NewPath(path)),
+		RawData: rawData,
 	}, nil
 }
 
