@@ -287,6 +287,39 @@ Feature: Bind an application to a service
             """
         Then Secret "binding-request-backend" contains "CustomReady" key with value "true"
 
+
+    Scenario: Backend Service new spec status update gets propagated to the binding secret
+        Given OLM Operator "backend-new-spec" is running
+        * Backend CR "backend-demo" is applied
+            """
+            apiVersion: "stable.example.com/v1"
+            kind: Backend
+            metadata:
+                name: backend-demo
+            spec:
+                host: example.common
+                ports:
+                    - protocol: tcp
+                      port: 8080
+                    - protocol: ftp
+                      port: 22
+            """
+        * Service Binding request is applied
+            """
+            apiVersion: operators.coreos.com/v1alpha1
+            kind: ServiceBinding
+            metadata:
+                name: binding-request-backend-new-spec
+            spec:
+                services:
+                -   group: stable.example.com
+                    version: v1
+                    kind: Backend
+                    resourceRef: backend-demo
+            """
+        Then jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "binding-request-backend-new-spec" should be changed to "True"
+        And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-backend-new-spec" should be changed to "False"
+
     Scenario: Custom environment variable is injected into the application under the declared name ignoring global and service env prefix
         Given Imported Nodejs application "nodejs-rest-http-crud-a-d-c" is running
         * DB "db-demo-a-d-c" is running

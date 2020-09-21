@@ -2,6 +2,7 @@ package servicebinding
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -14,7 +15,6 @@ import (
 	"k8s.io/client-go/dynamic"
 
 	olmv1alpha1 "github.com/operator-framework/operator-lifecycle-manager/pkg/api/apis/operators/v1alpha1"
-	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebinding/binding"
 	"github.com/redhat-developer/service-binding-operator/pkg/controller/servicebinding/nested"
 	"github.com/redhat-developer/service-binding-operator/pkg/log"
 )
@@ -71,42 +71,56 @@ func findServiceCRD(client dynamic.Interface, gvk schema.GroupVersionKind) (*uns
 	return client.Resource(crdGVR).Get(crdName, metav1.GetOptions{})
 }
 
-func loadDescriptor(anns map[string]string, path string, descriptor string, root string) {
-	if !strings.HasPrefix(descriptor, "binding:") {
+func loadDescriptor(anns map[string]string, path string, descriptor string, root string, objectType string) {
+	if !strings.HasPrefix(descriptor, "service.binding") {
 		return
 	}
 
-	n := binding.ServiceBindingOperatorAnnotationPrefix + root + "." + path
-	v := strings.Split(descriptor, ":")
+	keys := strings.Split(descriptor, ":")
+	key := "service.binding"
+	value:= ""
 
-	if strings.HasPrefix(descriptor, "binding:env:") {
-		if len(v) > 4 {
-			n = n + "-" + v[4]
-			anns[n] = strings.Join(v[0:4], ":")
-		}
-		if len(v) == 4 {
-			anns[n] = strings.Join(v[0:4], ":")
-		}
-
+	if len(keys) > 1 {
+		key+= "/" + keys[1]
+	}else {
+		key += "/" + path
 	}
 
-	if strings.HasPrefix(descriptor, "binding:volumemount:") {
-		anns[n] = strings.Join(v[0:3], ":")
+	p := []string{fmt.Sprintf("path={.%s.%s}", root, path)}
+	if len(keys) > 1 {
+		p = append(p, keys[2:]...)
+	}
+	if objectType != "" {
+		p = append(p, []string{fmt.Sprintf("objectType=%s", objectType)}...)
 	}
 
+	value += strings.Join(p, ",")
+	anns[key] = value
+}
+
+func getObjectType(descriptors []string) string {
+	typeAnno := "urn:alm:descriptor:io.kubernetes:"
+	for _, desc := range descriptors {
+		if strings.HasPrefix(desc, "urn:alm:descriptor:io.kubernetes:") {
+			return strings.TrimPrefix(desc,typeAnno)
+		}
+	}
+	return ""
 }
 
 func convertCRDDescriptionToAnnotations(crdDescription *olmv1alpha1.CRDDescription) map[string]string {
 	anns := make(map[string]string)
 	for _, sd := range crdDescription.StatusDescriptors {
+		objectType := getObjectType(sd.XDescriptors)
 		for _, xd := range sd.XDescriptors {
-			loadDescriptor(anns, sd.Path, xd, "status")
+			loadDescriptor(anns, sd.Path, xd, "status", objectType)
 		}
 	}
 
 	for _, sd := range crdDescription.SpecDescriptors {
+		objectType := getObjectType(sd.XDescriptors)
 		for _, xd := range sd.XDescriptors {
-			loadDescriptor(anns, sd.Path, xd, "spec")
+			loadDescriptor(anns, sd.Path, xd, "spec",objectType)
 		}
 	}
 
