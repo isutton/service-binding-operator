@@ -535,9 +535,10 @@ func (b *binder) update(objs *unstructured.UnstructuredList) ([]*unstructured.Un
 		}
 
 		if specsAreEqual, err := nestedUnstructuredComparison(&obj, updatedObj); err != nil {
-			log.Error(err, "")
+			log.Error(err, "Error comparing previous and updated object")
 			continue
 		} else if specsAreEqual {
+			log.Debug("Previous and updated object have same spec, skipping")
 			continue
 		}
 		if b.modifier != nil {

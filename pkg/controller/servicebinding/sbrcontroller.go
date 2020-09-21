@@ -153,9 +153,9 @@ func buildGVKPredicate(logger *log.Log) predicate.Funcs {
 // AddWatchForGVK creates a watch on a given GVK, as long as it's not duplicated.
 func (s *sbrController) AddWatchForGVK(gvk schema.GroupVersionKind) error {
 	logger := s.logger.WithValues("GVK", gvk)
-	logger.Debug("Adding watch for GVK...")
+	logger.Trace("Adding watch for GVK...")
 	if _, exists := s.watchingGVKs[gvk]; exists {
-		logger.Debug("Skipping watch on GVK twice, it's already under watch!")
+		logger.Trace("Skipping watch on GVK twice, it's already under watch!")
 		return nil
 	}
 

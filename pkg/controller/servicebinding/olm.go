@@ -107,7 +107,7 @@ func (o *olm) loopCRDDescriptions(
 			log.Error(err, "on converting from unstructured to CRD")
 			return err
 		}
-		log.Debug("Inspecting CRDDescription...", "CRDDescription", crdDescription)
+		log.Trace("Inspecting CRDDescription...", "CRDDescription", crdDescription)
 		if crdDescription.Name == "" {
 			log.Debug("Skipping empty CRDDescription!")
 			continue

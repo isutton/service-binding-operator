@@ -161,6 +161,7 @@ func (b *serviceBinder) unbind() (reconcile.Result, error) {
 	logger.Debug("Removing resource finalizers...")
 	removeFinalizer(b.sbr)
 	if _, err := b.updateServiceBinding(b.sbr); err != nil {
+		b.logger.Error(err, "Updating ServiceBinding")
 		return noRequeue(err)
 	}
 
@@ -298,6 +299,7 @@ func (b *serviceBinder) handleApplicationError(reason string, applicationError e
 	if errors.Is(applicationError, errApplicationNotFound) {
 		removeFinalizer(b.sbr)
 		if _, err = b.updateServiceBinding(sbr); err != nil {
+			b.logger.Error(err, "Updating ServiceBinding")
 			return requeueError(err)
 		}
 		return requeue(applicationError, requeueAfter)
@@ -311,7 +313,7 @@ func (b *serviceBinder) handleApplicationError(reason string, applicationError e
 func (b *serviceBinder) bind() (reconcile.Result, error) {
 	sbrStatus := b.sbr.Status.DeepCopy()
 
-	b.logger.Info("Saving data on intermediary secret...")
+	b.logger.Debug("Saving data on intermediary secret...")
 
 	secretObj, err := b.secret.createOrUpdate(b.envVars, b.sbr.AsOwnerReference())
 	if err != nil {
@@ -353,6 +355,7 @@ func (b *serviceBinder) bind() (reconcile.Result, error) {
 	addFinalizer(sbr)
 
 	if _, err = b.updateServiceBinding(sbr); err != nil {
+		b.logger.Error(err, "Updating ServiceBinding")
 		return requeueError(err)
 	}
 

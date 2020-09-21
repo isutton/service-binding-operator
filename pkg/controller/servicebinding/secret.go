@@ -55,8 +55,10 @@ func (s *secret) createOrUpdate(payload map[string][]byte, ownerReference metav1
 		if errors.IsNotFound(err) {
 			_, err := resourceClient.Create(u, metav1.CreateOptions{})
 			if err != nil {
+				logger.Error(err, "Error creating secret")
 				return nil, err
 			}
+			logger.Info("Secret created")
 			return u, nil
 		}
 		return nil, err
@@ -74,7 +76,7 @@ func (s *secret) createOrUpdate(payload map[string][]byte, ownerReference metav1
 	if eq {
 		logger.Debug("Secret data is same. Skip Update")
 	} else {
-		logger.Debug("Secret data is different. Update Secret")
+		logger.Info("Secret data is different; update secret", "Result", comparisonResult)
 		_, err = resourceClient.Update(u, metav1.UpdateOptions{})
 		if err != nil {
 			return nil, err
