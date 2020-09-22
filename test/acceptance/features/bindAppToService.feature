@@ -290,7 +290,7 @@ Feature: Bind an application to a service
 
     Scenario: Backend Service new spec status update gets propagated to the binding secret
         Given OLM Operator "backend-new-spec" is running
-        * Backend CR "backend-demo" is applied
+        * The Custom Resource is present
             """
             apiVersion: "stable.example.com/v1"
             kind: Backend
@@ -304,7 +304,7 @@ Feature: Bind an application to a service
                     - protocol: ftp
                       port: 22
             """
-        * Service Binding request is applied
+        * Service Binding is applied
             """
             apiVersion: operators.coreos.com/v1alpha1
             kind: ServiceBinding
@@ -315,10 +315,14 @@ Feature: Bind an application to a service
                 -   group: stable.example.com
                     version: v1
                     kind: Backend
-                    resourceRef: backend-demo
+                    name: backend-demo
             """
         Then jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "binding-request-backend-new-spec" should be changed to "True"
         And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-backend-new-spec" should be changed to "False"
+        And Secret "binding-request-backend-new-spec" contains "BACKEND_HOST" key with value "example.common"
+        And Secret "binding-request-backend-new-spec" contains "BACKEND_PORTS_FTP" key with value "22"
+        And Secret "binding-request-backend-new-spec" contains "BACKEND_PORTS_TCP" key with value "8080"
+
 
     Scenario: Custom environment variable is injected into the application under the declared name ignoring global and service env prefix
         Given Imported Nodejs application "nodejs-rest-http-crud-a-d-c" is running
