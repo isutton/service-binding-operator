@@ -319,6 +319,10 @@ Feature: Bind an application to a service
             """
         Then jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "binding-request-backend-new-spec" should be changed to "True"
         And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-backend-new-spec" should be changed to "False"
+        And Secret "binding-request-backend-new-spec" contains "BACKEND_HOST" key with value "example.common"
+        And Secret "binding-request-backend-new-spec" contains "BACKEND_PORTS_FTP" key with value "22"
+        And Secret "binding-request-backend-new-spec" contains "BACKEND_PORTS_TCP" key with value "8080"
+
 
     Scenario: Custom environment variable is injected into the application under the declared name ignoring global and service env prefix
         Given Imported Nodejs application "nodejs-rest-http-crud-a-d-c" is running
