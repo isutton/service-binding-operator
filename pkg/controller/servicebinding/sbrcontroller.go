@@ -115,8 +115,11 @@ func updateFunc(logger *log.Log) func(updateEvent event.UpdateEvent) bool {
 		if isSecret || isConfigMap {
 			dataFieldsAreEqual, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "data")
 			if err != nil {
-				logger.Error(err, "error comparing object fields: %s", err.Error())
-				return false
+				logger.Error(err, "error comparing object fields")
+				// an error is returned in the case one of the compared objects doesn't have the data
+				// field; this can happen when there's no data to be stored so update should be
+				// processed
+				return true
 			}
 			logger.Debug("Predicate evaluated for Secret/ConfigMap", "dataFieldsAreEqual", dataFieldsAreEqual.Success)
 			return !dataFieldsAreEqual.Success
