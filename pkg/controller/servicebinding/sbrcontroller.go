@@ -121,25 +121,33 @@ func updateFunc(logger *log.Log) func(updateEvent event.UpdateEvent) bool {
 			logger.Debug("Predicate evaluated for Secret/ConfigMap", "dataFieldsAreEqual", dataFieldsAreEqual.Success)
 			return !dataFieldsAreEqual.Success
 		}
-		specsAreEqual, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "spec")
-		if err != nil {
+
+		var specsAreEqual bool
+		var statusAreEqual bool
+
+		if specComparison, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "spec"); err != nil {
 			logger.Error(err, "error comparing object's spec fields: %s", err.Error())
 			return false
+		} else {
+			specsAreEqual = specComparison.Success
 		}
-		statusAreEqual, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "status")
-		if err != nil {
-			logger.Error(err, "error comparing object's status fields: %s", err.Error())
-			return false
+
+		if statusComparison, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "status"); err != nil {
+			logger.Error(err, "error comparing object's status fields", err.Error())
+			statusAreEqual = false
+		} else {
+			statusAreEqual = statusComparison.Success
 		}
-		shouldReconcile := !specsAreEqual.Success || !statusAreEqual.Success
+
+		shouldReconcile := !specsAreEqual || !statusAreEqual
+
 		logger.Debug("Resource update event received",
 			"GVK", e.ObjectNew.GetObjectKind().GroupVersionKind(),
 			"Name", e.MetaNew.GetName(),
-			"SpecsAreEqual", specsAreEqual.Success,
-			"StatusAreEqual", statusAreEqual.Success,
+			"SpecsAreEqual", specsAreEqual,
+			"StatusAreEqual", statusAreEqual,
 			"ShouldReconcile", shouldReconcile,
 		)
-
 		return shouldReconcile
 	}
 }

@@ -490,7 +490,7 @@ func nestedUnstructuredComparison(a, b *unstructured.Unstructured, fields ...str
 	}
 
 	if aOk != bOk {
-		return nil, fmt.Errorf("path should exist in both objects")
+		return nil, fmt.Errorf("path should exist in both objects: %v", fields)
 	}
 
 	return nestedMapComparison(aMap, bMap), nil
