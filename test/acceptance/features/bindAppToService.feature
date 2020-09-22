@@ -373,15 +373,15 @@ Feature: Bind an application to a service
                               path: secret
                               x-descriptors:
                               - urn:alm:descriptor:io.kubernetes:Secret
-                              - binding:env:object:secret:username
-                              - binding:env:object:secret:password
+                              - service.binding:username:sourceValue=username
+                              - service.binding:password:sourceValue=password
                             - description: Name of the ConfigMap to hold the DB config
                               displayName: DB Config Map
                               path: configmap
                               x-descriptors:
                               - urn:alm:descriptor:io.kubernetes:ConfigMap
-                              - binding:env:object:configmap:db_host
-                              - binding:env:object:configmap:db_port
+                              - service.binding:db_host:sourceValue=db_host
+                              - service.binding:db_port:sourceValue=db_port
             """
         * The Custom Resource Definition is present
             """
