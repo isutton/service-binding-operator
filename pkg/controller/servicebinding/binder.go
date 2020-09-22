@@ -577,11 +577,11 @@ func (b *binder) remove(objs *unstructured.UnstructuredList) error {
 		name := obj.GetName()
 		logger := b.logger.WithValues("Obj.Name", name, "Obj.Kind", obj.GetKind())
 		logger.Debug("Inspecting object...")
-		err := b.removeSpecContainers(&obj)
+		updatedObj := obj.DeepCopy()
+		err := b.removeSpecContainers(updatedObj)
 		if err != nil {
 			return err
 		}
-		updatedObj := removeSBRAnnotations(&obj)
 
 		if len(b.volumeKeys) > 0 {
 			if updatedObj, err = b.removeSpecVolumes(updatedObj); err != nil {

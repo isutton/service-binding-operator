@@ -20,7 +20,7 @@ func TestFindServiceNewSpecCSV(t *testing.T) {
 
 	f := mocks.NewFake(t, ns)
 
-	f.AddMockedUnstructuredCSVWithNewSpec("cluster-service-version")
+	// f.AddMockedUnstructuredCSVWithNewSpec("cluster-service-version")
 	db := f.AddMockedDatabaseCR(resourceRef, ns)
 	f.AddMockedUnstructuredDatabaseCRD()
 
