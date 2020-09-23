@@ -31,16 +31,16 @@ spec:
       name: backends.stable.example.com
       version: v1
       specDescriptors:
-          - description: Host address
-            displayName: Host address
-            path: host
-            x-descriptors:
-                - service.binding:host
-          - description: Exposed ports
-            displayName: Exposed ports
-            path: ports
-            x-descriptors:
-                - service.binding:ports:elementType=sliceOfMaps,sourceKey=protocol,sourceValue=port
+        - description: Host address
+          displayName: Host address
+          path: host
+          x-descriptors:
+            - service.binding:host
+        - description: Exposed ports
+          displayName: Exposed ports
+          path: ports
+          x-descriptors:
+            - service.binding:ports:elementType=sliceOfMaps,sourceKey=protocol,sourceValue=port
   displayName: Backend Operator
   install:
     spec:
