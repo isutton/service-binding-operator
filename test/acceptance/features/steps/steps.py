@@ -2,29 +2,28 @@
 # ----------------------------------------------------------------------------
 # STEPS:
 # ----------------------------------------------------------------------------
-import os
-import re
 import base64
 import ipaddress
+import os
+import re
+import time
 
-from behave import register_type, given, then, when
-from pyshould import should, should_not
 import parse
-
-from servicebindingoperator import Servicebindingoperator
+from behave import given, register_type, then, when
 from dboperator import DbOperator
-from openshift import Openshift
-from postgres_db import PostgresDB
+from etcdcluster import EtcdCluster
+from etcdoperator import EtcdOperator
+from knative_serving import KnativeServing
 from namespace import Namespace
 from nodejs_application import NodeJSApp
-from serverless_operator import ServerlessOperator
+from openshift import Openshift
+from postgres_db import PostgresDB
+from pyshould import should, should_not
 from quarkus_application import QuarkusApplication
 from quarkus_s2i_builder_image import QuarkusS2IBuilderImage
-from knative_serving import KnativeServing
-from etcdoperator import EtcdOperator
-from etcdcluster import EtcdCluster
+from serverless_operator import ServerlessOperator
 from service_binding import ServiceBinding
-import time
+from servicebindingoperator import Servicebindingoperator
 
 
 # STEP
@@ -331,18 +330,7 @@ register_type(NullableString=parse_nullable_string)
 def check_secret_key_value(context, secret_name, secret_key, secret_value):
     openshift = Openshift()
     json_path = f'{{.data.{secret_key}}}'
-    output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path)
-    timeout = 180
-    interval = 5
-    attempts = timeout/interval
-    while True:
-        actual_secret_value = base64.b64decode(output).decode('ascii')
-        if (secret_value == actual_secret_value) or attempts <= 0:
-            break
-        else:
-            attempts -= 1
-            time.sleep(interval)
-            output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path)
+    output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path, wait=True)
     result = base64.decodebytes(bytes(output, 'utf-8'))
     result | should.be_equal_to(bytes(secret_value, 'utf-8'))
 
