@@ -78,11 +78,11 @@ func loadDescriptor(anns map[string]string, path string, descriptor string, root
 
 	keys := strings.Split(descriptor, ":")
 	key := "service.binding"
-	value:= ""
+	value := ""
 
 	if len(keys) > 1 {
-		key+= "/" + keys[1]
-	}else {
+		key += "/" + keys[1]
+	} else {
 		key += "/" + path
 	}
 
@@ -102,7 +102,7 @@ func getObjectType(descriptors []string) string {
 	typeAnno := "urn:alm:descriptor:io.kubernetes:"
 	for _, desc := range descriptors {
 		if strings.HasPrefix(desc, "urn:alm:descriptor:io.kubernetes:") {
-			return strings.TrimPrefix(desc,typeAnno)
+			return strings.TrimPrefix(desc, typeAnno)
 		}
 	}
 	return ""
@@ -120,7 +120,7 @@ func convertCRDDescriptionToAnnotations(crdDescription *olmv1alpha1.CRDDescripti
 	for _, sd := range crdDescription.SpecDescriptors {
 		objectType := getObjectType(sd.XDescriptors)
 		for _, xd := range sd.XDescriptors {
-			loadDescriptor(anns, sd.Path, xd, "spec",objectType)
+			loadDescriptor(anns, sd.Path, xd, "spec", objectType)
 		}
 	}
 
