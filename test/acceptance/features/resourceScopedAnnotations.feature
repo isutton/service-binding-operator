@@ -68,13 +68,34 @@ Feature: Resource Scoped Annotations
         """
         Then Secret "rsa-1" contains "BACKEND_URI" key with value "db.stage.ibm.com"
 
-    @disabled
     Scenario: Copy a single key as a map to the Service resource itself to the binding secret
-        Given CRD "databases.postgresql.baiju.dev" contains the annotation "service.binding/spec: path={.spec}"
-        And Resource "rsa-2-service" is created
+        Given OLM Operator "backend" is running
+        And The Custom Resource Definition is present
+        """
+        apiVersion: apiextensions.k8s.io/v1beta1
+        kind: CustomResourceDefinition
+        metadata:
+            name: backends.stable.example.com
+            annotations:
+                service.binding/spec: path={.spec},elementType=map
+        spec:
+            group: stable.example.com
+            versions:
+              - name: v1
+                served: true
+                storage: true
+            scope: Namespaced
+            names:
+                plural: backends
+                singular: backend
+                kind: Backend
+                shortNames:
+                  - bk
+        """
+        And The Custom Resource is present
             """
-            apiVersion: postgresql.baiju.dev/v1alpha1
-            kind: Database
+            apiVersion: stable.example.com/v1
+            kind: Backend
             metadata:
                 name: rsa-2-service
             spec:
@@ -94,19 +115,19 @@ Feature: Resource Scoped Annotations
                     dbCredentials: database-cred-Secret  # Secret
                     url: db.stage.ibm.com
             """
-        When Resource "rsa-2" is created
+        When Service Binding is applied
             """
-            apiVersion: apps.openshift.io/v1alpha1
-            kind: ServiceBindingRequest
+            apiVersion: operators.coreos.com/v1alpha1
+            kind: ServiceBinding
             metadata:
-                name: rsa-1
+                name: rsa-2
             spec:
-                backingServiceSelector:
-                    group: postgresql.baiju.dev
-                    version: v1alpha1
-                    kind: Database
-                    resourceRef: rsa-2-service
+                services:
+                  - group: stable.example.com
+                    version: v1
+                    kind: Backend
+                    name: rsa-2-service
             """
-        Then Secret "rsa-2" contains "SPEC_IMAGE" key with value "docker.io/postgres"
-        And Secret "rsa-2" contains "SPEC_IMAGENAME" key with value "postgres"
-        And Secret "rsa-2" contains "SPEC_DBNAME" key with value "db-demo"
+        Then Secret "rsa-2" contains "BACKEND_SPEC_IMAGE" key with value "docker.io/postgres"
+        And Secret "rsa-2" contains "BACKEND_SPEC_IMAGENAME" key with value "postgres"
+        And Secret "rsa-2" contains "BACKEND_SPEC_DBNAME" key with value "db-demo"
