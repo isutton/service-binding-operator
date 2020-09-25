@@ -42,7 +42,7 @@ func isSecret(obj runtime.Object) bool {
 
 // isSBRService checks whether the given obj is a service in given sbr.
 func isSBRService(sbr *v1alpha1.ServiceBinding, obj runtime.Object) bool {
-	services := *sbr.Spec.Services
+	services := unpackSelectors(sbr.Spec.Services)
 	for _, svc := range services {
 		svcGVK := schema.GroupVersionKind{Group: svc.Group, Version: svc.Version, Kind: svc.Kind}
 		if obj.GetObjectKind().GroupVersionKind() == svcGVK {

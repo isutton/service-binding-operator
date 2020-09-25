@@ -3,6 +3,7 @@ package servicebinding
 import (
 	"context"
 	"errors"
+
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -77,6 +78,14 @@ func (r *reconciler) getServiceBinding(
 	return sbr, nil
 }
 
+func unpackSelectors(maybeServices *[]v1alpha1.Service) []v1alpha1.Service {
+	services := []v1alpha1.Service{}
+	if maybeServices != nil {
+		services = *maybeServices
+	}
+	return services
+}
+
 // Reconcile a ServiceBinding by the following steps:
 // 1. Inspecting SBR in order to identify backend service. The service is composed by a CRD name and
 //    kind, and by inspecting "connects-to" label identify the name of service instance;
@@ -119,7 +128,8 @@ func (r *reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 
 	ctx := context.Background()
 
-	selectors := *sbr.Spec.Services
+	selectors := unpackSelectors(sbr.Spec.Services)
+
 	if len(selectors) == 0 {
 		_, updateErr := updateServiceBindingStatus(
 			r.dynClient,
