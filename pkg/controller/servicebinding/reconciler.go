@@ -128,13 +128,13 @@ func (r *reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 				Type:    CollectionReady,
 				Status:  corev1.ConditionFalse,
 				Reason:  EmptyServiceSelectorsReason,
-				Message: errEmptyServicess.Error(),
+				Message: errEmptyServices.Error(),
 			},
 			conditionsv1.Condition{
 				Type:    InjectionReady,
 				Status:  corev1.ConditionFalse,
 				Reason:  EmptyServiceSelectorsReason,
-				Message: errEmptyServicess.Error(),
+				Message: errEmptyServices.Error(),
 			},
 		)
 		if updateErr == nil {
@@ -145,7 +145,7 @@ func (r *reconciler) Reconcile(request reconcile.Request) (reconcile.Result, err
 		// Since there are nothing to recover from in the case service selectors is empty, it is
 		// still required to requeue due to some watches not being implemented. This is known issue
 		// being worked in https://github.com/redhat-developer/service-binding-operator/pull/442.
-		return requeueError(errEmptyServicess)
+		return requeueError(errEmptyServices)
 	}
 
 	serviceCtxs, err := buildServiceContexts(

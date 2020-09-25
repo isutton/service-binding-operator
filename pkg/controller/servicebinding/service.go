@@ -23,9 +23,9 @@ var (
 	// errUnspecifiedBackingServiceNamespace is returned when the namespace of a service is
 	// unspecified.
 	errUnspecifiedBackingServiceNamespace = errors.New("backing service namespace is unspecified")
-	// errEmptyServicess is returned when no backing service selectors have been
+	// errEmptyServices is returned when no backing service selectors have been
 	// informed in the Service Binding.
-	errEmptyServicess = errors.New("backing service selectors are empty")
+	errEmptyServices = errors.New("backing service selectors are empty")
 	// errEmptyApplication is returned when no application selectors have been
 	// informed in the Service Binding.
 	errEmptyApplication = errors.New("application selectors are empty")
