@@ -4,11 +4,11 @@
 # ----------------------------------------------------------------------------
 import base64
 import ipaddress
-import os
-import re
+import json
 import time
 
 import parse
+import polling2
 from behave import given, register_type, then, when
 from dboperator import DbOperator
 from etcdcluster import EtcdCluster
@@ -23,7 +23,6 @@ from quarkus_application import QuarkusApplication
 from quarkus_s2i_builder_image import QuarkusS2IBuilderImage
 from serverless_operator import ServerlessOperator
 from service_binding import ServiceBinding
-from servicebindingoperator import Servicebindingoperator
 
 
 # STEP
@@ -221,13 +220,13 @@ def then_sbo_jsonpath_is(context, json_path, sbr_name, json_value_regex):
 
 
 # STEP
-@then(u'jq "{jq_expression}" of Service Binding "{sbr_name}" should be changed to "{json_value_regex}"')
-def then_sbo_jq_is(context, jq_expression, sbr_name, json_value_regex):
+@then(u'jq "{jq_expression}" of Service Binding "{sbr_name}" should be changed to "{json_value}"')
+def sbo_jq_is(context, jq_expression, sbr_name, json_value):
     openshift = Openshift()
-    openshift.search_resource_in_namespace("servicebindings", sbr_name, context.namespace.name) | should_not.be_none.desc("SBR {sbr_name} exists")
-    result = openshift.get_resource_info_by_jq("sbr", sbr_name, context.namespace.name, jq_expression, wait=True, timeout=800)
-    result | should_not.be_none.desc("jq result")
-    re.fullmatch(json_value_regex, result) | should_not.be_none.desc("SBO jq result \"{result}\" should match \"{json_value_regex}\"")
+    polling2.poll(lambda: json.loads(
+        openshift.get_resource_info_by_jq("servicebinding", sbr_name, context.namespace.name, jq_expression,
+                                          wait=False)) == json_value, step=5, timeout=800,
+                  ignore_exceptions=(json.JSONDecodeError,))
 
 
 @given(u'Openshift Serverless Operator is running')
