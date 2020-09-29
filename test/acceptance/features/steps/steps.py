@@ -8,9 +8,9 @@ import json
 import os
 import re
 import time
-
-import parse
 import polling2
+import parse
+
 from behave import given, register_type, then, when
 from dboperator import DbOperator
 from etcdcluster import EtcdCluster
