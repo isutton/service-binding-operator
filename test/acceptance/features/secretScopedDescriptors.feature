@@ -94,7 +94,7 @@ Feature: Secret Scoped Annotations
         apiVersion: v1
         kind: Secret
         metadata:
-            name: ssa-1-secret
+            name: ssd-1-secret
         stringData:
             username: AzureDiamond
         """
@@ -103,27 +103,27 @@ Feature: Secret Scoped Annotations
         apiVersion: stable.example.com/v1
         kind: BackendDescriptorBinding
         metadata:
-            name: ssa-1-service
+            name: ssd-1-service
         spec:
             host: example.com
         status:
             data:
-                dbCredentials: ssa-1-secret
+                dbCredentials: ssd-1-secret
         """
         When Service Binding is applied
         """
         apiVersion: operators.coreos.com/v1alpha1
         kind: ServiceBinding
         metadata:
-            name: ssa-1
+            name: ssd-1
         spec:
             services:
               - group: stable.example.com
                 version: v1
                 kind: BackendDescriptorBinding
-                name: ssa-1-service
+                name: ssd-1-service
         """
-        Then Secret "ssa-1" contains "BACKENDDESCRIPTORBINDING_USERNAME" key with value "AzureDiamond"
+        Then Secret "ssd-1" contains "BACKENDDESCRIPTORBINDING_USERNAME" key with value "AzureDiamond"
 
     @skip
     Scenario: Copy all keys from the Secret related to the Service resource to the binding secret with olm descriptors
@@ -214,7 +214,7 @@ Feature: Secret Scoped Annotations
         apiVersion: v1
         kind: Secret
         metadata:
-            name: ssa-2-secret
+            name: ssd-2-secret
         stringData:
             username: AzureDiamond
             password: hunter2
@@ -224,27 +224,27 @@ Feature: Secret Scoped Annotations
         apiVersion: stable.example.com/v1
         kind: BackendDescriptorBinding
         metadata:
-            name: ssa-2-service
+            name: ssd-2-service
         spec:
             image: docker.io/postgres
             imageName: postgres
             dbName: db-demo
         status:
             data:
-                dbCredentials: ssa-2-secret
+                dbCredentials: ssd-2-secret
         """
         When Service Binding is applied
         """
         apiVersion: operators.coreos.com/v1alpha1
         kind: ServiceBinding
         metadata:
-            name: ssa-2
+            name: ssd-2
         spec:
             services:
               - group: stable.example.com
                 version: v1
                 kind: BackendDescriptorBinding
-                name: ssa-2-service
+                name: ssd-2-service
         """
-        Then Secret "ssa-2" contains "BACKENDDESCRIPTORBINDING_USERNAME" key with value "AzureDiamond"
-        And Secret "ssa-2" contains "BACKENDDESCRIPTORBINDING_PASSWORD" key with value "hunter2"
+        Then Secret "ssd-2" contains "BACKENDDESCRIPTORBINDING_USERNAME" key with value "AzureDiamond"
+        And Secret "ssd-2" contains "BACKENDDESCRIPTORBINDING_PASSWORD" key with value "hunter2"
