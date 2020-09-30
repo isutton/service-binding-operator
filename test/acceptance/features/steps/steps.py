@@ -2,7 +2,6 @@
 # ----------------------------------------------------------------------------
 # STEPS:
 # ----------------------------------------------------------------------------
-import base64
 import ipaddress
 import json
 import os
@@ -10,8 +9,9 @@ import re
 import time
 import polling2
 import parse
+import binascii
 
-from behave import given, register_type, then, when
+from behave import given, register_type, then, when, step
 from dboperator import DbOperator
 from etcdcluster import EtcdCluster
 from etcdoperator import EtcdOperator
@@ -223,7 +223,7 @@ def then_sbo_jsonpath_is(context, json_path, sbr_name, json_value_regex):
 
 
 # STEP
-@then(u'jq "{jq_expression}" of Service Binding "{sbr_name}" should be changed to "{json_value}"')
+@step(u'jq "{jq_expression}" of Service Binding "{sbr_name}" should be changed to "{json_value}"')
 def sbo_jq_is(context, jq_expression, sbr_name, json_value):
     openshift = Openshift()
     polling2.poll(lambda: json.loads(
@@ -328,13 +328,13 @@ register_type(NullableString=parse_nullable_string)
 
 
 # STEP
-@then(u'Secret "{secret_name}" contains "{secret_key}" key with value "{secret_value:NullableString}"')
+@step(u'Secret "{secret_name}" contains "{secret_key}" key with value "{secret_value:NullableString}"')
 def check_secret_key_value(context, secret_name, secret_key, secret_value):
     openshift = Openshift()
     json_path = f'{{.data.{secret_key}}}'
-    output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path, wait=True)
-    result = base64.decodebytes(bytes(output, 'utf-8'))
-    result | should.be_equal_to(bytes(secret_value, 'utf-8'))
+    polling2.poll(lambda: openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name,
+                                                                  json_path) == secret_value,
+                  step=5, timeout=120, ignore_exceptions=(binascii.Error,))
 
 
 # STEP
@@ -342,27 +342,9 @@ def check_secret_key_value(context, secret_name, secret_key, secret_value):
 def check_secret_key_with_ip_value(context, secret_name, secret_key):
     openshift = Openshift()
     json_path = f'{{.data.{secret_key}}}'
-    output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path)
-    timeout = 180
-    interval = 5
-    attempts = timeout/interval
-    while True:
-        actual_secret_value = base64.b64decode(output).decode('ascii')
-        try:
-            ipaddress.ip_address(actual_secret_value)
-        except ValueError:
-            pass
-        else:
-            break
-        if attempts <= 0:
-            break
-        else:
-            attempts -= 1
-            time.sleep(interval)
-            output = openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path)
-    result = base64.decodebytes(bytes(output, 'utf-8'))
-    with should.not_raise:
-        ipaddress.ip_address(result.decode('ascii'))
+    polling2.poll(lambda: ipaddress.ip_address(
+        openshift.get_resource_info_by_jsonpath("secrets", secret_name, context.namespace.name, json_path)),
+                  step=5, timeout=120, ignore_exceptions=(ValueError,))
 
 
 # STEP

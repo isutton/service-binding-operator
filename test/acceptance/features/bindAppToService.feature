@@ -8,6 +8,8 @@ Feature: Bind an application to a service
         * Service Binding Operator is running
         * PostgreSQL DB operator is installed
 
+    @disabled
+    @need-new-postgress-operator
     Scenario: Bind an imported Node.js application to PostgreSQL database in the following order: Application, DB and Service Binding
         Given Imported Nodejs application "nodejs-rest-http-crud-a-d-s" is running
         * DB "db-demo-a-d-s" is running
@@ -45,6 +47,8 @@ Feature: Bind an application to a service
         And Secret "binding-request-a-d-s" contains "DATABASE_DBCONNECTIONIP" key with dynamic IP addess as the value
         And Secret "binding-request-a-d-s" contains "DATABASE_DBCONNECTIONPORT" key with value "5432"
 
+    @disabled
+    @need-new-postgress-operator
     Scenario: Bind an imported Node.js application to PostgreSQL database in the following order: Application, Service Binding and DB
         Given Imported Nodejs application "nodejs-rest-http-crud-a-s-d" is running
         * Service Binding is applied
@@ -72,6 +76,8 @@ Feature: Bind an application to a service
         And application should be connected to the DB "db-demo-a-s-d"
 
 
+    @disabled
+    @need-new-postgress-operator
     Scenario: Bind an imported Node.js application to PostgreSQL database in the following order: DB, Application and Service Binding
         Given DB "db-demo-d-a-s" is running
         * Imported Nodejs application "nodejs-rest-http-crud-d-a-s" is running
@@ -214,8 +220,20 @@ Feature: Bind an application to a service
 
     @negative
     Scenario: Service Binding without application selector
-        Given Imported Nodejs application "nodejs-empty-app" is running
-        And DB "db-demo-empty-app" is running
+        Given OLM Operator "backend" is running
+        * The Custom Resource is present
+            """
+            apiVersion: "stable.example.com/v1"
+            kind: Backend
+            metadata:
+                name: backend-demo-empty-app
+                annotations:
+                    service.binding/host: path={.spec.host}
+                    service.binding/username: path={.spec.username}
+            spec:
+                host: example.common
+                username: foo
+            """
         When Service Binding is applied
             """
             apiVersion: operators.coreos.com/v1alpha1
@@ -224,25 +242,16 @@ Feature: Bind an application to a service
                 name: binding-request-empty-app
             spec:
                 services:
-                -   group: postgresql.baiju.dev
-                    version: v1alpha1
-                    kind: Database
-                    name: db-demo-empty-app
+                -   group: stable.example.com
+                    version: v1
+                    kind: Backend
+                    name: backend-demo-empty-app
             """
         Then jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "binding-request-empty-app" should be changed to "True"
         And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-empty-app" should be changed to "False"
         And jq ".status.conditions[] | select(.type=="InjectionReady").reason" of Service Binding "binding-request-empty-app" should be changed to "EmptyApplication"
-        And Secret "binding-request-empty-app" contains "DATABASE_DBNAME" key with value "db-demo-empty-app"
-        And Secret "binding-request-empty-app" contains "DATABASE_USER" key with value "postgres"
-        And Secret "binding-request-empty-app" contains "DATABASE_PASSWORD" key with value "password"
-        And Secret "binding-request-empty-app" contains "DATABASE_DB_PASSWORD" key with value "password"
-        And Secret "binding-request-empty-app" contains "DATABASE_DB_NAME" key with value "db-demo-empty-app"
-        And Secret "binding-request-empty-app" contains "DATABASE_DB_PORT" key with value "5432"
-        And Secret "binding-request-empty-app" contains "DATABASE_DB_USER" key with value "postgres"
-        And Secret "binding-request-empty-app" contains "DATABASE_DB_HOST" key with dynamic IP addess as the value
-        And Secret "binding-request-empty-app" contains "DATABASE_DBCONNECTIONIP" key with dynamic IP addess as the value
-        And Secret "binding-request-empty-app" contains "DATABASE_DBCONNECTIONPORT" key with value "5432"
-
+        And Secret "binding-request-empty-app" contains "BACKEND_HOST" key with value "example.common"
+        And Secret "binding-request-empty-app" contains "BACKEND_USERNAME" key with value "foo"
 
 
     Scenario: Backend Service status update gets propagated to the binding secret
@@ -278,9 +287,9 @@ Feature: Bind an application to a service
                   - name: CustomHost
                     value: '{{ .SBR.spec.host }}'
             """
-        Then jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "binding-request-backend" should be changed to "True"
-        And jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-backend" should be changed to "False"
-        Then Secret "binding-request-backend" contains "CustomReady" key with value "<no value>"
+        * jq ".status.conditions[] | select(.type=="CollectionReady").status" of Service Binding "binding-request-backend" should be changed to "True"
+        * jq ".status.conditions[] | select(.type=="InjectionReady").status" of Service Binding "binding-request-backend" should be changed to "False"
+        * Secret "binding-request-backend" contains "CustomReady" key with value "<no value>"
         # Backend status in "backend-demo" is updated
         When The Custom Resource is present
             """
@@ -577,8 +586,8 @@ Feature: Bind an application to a service
                 metadata:
                   name: backends.stable.example.com
                   annotations:
-                      servicebindingoperator.redhat.io/status.ready: 'binding:env:attribute'
-                      servicebindingoperator.redhat.io/spec.host: 'binding:env:attribute'
+                      service.binding/host: path={.spec.host}
+                      service.binding/ready: path={.status.ready}
                 spec:
                   group: stable.example.com
                   versions:
