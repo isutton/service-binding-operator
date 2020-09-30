@@ -217,7 +217,7 @@ spec:
         assert exit_code == 0, f"Non-zero exit code ({exit_code}) returned while getting deployment's envFrom: {env_from}"
         return env_from
 
-    def get_resource_info_by_jsonpath(self, resource_type, name, namespace, json_path, decode=False):
+    def get_resource_info_by_jsonpath(self, resource_type, name, namespace, json_path):
         oc_cmd = f'oc get {resource_type} {name} -n {namespace} -o "jsonpath={json_path}"'
         output, exit_code = self.cmd.run(oc_cmd)
         if exit_code == 0:
