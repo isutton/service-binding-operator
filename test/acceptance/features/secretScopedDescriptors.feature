@@ -53,7 +53,7 @@ Feature: Secret Scoped Annotations
                     path: data.dbCredentials
                     x-descriptors:
                         - urn:alm:descriptor:io.kubernetes:Secret
-                        - service.binding:username:sourceKey=username
+                        - service.binding:username:sourceValue=username
           displayName: Backend Operator
           install:
             spec:
@@ -125,6 +125,7 @@ Feature: Secret Scoped Annotations
                 name: ssd-1-service
         """
         Then Secret "ssd-1" contains "BACKEND_USERNAME" key with value "AzureDiamond"
+        And Secret "ssd-1" contains "BACKEND_HOST" key with value "example.com"
 
     @disabled
     Scenario: Copy all keys from the Secret related to the Service resource to the binding secret with olm descriptors
