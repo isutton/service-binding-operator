@@ -127,7 +127,6 @@ Feature: Secret Scoped Annotations
         Then Secret "ssd-1" contains "BACKEND_USERNAME" key with value "AzureDiamond"
         And Secret "ssd-1" contains "BACKEND_HOST" key with value "example.com"
 
-    @disabled
     Scenario: Copy all keys from the Secret related to the Service resource to the binding secret with olm descriptors
         Given The Custom Resource Definition is present
     """
