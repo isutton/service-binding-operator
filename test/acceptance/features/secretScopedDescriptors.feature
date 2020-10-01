@@ -130,11 +130,11 @@ Feature: Secret Scoped Annotations
     @disabled
     Scenario: Copy all keys from the Secret related to the Service resource to the binding secret with olm descriptors
         Given The Custom Resource Definition is present
-        """
+    """
         apiVersion: apiextensions.k8s.io/v1beta1
         kind: CustomResourceDefinition
         metadata:
-            name: backenddescriptorbindings.stable.example.com
+            name: backends.stable.example.com
         spec:
             group: stable.example.com
             versions:
@@ -143,9 +143,9 @@ Feature: Secret Scoped Annotations
                 storage: true
             scope: Namespaced
             names:
-                plural: backenddescriptorbindings
-                singular: backenddescriptorbinding
-                kind: BackendDescriptorBinding
+                plural: backends
+                singular: backend
+                kind: Backend
                 shortNames:
                   - bk
         """
@@ -161,16 +161,18 @@ Feature: Secret Scoped Annotations
           customresourcedefinitions:
             owned:
             - description: Backend is the Schema for the backend API
-              kind: BackendDescriptorBinding
-              name: backenddescriptorbindings.stable.example.com
+              kind: Backend
+              name: backends.stable.example.com
               version: v1
               specDescriptors:
                 - description: Host address
                   displayName: Host address
                   path: host
+                  x-descriptors:
+                    - service.binding:host
               statusDescriptors:
-                  - description: DB credentials
-                    displayName: DB credentials
+                  - description: db credentials
+                    displayName: db credentials
                     path: data.dbCredentials
                     x-descriptors:
                         - urn:alm:descriptor:io.kubernetes:Secret
@@ -224,7 +226,7 @@ Feature: Secret Scoped Annotations
         And The Custom Resource is present
         """
         apiVersion: stable.example.com/v1
-        kind: BackendDescriptorBinding
+        kind: Backend
         metadata:
             name: ssd-2-service
         spec:
@@ -245,8 +247,8 @@ Feature: Secret Scoped Annotations
             services:
               - group: stable.example.com
                 version: v1
-                kind: BackendDescriptorBinding
+                kind: Backend
                 name: ssd-2-service
         """
-        Then Secret "ssd-2" contains "BACKENDDESCRIPTORBINDING_USERNAME" key with value "AzureDiamond"
-        And Secret "ssd-2" contains "BACKENDDESCRIPTORBINDING_PASSWORD" key with value "hunter2"
+        Then Secret "ssd-2" contains "BACKEND_USERNAME" key with value "AzureDiamond"
+        And Secret "ssd-2" contains "BACKEND_PASSWORD" key with value "hunter2"
