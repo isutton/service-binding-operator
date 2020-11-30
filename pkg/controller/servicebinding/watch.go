@@ -38,7 +38,9 @@ func (c *csvToWatcherMapper) Map(obj handler.MapObject) []reconcile.Request {
 		log.Debug("Adding watch for GVK", "GVK", gvk)
 		err = c.controller.AddWatchForGVK(gvk)
 		if err != nil {
-			log.Error(err, "Failed to create a watch")
+			// it is entirely possible a GVK might not exist in the API server, thus only a
+			// warning is enough until review
+			log.Warning("Failed to create a watch", "Error", err)
 		}
 	}
 

@@ -125,6 +125,7 @@ func updateFunc(logger *log.Log) func(updateEvent event.UpdateEvent) bool {
 		isConfigMap := isOfKind(e.ObjectNew, "ConfigMap")
 
 		if isSecret || isConfigMap {
+			namespaceNew, nameNew := e.MetaNew.GetNamespace(), e.MetaNew.GetName()
 			dataFieldsAreEqual, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "data")
 			if err != nil {
 				logger.Error(err, "error comparing object fields")
@@ -133,7 +134,11 @@ func updateFunc(logger *log.Log) func(updateEvent event.UpdateEvent) bool {
 				// processed
 				return true
 			}
-			logger.Debug("Predicate evaluated for Secret/ConfigMap", "dataFieldsAreEqual", dataFieldsAreEqual.Success)
+			logger.Debug("Predicate evaluated for Secret/ConfigMap",
+				"dataFieldsAreEqual", dataFieldsAreEqual.Success,
+				"Object.Name", nameNew,
+				"Object.Namespace", namespaceNew,
+			)
 			return !dataFieldsAreEqual.Success
 		}
 
@@ -148,7 +153,7 @@ func updateFunc(logger *log.Log) func(updateEvent event.UpdateEvent) bool {
 		}
 
 		if statusComparison, err := compareObjectFields(e.ObjectOld, e.ObjectNew, "status"); err != nil {
-			logger.Error(err, "error comparing object's status fields", err.Error())
+			logger.Error(err, "error comparing object's status fields")
 			statusAreEqual = false
 		} else {
 			statusAreEqual = statusComparison.Success
@@ -196,7 +201,7 @@ func (s *sbrController) AddWatchForGVK(gvk schema.GroupVersionKind) error {
 	// saving GVK in cache
 	s.watchingGVKs[gvk] = true
 
-	logger.Debug("Creating watch on GVK")
+	logger.Trace("Creating watch on GVK")
 	src := s.createSourceForGVK(gvk)
 	return s.Controller.Watch(src, s.newEnqueueRequestsForSBR(), buildGVKPredicate(logger))
 }
@@ -295,10 +300,13 @@ func (s *sbrController) addWhitelistedGVKWatches() error {
 	}
 
 	for _, gvk := range gvks {
-		log.Debug("Adding watch for whitelisted GVK...", "GVK", gvk)
+		log.Trace("Adding watch for whitelisted GVK...", "GVK", gvk)
 		err = s.AddWatchForGVK(gvk)
 		if err != nil {
-			log.Error(err, "on creating watch for GVK")
+			// it is entirely possible a GVK might not exist in the API server, thus only a
+			// warning is enough until review
+
+			log.Warning("on creating watch for GVK", "Error", err)
 			return err
 		}
 	}

@@ -129,6 +129,7 @@ func (m *sbrRequestMapper) Map(obj handler.MapObject) []reconcile.Request {
 	log := mapperLog.WithValues(
 		"Object.Namespace", obj.Meta.GetNamespace(),
 		"Object.Name", obj.Meta.GetName(),
+		"Object.GVK", obj.Object.GetObjectKind().GroupVersionKind(),
 	)
 
 	namespacedNamesToReconcile := make(namespacedNameSet)
