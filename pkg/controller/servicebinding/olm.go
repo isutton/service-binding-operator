@@ -243,7 +243,7 @@ func (o *olm) extractGVKs(
 	log := o.logger
 	gvks := []schema.GroupVersionKind{}
 	err := o.loopCRDDescriptions(crdDescriptions, func(crdDescription *olmv1alpha1.CRDDescription) {
-		log.Debug("Extracting GVK from CRDDescription", "CRDDescription.Name", crdDescription.Name)
+		log.Trace("Extracting GVK from CRDDescription", "CRDDescription.Name", crdDescription.Name)
 		_, gv := schema.ParseResourceArg(crdDescription.Name)
 		gvks = append(gvks, schema.GroupVersionKind{
 			Group:   gv.Group,
@@ -273,7 +273,7 @@ func (o *olm) listGVKsFromCSVNamespacedName(
 	namespacedName types.NamespacedName,
 ) ([]schema.GroupVersionKind, error) {
 	log := o.logger.WithValues("CSV.NamespacedName", namespacedName)
-	log.Debug("Reading CSV to extract GVKs...")
+	log.Trace("Reading CSV to extract GVKs...")
 	gvr := olmv1alpha1.SchemeGroupVersion.WithResource(csvResource)
 	resourceClient := o.client.Resource(gvr).Namespace(namespacedName.Namespace)
 	u, err := resourceClient.Get(namespacedName.Name, metav1.GetOptions{})

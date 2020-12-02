@@ -35,7 +35,7 @@ func (c *csvToWatcherMapper) Map(obj handler.MapObject) []reconcile.Request {
 	}
 
 	for _, gvk := range gvks {
-		log.Debug("Adding watch for GVK", "GVK", gvk)
+		log.Trace("Adding watch for GVK", "GVK", gvk)
 		err = c.controller.AddWatchForGVK(gvk)
 		if err != nil {
 			// it is entirely possible a GVK might not exist in the API server, thus only a

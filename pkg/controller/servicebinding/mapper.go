@@ -163,14 +163,20 @@ ITEMS:
 		}
 
 		if isSecret(obj.Object) && isSecretOwnedBySBR(obj.Meta, sbr) {
-			log.Debug("resource identified as a secret owned by the SBR")
+			log.Trace("resource identified as a secret owned by the SBR",
+				"ServiceBinding.Namespace", namespacedName.Namespace,
+				"ServiceBinding.Name", namespacedName.Name,
+			)
 			namespacedNamesToReconcile.add(namespacedName)
 		} else {
 			log.Trace("resource is not a secret owned by the SBR")
 		}
 
 		if isSBRService(sbr, obj.Object) {
-			log.Debug("resource identified as service in SBR", "NamespacedName", namespacedName)
+			log.Trace("resource identified as service in SBR",
+				"ServiceBinding.Namespace", namespacedName.Namespace,
+				"ServiceBinding.Name", namespacedName.Name,
+			)
 			namespacedNamesToReconcile.add(namespacedName)
 		} else {
 			log.Trace("resource is not a service declared by the SBR")
@@ -188,16 +194,18 @@ ITEMS:
 			log.Trace("resource is not an application declared by the SBR")
 			continue ITEMS
 		} else {
-			log.Debug("resource identified as an application in SBR", "NamespacedName", namespacedName)
+			log.Trace("resource identified as an application in SBR",
+				"ServiceBinding.Namespace", namespacedName.Namespace,
+				"ServiceBinding.Name", namespacedName.Name)
 			namespacedNamesToReconcile.add(namespacedName)
 		}
 	}
 
 	requests := convertToRequests(namespacedNamesToReconcile)
 	if count := len(requests); count > 0 {
-		log.Debug("found SBRs for resource", "Count", count, "Requests", requests)
+		log.Trace("found SBRs for resource", "Count", count, "Requests", requests)
 	} else {
-		log.Debug("no SBRs found for resource")
+		log.Trace("no SBRs found for resource")
 	}
 	return requests
 }
