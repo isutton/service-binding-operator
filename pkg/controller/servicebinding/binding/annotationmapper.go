@@ -27,10 +27,21 @@ const (
 	AnnotationPrefix             = "service.binding"
 )
 
+type AnnotationPrefixError string
+
+func (e AnnotationPrefixError) Error() string {
+	return fmt.Sprintf("can't process annotation with name %q", e)
+}
+
+func IsAnnotationPrefixError(err interface{}) bool {
+	_, ok := err.(AnnotationPrefixError)
+	return ok
+}
+
 func (m *annotationBackedDefinitionBuilder) outputName() (string, error) {
 	// bail out in the case the annotation name doesn't start with "service.binding"
 	if m.name != AnnotationPrefix && !strings.HasPrefix(m.name, AnnotationPrefix+"/") {
-		return "", fmt.Errorf("can't process annotation with name %q", m.name)
+		return "", AnnotationPrefixError(m.name)
 	}
 
 	if p := strings.SplitN(m.name, "/", 2); len(p) > 1 && len(p[1]) > 0 {

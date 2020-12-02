@@ -168,7 +168,13 @@ func runHandler(
 	}
 	r, err := h.Handle()
 	if err != nil {
-		return err
+		if binding.IsAnnotationPrefixError(err) {
+			// TODO: trace the error with logging
+			// ignore annotation prefix errors
+			return nil
+		} else {
+			return err
+		}
 	}
 
 	if newObj, err := merge(outputObj.Object, r.RawData); err != nil {
