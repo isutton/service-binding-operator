@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"gotest.tools/assert/cmp"
@@ -247,6 +248,11 @@ func (b *serviceBinder) onError(
 		return requeueError(errStatus)
 	}
 	b.sbr = newSbr
+
+	if k8serrors.IsConflict(err) {
+		// TODO(isutton): confirm whether exponential backoff applies here
+		return requeue(err, 2)
+	}
 
 	return requeueOnNotFound(err, requeueAfter)
 }
